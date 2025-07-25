@@ -1,0 +1,18 @@
+{
+  "name": "dermaself-workspace",
+  "version": "1.0.0",
+  "description": "Dermaself - Production-Ready Skincare Advisor",
+  "private": true,
+  "scripts": {
+    "start": "npm run start:api",
+    "start:api": "cd api && npm start",
+    "start:frontend": "cd frontend && npm run dev",
+    "install:all": "cd api && npm install && cd ../frontend && npm install",
+    "build": "cd frontend && npm run build",
+    "test": "cd api && npm test",
+    "lint": "cd api && npm run lint"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

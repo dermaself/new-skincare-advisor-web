@@ -177,8 +177,8 @@ export default function SkinAnalysis() {
             transition={{ duration: 0.3 }}
           >
             <CameraCapture
-              onImageCapture={handleImageSelect}
-              onBack={() => setStep('upload')}
+              onCapture={handleImageSelect}
+              onClose={() => setStep('upload')}
             />
           </motion.div>
         )}

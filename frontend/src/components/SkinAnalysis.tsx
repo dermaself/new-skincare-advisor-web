@@ -1,6 +1,5 @@
 'use client';
-
-import { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Camera, Upload, X, CheckCircle, AlertCircle, Loader2, Sparkles } from 'lucide-react';
 import ImageUpload from './ImageUpload';

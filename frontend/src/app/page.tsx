@@ -27,43 +27,122 @@ export default function Home() {
       >
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <motion.div 
+            {/* Logo */}
+            <motion.a 
+              href="/" 
               className="flex items-center space-x-3"
               whileHover={{ scale: 1.02 }}
               transition={{ duration: 0.2 }}
+              aria-label="home"
             >
-              <div className="flex items-center justify-center w-10 h-10 bg-primary-600 rounded-lg shadow-sm">
-                <Camera className="w-6 h-6 text-white" />
+              <div className="flex items-center justify-center w-12 h-12 bg-primary-600 shadow-sm">
+                <Camera className="w-7 h-7 text-white" />
               </div>
               <div>
                 <h1 className="text-xl font-bold text-gray-900">DermaSelf</h1>
                 <p className="text-sm text-gray-500">AI Skin Analysis</p>
               </div>
-            </motion.div>
+            </motion.a>
             
-            <nav className="hidden md:flex items-center space-x-8">
-              {['Features', 'How it Works', 'About', 'Contact'].map((item, index) => (
-                <motion.a
-                  key={item}
-                  href={`#${item.toLowerCase().replace(' ', '-')}`}
-                  className="text-gray-600 hover:text-primary-600 transition-colors duration-200"
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.4, delay: index * 0.1 }}
-                >
-                  {item}
-                </motion.a>
-              ))}
+            {/* Desktop Navigation */}
+            <nav className="hidden lg:flex items-center space-x-8">
+              <motion.a
+                href="/"
+                className="text-gray-600 hover:text-primary-600 transition-colors duration-200 font-medium"
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: 0.1 }}
+              >
+                Home
+              </motion.a>
+              <motion.a
+                href="/about"
+                className="text-gray-600 hover:text-primary-600 transition-colors duration-200 font-medium"
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: 0.2 }}
+              >
+                About
+              </motion.a>
+              
+              {/* Dropdown Menu */}
+              <motion.div
+                className="relative group"
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: 0.3 }}
+              >
+                <button className="flex items-center space-x-1 text-gray-600 hover:text-primary-600 transition-colors duration-200 font-medium">
+                  <span>Try Now</span>
+                  <svg className="w-4 h-4 transition-transform duration-200 group-hover:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+                
+                {/* Dropdown Content */}
+                <div className="absolute top-full left-0 mt-2 w-48 bg-white border border-gray-200 shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
+                  <a href="/skin-analysis" className="block px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-primary-600 transition-colors duration-200">
+                    Skin Analysis
+                  </a>
+                  <a href="/product-recommendations" className="block px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-primary-600 transition-colors duration-200">
+                    Product Recommendations
+                  </a>
+                  <a href="/skincare-routine" className="block px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-primary-600 transition-colors duration-200">
+                    Skincare Routine
+                  </a>
+                </div>
+              </motion.div>
+              
+              <motion.a
+                href="/solutions"
+                className="text-gray-600 hover:text-primary-600 transition-colors duration-200 font-medium"
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: 0.4 }}
+              >
+                Solutions
+              </motion.a>
+              <motion.a
+                href="/pricing"
+                className="text-gray-600 hover:text-primary-600 transition-colors duration-200 font-medium"
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: 0.5 }}
+              >
+                Pricing
+              </motion.a>
+              <motion.a
+                href="/blog"
+                className="text-gray-600 hover:text-primary-600 transition-colors duration-200 font-medium"
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: 0.6 }}
+              >
+                Blog
+              </motion.a>
+              <motion.a
+                href="/contact"
+                className="text-gray-600 hover:text-primary-600 transition-colors duration-200 font-medium"
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: 0.7 }}
+              >
+                Contact Us
+              </motion.a>
             </nav>
             
+            {/* Mobile Menu Button */}
             <motion.button
-              onClick={handleTryNow}
-              className="btn-primary flex items-center space-x-2"
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
+              className="lg:hidden w-8 h-8 flex items-center justify-center hover:bg-gray-100 transition-colors"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: 0.8 }}
             >
-              <Sparkles className="w-4 h-4" />
-              <span>Try Analysis</span>
+              <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
             </motion.button>
           </div>
         </div>
@@ -83,7 +162,7 @@ export default function Home() {
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.8, delay: 0.2 }}
             >
-              AI-Powered Skin Analysis
+              DERMASELF - AI SKINCARE
             </motion.h1>
             <motion.p 
               className="text-xl text-gray-600 max-w-3xl mx-auto mb-8 leading-relaxed"
@@ -102,18 +181,18 @@ export default function Home() {
             >
               <motion.button
                 onClick={handleTryNow}
-                className="btn-primary text-lg px-8 py-2"
+                className="btn-primary px-12 py-3 tracking-wide text-bold"
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
               >
-                Start Analysis
+                TRY IT NOW
               </motion.button>
               <motion.button 
-                className="btn-secondary text-lg px-8 py-2"
+                className="btn-secondary px-12 py-3 tracking-wide text-bold"
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
               >
-                Learn More
+                CONTACT US
               </motion.button>
             </motion.div>
           </motion.div>
@@ -121,7 +200,7 @@ export default function Home() {
       </section>
 
       {/* Features Section */}
-      <section id="features" className="py-20 bg-white">
+      <section id="features" className="py-20 bg-gray-50">
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
             <motion.div
@@ -135,7 +214,7 @@ export default function Home() {
                 <img
                   src="https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80"
                   alt="AI Skin Analysis"
-                  className="w-full h-96 object-cover rounded-xl shadow-lg"
+                  className="w-full h-96 object-cover shadow-lg"
                 />
               </div>
             </motion.div>
@@ -192,7 +271,7 @@ export default function Home() {
       </section>
 
       {/* How It Works Section */}
-      <section id="how-it-works" className="py-20 bg-gray-50">
+      <section id="how-it-works" className="py-20 bg-white">
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
             <motion.div
@@ -202,13 +281,13 @@ export default function Home() {
               viewport={{ once: true }}
             >
               <motion.h2 
-                className="text-3xl font-bold text-gray-900 mb-6"
+                className="text-3xl font-bold text-gray-900 mb-6 tracking-widest"
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4, delay: 0.2 }}
                 viewport={{ once: true }}
               >
-                Simple 3-Step Process
+                PREMIUM-QUALITY, AFFORDABLE, SCALABLE.
               </motion.h2>
               <div className="space-y-6 text-gray-600">
                 <motion.div
@@ -217,8 +296,7 @@ export default function Home() {
                   transition={{ duration: 0.4, delay: 0.4 }}
                   viewport={{ once: true }}
                 >
-                  <h4 className="font-semibold text-gray-900 mb-2">1. Complete Assessment</h4>
-                  <p>Answer a few questions about your skin type and concerns.</p>
+                  <p>Dermaself is powered by the latest AI technology, detecting 10 of the most common skin concerns.</p>
                 </motion.div>
                 <motion.div
                   initial={{ opacity: 0, y: 10 }}
@@ -226,8 +304,7 @@ export default function Home() {
                   transition={{ duration: 0.4, delay: 0.6 }}
                   viewport={{ once: true }}
                 >
-                  <h4 className="font-semibold text-gray-900 mb-2">2. AI Analysis</h4>
-                  <p>Our AI analyzes your skin and identifies key concerns.</p>
+                  <p>Our AI skin-health solution processes all user data instantly and within user’s device, never collecting, storing or sharing personal user data.</p>
                 </motion.div>
                 <motion.div
                   initial={{ opacity: 0, y: 10 }}
@@ -235,12 +312,11 @@ export default function Home() {
                   transition={{ duration: 0.4, delay: 0.8 }}
                   viewport={{ once: true }}
                 >
-                  <h4 className="font-semibold text-gray-900 mb-2">3. Get Results</h4>
-                  <p>Receive personalized recommendations and skincare routine.</p>
+                  <p>The app is fully customisable, cross platform in-browser, and scales as your business grows.</p>
                 </motion.div>
               </div>
               <motion.button 
-                className="btn-primary mt-8"
+                className="btn-primary mt-8 px-8"
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
               >
@@ -259,7 +335,7 @@ export default function Home() {
                 <img
                   src="https://images.unsplash.com/photo-1559757148-5c350d0d3c56?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80"
                   alt="AI Technology"
-                  className="w-full h-96 object-cover rounded-xl shadow-lg"
+                  className="w-full h-96 object-cover shadow-lg"
                 />
               </div>
             </motion.div>
@@ -268,7 +344,7 @@ export default function Home() {
       </section>
 
       {/* Stats Section */}
-      <section className="py-20 bg-gradient-to-r from-orange-400 via-pink-500 to-red-500 text-white">
+      <section className="py-10 bg-gradient-to-r from-[#a1399f] to-[#f1426e] text-white">
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
             {[
@@ -282,7 +358,6 @@ export default function Home() {
                 whileInView={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, delay: index * 0.2 }}
                 viewport={{ once: true }}
-                className="bg-white/10 backdrop-blur-sm rounded-xl p-8"
               >
                 <div className="text-4xl font-bold mb-2">{stat.value}</div>
                 <div className="text-lg opacity-90">{stat.label}</div>
@@ -303,16 +378,16 @@ export default function Home() {
               viewport={{ once: true }}
             >
               <motion.h2 
-                className="text-3xl font-bold text-gray-900 mb-4"
+                className="text-3xl font-bold text-gray-900 mb-4 text-center tracking-widest max-w-md mx-auto"
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4, delay: 0.2 }}
                 viewport={{ once: true }}
               >
-                Ready to get started?
+                YOUR BEAUTY JOURNEY STARTS HERE
               </motion.h2>
               <motion.p 
-                className="text-gray-600 mb-8 text-lg leading-relaxed"
+                className="text-gray-600 mb-8 text-lg leading-relaxed text-center"
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4, delay: 0.4 }}
@@ -322,11 +397,11 @@ export default function Home() {
                 personalized skincare routine today.
               </motion.p>
               <motion.button 
-                className="btn-primary"
+                className="btn-primary mx-auto px-12 block"
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
               >
-                Book Demo
+                BOOK DEMO
               </motion.button>
             </motion.div>
             
@@ -338,19 +413,19 @@ export default function Home() {
             >
               <div className="card">
                 <motion.h3 
-                  className="text-2xl font-bold text-gray-900 mb-6"
+                  className="text-2xl font-bold text-gray-900 mb-6 text-center tracking-widest"
                   initial={{ opacity: 0, y: 20 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.4, delay: 0.2 }}
                   viewport={{ once: true }}
                 >
-                  Get in touch
+                  GET IN TOUCH
                 </motion.h3>
                 <form className="space-y-4">
                   <motion.input
                     type="text"
                     placeholder="Name"
-                    className="input-field border border-black placeholder-gray-400 focus:outline-none focus:ring-0 hover:border-orange-500 hover:placeholder-orange-500 transition-colors duration-200"
+                    className="input-field border border-black placeholder-gray-400 focus:outline-none focus:ring-0 focus:border-orange-500 hover:border-orange-500 hover:placeholder-orange-500 transition-colors duration-200"
                     style={{
                       background: 'white',
                       boxShadow: 'none',
@@ -363,7 +438,7 @@ export default function Home() {
                   <motion.input
                     type="email"
                     placeholder="Email"
-                    className="input-field border border-black placeholder-gray-400 focus:outline-none focus:ring-0 hover:border-orange-500 hover:placeholder-orange-500 transition-colors duration-200"
+                    className="input-field border border-black placeholder-gray-400 focus:outline-none focus:ring-0 focus:border-orange-500 hover:border-orange-500 hover:placeholder-orange-500 transition-colors duration-200"
                     initial={{ opacity: 0, y: 20 }}
                     whileInView={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.4, delay: 0.6 }}
@@ -375,7 +450,7 @@ export default function Home() {
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                   >
-                    Send Message
+                    Submit
                   </motion.button>
                 </form>
               </div>
@@ -396,7 +471,7 @@ export default function Home() {
                 transition={{ duration: 0.4 }}
                 viewport={{ once: true }}
               >
-                <div className="flex items-center justify-center w-10 h-10 bg-primary-600 rounded-lg">
+                <div className="flex items-center justify-center w-10 h-10 bg-primary-600">
                   <Camera className="w-6 h-6 text-white" />
                 </div>
                 <div>

@@ -23,7 +23,7 @@
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
     --ring: 215 25% 27%;
-    --radius: 0.5rem;
+    --radius: 0;
   }
 
   .dark {
@@ -61,23 +61,23 @@
 
 @layer components {
   .btn-primary {
-    @apply bg-black hover:bg-gradient-to-r hover:from-pink-500 hover:to-orange-500 text-white font-medium py-3 px-6 rounded-lg transition-all duration-300 focus:outline-none focus:ring-0 focus:ring-offset-0 shadow-sm hover:shadow-md;
+    @apply bg-black hover:bg-gradient-to-r hover:from-pink-500 hover:to-orange-500 text-white font-medium py-3 px-6 border-none transition-all duration-300 focus:outline-none focus:ring-0 focus:ring-offset-0 shadow-sm hover:shadow-md;
   }
   
   .btn-secondary {
-    @apply bg-white hover:bg-gray-50 text-gray-900 font-medium py-3 px-6 rounded-lg border border-gray-300 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 shadow-sm hover:shadow-md;
+    @apply bg-gradient-to-r from-pink-500 to-orange-500 hover:from-pink-600 hover:to-orange-600 text-white font-medium py-3 px-6 border-none transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 shadow-sm hover:shadow-md;
   }
   
   .card {
-    @apply bg-white rounded-xl shadow-sm border border-gray-200 p-6 transition-all duration-200 hover:shadow-md;
+    @apply bg-white shadow-sm border border-gray-200 p-6 transition-all duration-200 hover:shadow-md;
   }
   
   .input-field {
-    @apply w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200 bg-white;
+    @apply w-full px-4 py-3 border border-gray-300 focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200 bg-white;
   }
   
   .loading-spinner {
-    @apply animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600;
+    @apply animate-spin h-8 w-8 border-b-2 border-primary-600;
   }
 
   .gradient-text {
@@ -98,7 +98,16 @@
 
   /* Quiz Step Styles */
   .question {
-    @apply mb-8;
+    @apply mb-0;
+    min-height: 60vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+
+  .modal-content {
+    scroll-behavior: smooth;
+    scroll-padding-top: 0;
   }
 
   .question__header-text {
@@ -146,7 +155,7 @@
   }
 
   .answer__icon {
-    @apply w-6 h-6 border border-gray-300 rounded-full bg-gray-300;
+    @apply w-6 h-6 border border-gray-300 bg-gray-300;
   }
 
   .answer__text {
@@ -154,7 +163,7 @@
   }
 
   .answer__info {
-    @apply absolute top-full left-0 right-0 bg-white border border-gray-200 rounded-lg shadow-lg p-4 mt-2 z-10 opacity-0 pointer-events-none transition-all duration-200;
+    @apply absolute top-full left-0 right-0 bg-white border border-gray-200 shadow-lg p-4 mt-2 z-10 opacity-0 pointer-events-none transition-all duration-200;
   }
 
   .answer__info.show {
@@ -166,7 +175,7 @@
   }
 
   .answer__info-button {
-    @apply absolute top-2 right-2 w-6 h-6 bg-white/80 rounded-full flex items-center justify-center hover:bg-white transition-colors;
+    @apply absolute top-2 right-2 w-6 h-6 bg-white/80 flex items-center justify-center hover:bg-white transition-colors;
   }
 
   .info-image-closed,
@@ -182,12 +191,10 @@
 
 ::-webkit-scrollbar-track {
   background: #f8fafc;
-  border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb {
   background: #cbd5e1;
-  border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
@@ -198,7 +205,6 @@
 .camera-overlay {
   position: relative;
   overflow: hidden;
-  border-radius: 12px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 

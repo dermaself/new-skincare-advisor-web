@@ -1,28 +1,28 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Camera, RotateCcw, ArrowLeft, Check } from 'lucide-react';
+import { Camera, RotateCcw, Download, X } from 'lucide-react';
 
 interface CameraCaptureProps {
-  onImageCapture: (imageUrl: string) => void;
-  onBack: () => void;
+  onCapture: (imageData: string) => void;
+  onClose: () => void;
 }
 
-export default function CameraCapture({ onImageCapture, onBack }: CameraCaptureProps) {
-  const [stream, setStream] = useState<MediaStream | null>(null);
-  const [capturedImage, setCapturedImage] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, onClose }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [stream, setStream] = useState<MediaStream | null>(null);
+  const [isCameraActive, setIsCameraActive] = useState(false);
+  const [capturedImage, setCapturedImage] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
+  // Start camera when component mounts
   useEffect(() => {
     startCamera();
     return () => {
-      if (stream) {
-        stream.getTracks().forEach(track => track.stop());
-      }
+      stopCamera();
     };
   }, []);
 
@@ -33,116 +33,97 @@ export default function CameraCapture({ onImageCapture, onBack }: CameraCaptureP
       
       const mediaStream = await navigator.mediaDevices.getUserMedia({
         video: {
-          facingMode: 'user',
+          facingMode: 'user', // Use front camera
           width: { ideal: 1280 },
-          height: { ideal: 720 }
-        }
+          height: { ideal: 720 },
+        },
+        audio: false,
       });
-      
+
       setStream(mediaStream);
+      setIsCameraActive(true);
       
       if (videoRef.current) {
         videoRef.current.srcObject = mediaStream;
       }
     } catch (err) {
+      console.error('Error accessing camera:', err);
       setError('Unable to access camera. Please check permissions and try again.');
     } finally {
       setIsLoading(false);
     }
   };
 
-  const captureImage = () => {
-    if (!videoRef.current || !canvasRef.current) return;
+  const stopCamera = () => {
+    if (stream) {
+      stream.getTracks().forEach(track => track.stop());
+      setStream(null);
+      setIsCameraActive(false);
+    }
+  };
 
-    const video = videoRef.current;
-    const canvas = canvasRef.current;
-    const context = canvas.getContext('2d');
+  const capturePhoto = () => {
+    if (videoRef.current && canvasRef.current) {
+      const video = videoRef.current;
+      const canvas = canvasRef.current;
+      const context = canvas.getContext('2d');
 
-    if (!context) return;
+      if (context) {
+        // Set canvas dimensions to match video
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
 
-    // Set canvas dimensions to match video
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
+        // Draw the current video frame to canvas
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-    // Draw the video frame to canvas
-    context.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-    // Convert to data URL
-    const imageUrl = canvas.toDataURL('image/jpeg', 0.8);
-    setCapturedImage(imageUrl);
+        // Convert to base64 image data
+        const imageData = canvas.toDataURL('image/jpeg', 0.8);
+        setCapturedImage(imageData);
+      }
+    }
   };
 
   const retakePhoto = () => {
     setCapturedImage(null);
   };
 
-  const usePhoto = () => {
+  const confirmPhoto = () => {
     if (capturedImage) {
-      onImageCapture(capturedImage);
+      onCapture(capturedImage);
     }
   };
 
   const switchCamera = async () => {
-    if (stream) {
-      stream.getTracks().forEach(track => track.stop());
-    }
-    
-    try {
-      const mediaStream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: stream?.getVideoTracks()[0]?.getSettings().facingMode === 'user' ? 'environment' : 'user',
-          width: { ideal: 1280 },
-          height: { ideal: 720 }
-        }
-      });
-      
-      setStream(mediaStream);
-      
-      if (videoRef.current) {
-        videoRef.current.srcObject = mediaStream;
-      }
-    } catch (err) {
-      setError('Unable to switch camera.');
-    }
+    stopCamera();
+    await new Promise(resolve => setTimeout(resolve, 500)); // Small delay
+    await startCamera();
   };
-
-  if (isLoading) {
-    return (
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        className="card text-center"
-      >
-        <div className="flex flex-col items-center space-y-4">
-          <div className="w-16 h-16 bg-primary-100 rounded-full flex items-center justify-center">
-            <Camera className="w-8 h-8 text-primary-600 animate-pulse" />
-          </div>
-          <p className="text-gray-600">Initializing camera...</p>
-        </div>
-      </motion.div>
-    );
-  }
 
   if (error) {
     return (
       <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        className="card text-center"
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm"
       >
-        <div className="flex flex-col items-center space-y-4">
-          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center">
-            <Camera className="w-8 h-8 text-red-600" />
+        <div className="bg-white p-8 max-w-md mx-4 text-center">
+          <div className="text-red-500 mb-4">
+            <Camera size={48} className="mx-auto" />
           </div>
-          <p className="text-red-600">{error}</p>
-          <div className="flex space-x-4">
-            <button onClick={onBack} className="btn-secondary">
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Go Back
+          <h3 className="text-xl font-semibold mb-2">Camera Access Error</h3>
+          <p className="text-gray-600 mb-6">{error}</p>
+          <div className="flex gap-3">
+            <button
+              onClick={onClose}
+              className="flex-1 px-4 py-2 bg-gray-200 text-gray-800 hover:bg-gray-300 transition-colors"
+            >
+              Close
             </button>
-            <button onClick={startCamera} className="btn-primary">
-              <RotateCcw className="w-4 h-4 mr-2" />
-              Retry
+            <button
+              onClick={startCamera}
+              className="flex-1 px-4 py-2 bg-primary-600 text-white hover:bg-primary-700 transition-colors"
+            >
+              Try Again
             </button>
           </div>
         </div>
@@ -152,102 +133,118 @@ export default function CameraCapture({ onImageCapture, onBack }: CameraCaptureP
 
   return (
     <motion.div
-      initial={{ opacity: 0, scale: 0.95 }}
+      initial={{ opacity: 0, scale: 0.9 }}
       animate={{ opacity: 1, scale: 1 }}
-      className="card"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm"
     >
-      <div className="flex items-center justify-between mb-6">
-        <button
-          onClick={onBack}
-          className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 transition-colors"
-        >
-          <ArrowLeft className="w-5 h-5" />
-          <span>Back</span>
-        </button>
-        
-        <h2 className="text-xl font-semibold text-gray-900">Take Photo</h2>
-        
-        <button
-          onClick={switchCamera}
-          className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 transition-colors"
-        >
-          <RotateCcw className="w-5 h-5" />
-          <span className="hidden sm:inline">Switch</span>
-        </button>
-      </div>
+      <div className="bg-white max-w-2xl w-full mx-4 max-h-[90vh] overflow-hidden">
+        {/* Header */}
+        <div className="flex items-center justify-between p-4 border-b border-gray-200">
+          <h3 className="text-xl font-semibold">Take a Photo</h3>
+          <button
+            onClick={onClose}
+            className="p-2 hover:bg-gray-100 transition-colors"
+          >
+            <X size={24} />
+          </button>
+        </div>
 
-      <div className="relative">
-        {!capturedImage ? (
-          <div className="camera-overlay">
-            <video
-              ref={videoRef}
-              autoPlay
-              playsInline
-              muted
-              className="w-full h-64 md:h-96 object-cover rounded-lg"
-            />
-            
-            {/* Camera guide overlay */}
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <div className="w-48 h-48 border-2 border-white border-dashed rounded-full opacity-50"></div>
+        {/* Camera View */}
+        <div className="relative bg-black">
+          {isLoading && (
+            <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-75 z-10">
+              <div className="text-white text-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
+                <p>Starting camera...</p>
+              </div>
             </div>
-            
-            {/* Instructions */}
-            <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 text-center text-white bg-black bg-opacity-50 px-4 py-2 rounded-lg">
-              <p className="text-sm">Position your face within the circle</p>
+          )}
+
+          {!capturedImage ? (
+            <div className="relative">
+              <video
+                ref={videoRef}
+                autoPlay
+                playsInline
+                muted
+                className="w-full h-auto max-h-[60vh] object-cover"
+              />
+              
+              {/* Camera Overlay */}
+              <div className="absolute inset-0 pointer-events-none">
+                <div className="absolute top-4 left-4 right-4 flex justify-between items-center">
+                  <button
+                    onClick={switchCamera}
+                    className="p-2 bg-black bg-opacity-50 text-white hover:bg-opacity-70 transition-all pointer-events-auto"
+                  >
+                    <RotateCcw size={20} />
+                  </button>
+                </div>
+                
+                {/* Capture Guide */}
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="border-2 border-white border-opacity-50 w-64 h-64 max-w-[80%] max-h-[60%]"></div>
+                </div>
+                
+                <div className="absolute bottom-4 left-4 right-4 text-center text-white">
+                  <p className="text-sm opacity-75">Position your face within the frame</p>
+                </div>
+              </div>
             </div>
-          </div>
-        ) : (
-          <div className="relative">
-            <img
-              src={capturedImage}
-              alt="Captured"
-              className="w-full h-64 md:h-96 object-cover rounded-lg"
-            />
-            
-            {/* Overlay for captured image */}
-            <div className="absolute inset-0 bg-black bg-opacity-20 rounded-lg"></div>
-          </div>
-        )}
+          ) : (
+            <div className="relative">
+              <img
+                src={capturedImage}
+                alt="Captured photo"
+                className="w-full h-auto max-h-[60vh] object-cover"
+              />
+              
+              {/* Photo Overlay */}
+              <div className="absolute inset-0 bg-black bg-opacity-25 flex items-center justify-center">
+                <div className="text-center text-white">
+                  <Download size={48} className="mx-auto mb-2 opacity-75" />
+                  <p className="text-sm">Photo captured</p>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Controls */}
+        <div className="p-4 bg-gray-50">
+          {!capturedImage ? (
+            <div className="flex justify-center">
+              <button
+                onClick={capturePhoto}
+                disabled={!isCameraActive || isLoading}
+                className="w-16 h-16 bg-primary-600 text-white hover:bg-primary-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors flex items-center justify-center"
+              >
+                <Camera size={24} />
+              </button>
+            </div>
+          ) : (
+            <div className="flex gap-3">
+              <button
+                onClick={retakePhoto}
+                className="flex-1 px-4 py-3 bg-gray-200 text-gray-800 hover:bg-gray-300 transition-colors"
+              >
+                Retake
+              </button>
+              <button
+                onClick={confirmPhoto}
+                className="flex-1 px-4 py-3 bg-primary-600 text-white hover:bg-primary-700 transition-colors"
+              >
+                Use Photo
+              </button>
+            </div>
+          )}
+        </div>
 
         {/* Hidden canvas for capturing */}
         <canvas ref={canvasRef} className="hidden" />
       </div>
-
-      <div className="mt-6 flex justify-center space-x-4">
-        {!capturedImage ? (
-          <button
-            onClick={captureImage}
-            className="btn-primary px-8"
-          >
-            <Camera className="w-5 h-5 mr-2" />
-            Capture Photo
-          </button>
-        ) : (
-          <>
-            <button
-              onClick={retakePhoto}
-              className="btn-secondary px-8"
-            >
-              <RotateCcw className="w-5 h-5 mr-2" />
-              Retake
-            </button>
-            <button
-              onClick={usePhoto}
-              className="btn-primary px-8"
-            >
-              <Check className="w-5 h-5 mr-2" />
-              Use Photo
-            </button>
-          </>
-        )}
-      </div>
-
-      <div className="mt-4 text-center">
-        <p className="text-xs text-gray-500">
-          For best results, ensure good lighting and a clear view of your face
-        </p>
-      </div>
     </motion.div>
   );
-} 
+};
+
+export default CameraCapture; 

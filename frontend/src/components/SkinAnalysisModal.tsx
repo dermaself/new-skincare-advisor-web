@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Camera, FileText, Sparkles, Heart, CheckCircle, ArrowLeft, Info } from 'lucide-react';
+import CameraCapture from './CameraCapture';
 
 interface SkinAnalysisModalProps {
   isOpen: boolean;
@@ -23,21 +24,41 @@ export default function SkinAnalysisModal({ isOpen, onClose }: SkinAnalysisModal
   const [selectedConcerns, setSelectedConcerns] = useState<string[]>([]);
   const [selectedSkinType, setSelectedSkinType] = useState<string>('');
   const [selectedAgeGroup, setSelectedAgeGroup] = useState<string>('');
+  const [capturedImage, setCapturedImage] = useState<string | null>(null);
+  const [showCamera, setShowCamera] = useState(false);
   const [openInfo, setOpenInfo] = useState<string | null>(null);
 
   const skinTypeRef = useRef<HTMLDivElement>(null);
   const ageGroupRef = useRef<HTMLDivElement>(null);
+  const buttonsRef = useRef<HTMLDivElement>(null);
+
+  // Reset states when modal closes
+  useEffect(() => {
+    if (!isOpen) {
+      setCurrentStep('onboarding');
+      setSelectedConcerns([]);
+      setSelectedSkinType('');
+      setSelectedAgeGroup('');
+      setCapturedImage(null);
+      setShowCamera(false);
+      setOpenInfo(null);
+    }
+  }, [isOpen]);
 
   // Auto-scroll to skin type after 2 concerns selected
   useEffect(() => {
     if (selectedConcerns.length === 2 && skinTypeRef.current) {
       setTimeout(() => {
-        skinTypeRef.current?.scrollIntoView({ 
-          behavior: 'smooth', 
-          block: 'center',
-          inline: 'nearest'
-        });
-      }, 300);
+        const modalContent = document.querySelector('.modal-content') as HTMLElement;
+        const targetElement = skinTypeRef.current as HTMLElement;
+        if (modalContent && targetElement) {
+          const targetPosition = targetElement.offsetTop - modalContent.offsetTop;
+          modalContent.scrollTo({
+            top: targetPosition,
+            behavior: 'smooth'
+          });
+        }
+      }, 800);
     }
   }, [selectedConcerns]);
 
@@ -45,14 +66,50 @@ export default function SkinAnalysisModal({ isOpen, onClose }: SkinAnalysisModal
   useEffect(() => {
     if (selectedSkinType && ageGroupRef.current) {
       setTimeout(() => {
-        ageGroupRef.current?.scrollIntoView({ 
-          behavior: 'smooth', 
-          block: 'center',
-          inline: 'nearest'
-        });
-      }, 300);
+        const modalContent = document.querySelector('.modal-content') as HTMLElement;
+        const targetElement = ageGroupRef.current as HTMLElement;
+        if (modalContent && targetElement) {
+          const targetPosition = targetElement.offsetTop - modalContent.offsetTop;
+          modalContent.scrollTo({
+            top: targetPosition,
+            behavior: 'smooth'
+          });
+        }
+      }, 800);
     }
   }, [selectedSkinType]);
+
+  // Auto-scroll to buttons after age group selected
+  useEffect(() => {
+    if (selectedAgeGroup && buttonsRef.current) {
+      setTimeout(() => {
+        const modalContent = document.querySelector('.modal-content') as HTMLElement;
+        const targetElement = buttonsRef.current as HTMLElement;
+        if (modalContent && targetElement) {
+          const targetPosition = targetElement.offsetTop - modalContent.offsetTop;
+          modalContent.scrollTo({
+            top: targetPosition,
+            behavior: 'smooth'
+          });
+        }
+      }, 800);
+    }
+  }, [selectedAgeGroup]);
+
+  // Scroll to top when entering quiz step
+  useEffect(() => {
+    if (currentStep === 'quiz') {
+      setTimeout(() => {
+        const modalContent = document.querySelector('.modal-content') as HTMLElement;
+        if (modalContent) {
+          modalContent.scrollTo({ 
+            top: 0, 
+            behavior: 'smooth' 
+          });
+        }
+      }, 300);
+    }
+  }, [currentStep]);
 
   const skinConcerns = [
     {
@@ -156,7 +213,37 @@ export default function SkinAnalysisModal({ isOpen, onClose }: SkinAnalysisModal
     onClose();
   };
 
+  const handleStartScan = () => {
+    setShowCamera(true);
+  };
+
+  const handleImageCapture = (imageData: string) => {
+    setCapturedImage(imageData);
+    setShowCamera(false);
+    // Auto-advance to results after a short delay
+    setTimeout(() => {
+      setCurrentStep('results');
+    }, 1000);
+  };
+
+  const handleCameraClose = () => {
+    setShowCamera(false);
+  };
+
+  const toggleInfo = (concern: string) => {
+    setOpenInfo(openInfo === concern ? null : concern);
+  };
+
   if (!isOpen) return null;
+
+  if (showCamera) {
+    return (
+      <CameraCapture
+        onCapture={handleImageCapture}
+        onClose={handleCameraClose}
+      />
+    );
+  }
 
   return (
     <AnimatePresence>
@@ -181,13 +268,13 @@ export default function SkinAnalysisModal({ isOpen, onClose }: SkinAnalysisModal
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.95, opacity: 0 }}
           transition={{ type: "spring", damping: 25, stiffness: 300 }}
-          className="relative w-full max-w-2xl max-h-[90vh] bg-white rounded-xl shadow-xl overflow-hidden"
+          className="relative w-full max-w-[540px] max-h-[95vh] bg-white shadow-xl overflow-hidden flex flex-col"
         >
           {/* Header */}
           <div className="relative bg-primary-600 p-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
-                <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
+                <div className="w-8 h-8 bg-white/20 flex items-center justify-center">
                   <Camera className="w-5 h-5 text-white" />
                 </div>
                 <div>
@@ -197,7 +284,7 @@ export default function SkinAnalysisModal({ isOpen, onClose }: SkinAnalysisModal
               </div>
               <button
                 onClick={handleClose}
-                className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center hover:bg-white/30 transition-colors"
+                className="w-8 h-8 bg-white/20 flex items-center justify-center hover:bg-white/30 transition-colors"
               >
                 <X className="w-4 h-4 text-white" />
               </button>
@@ -209,7 +296,7 @@ export default function SkinAnalysisModal({ isOpen, onClose }: SkinAnalysisModal
                 <div key={step.id} className="flex items-center">
                   <div className="flex flex-col items-center">
                     <div
-                      className={`w-10 h-10 rounded-lg flex items-center justify-center text-sm font-semibold transition-all duration-200 ${
+                      className={`w-10 h-10 flex items-center justify-center text-sm font-semibold transition-all duration-200 ${
                         steps.findIndex(s => s.id === currentStep) >= index
                           ? 'bg-white text-primary-600'
                           : 'bg-white/30 text-white'
@@ -221,7 +308,7 @@ export default function SkinAnalysisModal({ isOpen, onClose }: SkinAnalysisModal
                   </div>
                   {index < steps.length - 1 && (
                     <div
-                      className={`w-6 h-0.5 mx-2 rounded-full transition-all duration-200 ${
+                      className={`w-6 h-0.5 mx-2 transition-all duration-200 ${
                         steps.findIndex(s => s.id === currentStep) > index
                           ? 'bg-white'
                           : 'bg-white/30'
@@ -234,7 +321,7 @@ export default function SkinAnalysisModal({ isOpen, onClose }: SkinAnalysisModal
           </div>
 
           {/* Content */}
-          <div className="p-6 max-h-[60vh] overflow-y-auto">
+          <div className="modal-content p-6 max-h-[60vh] overflow-y-auto">
             <AnimatePresence mode="wait">
               {currentStep === 'onboarding' && (
                 <motion.div
@@ -249,7 +336,7 @@ export default function SkinAnalysisModal({ isOpen, onClose }: SkinAnalysisModal
                     <img
                       src="https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80"
                       alt="Skin Analysis"
-                      className="w-full h-48 object-cover rounded-lg mb-6"
+                      className="w-full h-48 object-cover mb-6"
                     />
                   </div>
                   
@@ -273,7 +360,7 @@ export default function SkinAnalysisModal({ isOpen, onClose }: SkinAnalysisModal
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: index * 0.1 }}
-                        className="bg-gray-50 p-4 rounded-lg border border-gray-200"
+                        className="bg-gray-50 p-4 border border-gray-200"
                       >
                         <div className="text-2xl mb-2">{item.icon}</div>
                         <h4 className="font-semibold text-gray-900 mb-1">{item.title}</h4>
@@ -300,10 +387,10 @@ export default function SkinAnalysisModal({ isOpen, onClose }: SkinAnalysisModal
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -20 }}
                   transition={{ duration: 0.3 }}
-                  className="space-y-8"
+                  className="space-y-0"
                 >
                   {/* Skin Concerns */}
-                  <div className="question">
+                  <div className="question min-h-[60vh] flex flex-col justify-center">
                     <h1 className="question__header-text">
                       SELECT TWO SKIN CONCERNS YOU WOULD LIKE TO FOCUS ON
                     </h1>
@@ -338,7 +425,7 @@ export default function SkinAnalysisModal({ isOpen, onClose }: SkinAnalysisModal
                           
                           <button
                             className="answer__info-button"
-                            onClick={() => setOpenInfo(openInfo === concern.name ? null : concern.name)}
+                            onClick={() => toggleInfo(concern.name)}
                           >
                             <Info className="info-image-closed" />
                           </button>
@@ -348,7 +435,7 @@ export default function SkinAnalysisModal({ isOpen, onClose }: SkinAnalysisModal
                   </div>
 
                   {/* Skin Type */}
-                  <div className="question" ref={skinTypeRef}>
+                  <div className="question min-h-[60vh] flex flex-col justify-center" ref={skinTypeRef}>
                     <h1 className="question__header-text">
                       WHAT IS YOUR SKIN TYPE?
                     </h1>
@@ -382,7 +469,7 @@ export default function SkinAnalysisModal({ isOpen, onClose }: SkinAnalysisModal
                           
                           <button
                             className="answer__info-button"
-                            onClick={() => setOpenInfo(openInfo === type.name ? null : type.name)}
+                            onClick={() => toggleInfo(type.name)}
                           >
                             <Info className="info-image-closed" />
                           </button>
@@ -392,7 +479,7 @@ export default function SkinAnalysisModal({ isOpen, onClose }: SkinAnalysisModal
                   </div>
 
                   {/* Age Group */}
-                  <div className="question" ref={ageGroupRef}>
+                  <div className="question min-h-[60vh] flex flex-col justify-center" ref={ageGroupRef}>
                     <h1 className="question__header-text">
                       WHAT IS YOUR AGE GROUP?
                     </h1>
@@ -428,7 +515,7 @@ export default function SkinAnalysisModal({ isOpen, onClose }: SkinAnalysisModal
                     </div>
                   </div>
 
-                  <div className="flex justify-between pt-6">
+                  <div className="flex justify-between pt-6" ref={buttonsRef}>
                     <motion.button
                       onClick={handleBack}
                       className="btn-secondary"
@@ -450,144 +537,168 @@ export default function SkinAnalysisModal({ isOpen, onClose }: SkinAnalysisModal
                 </motion.div>
               )}
 
+              {/* Scan Step */}
               {currentStep === 'scan' && (
                 <motion.div
-                  key="scan"
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -20 }}
-                  transition={{ duration: 0.3 }}
+                  className="text-center"
                 >
-                  <div className="flex items-center mb-6">
-                    <button
-                      onClick={handleBack}
-                      className="mr-4 p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                    >
-                      <ArrowLeft className="w-5 h-5 text-gray-600" />
-                    </button>
-                    <h3 className="text-xl font-bold text-gray-900">Take Your Photo</h3>
+                  <div className="mb-8">
+                    <div className="w-24 h-24 bg-primary-100 mx-auto mb-4 flex items-center justify-center">
+                      <Camera className="w-12 h-12 text-primary-600" />
+                    </div>
+                    <h2 className="text-2xl font-bold mb-4">Ready to Scan Your Skin</h2>
+                    <p className="text-gray-600 mb-6">
+                      Let's capture a clear photo of your skin for analysis. 
+                      Make sure you're in a well-lit area with your face clearly visible.
+                    </p>
                   </div>
 
-                  <div className="text-center">
-                    <div className="bg-gray-50 p-8 rounded-lg border border-gray-200 mb-6">
-                      <Camera className="w-12 h-12 text-primary-600 mx-auto mb-4" />
-                      <h4 className="text-lg font-semibold text-gray-900 mb-2">
-                        Ready to analyze your skin?
-                      </h4>
-                      <p className="text-gray-600 mb-6">
-                        Position your face in good lighting and take a clear photo
-                      </p>
-                      
-                      <div className="bg-white p-4 rounded-lg border border-gray-200 mb-6">
-                        <div className="w-24 h-24 mx-auto border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center">
-                          <Camera className="w-8 h-8 text-gray-400" />
-                        </div>
-                      </div>
+                  <div className="bg-gray-50 p-6 mb-6">
+                    <h3 className="font-semibold mb-4 text-left">Tips for Best Results:</h3>
+                    <ul className="text-left space-y-2 text-sm text-gray-600">
+                      <li className="flex items-start">
+                        <span className="w-2 h-2 bg-primary-600 mt-2 mr-3 flex-shrink-0"></span>
+                        Ensure good lighting - natural light works best
+                      </li>
+                      <li className="flex items-start">
+                        <span className="w-2 h-2 bg-primary-600 mt-2 mr-3 flex-shrink-0"></span>
+                        Remove makeup and skincare products
+                      </li>
+                      <li className="flex items-start">
+                        <span className="w-2 h-2 bg-primary-600 mt-2 mr-3 flex-shrink-0"></span>
+                        Keep your face steady and look directly at the camera
+                      </li>
+                      <li className="flex items-start">
+                        <span className="w-2 h-2 bg-primary-600 mt-2 mr-3 flex-shrink-0"></span>
+                        Avoid shadows and reflections on your face
+                      </li>
+                    </ul>
+                  </div>
 
-                      <div className="space-y-2 text-sm text-gray-600">
-                        <div className="flex items-center justify-center space-x-2">
-                          <CheckCircle className="w-4 h-4 text-green-500" />
-                          <span>Good lighting</span>
-                        </div>
-                        <div className="flex items-center justify-center space-x-2">
-                          <CheckCircle className="w-4 h-4 text-green-500" />
-                          <span>Face centered</span>
-                        </div>
-                        <div className="flex items-center justify-center space-x-2">
-                          <CheckCircle className="w-4 h-4 text-green-500" />
-                          <span>No filters</span>
-                        </div>
+                  {capturedImage && (
+                    <div className="mb-6">
+                      <h3 className="font-semibold mb-3">Captured Image:</h3>
+                      <div className="relative inline-block">
+                        <img
+                          src={capturedImage}
+                          alt="Captured skin"
+                          className="w-48 h-48 object-cover border-2 border-gray-200"
+                        />
+                        <button
+                          onClick={() => setCapturedImage(null)}
+                          className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white flex items-center justify-center text-xs hover:bg-red-600"
+                        >
+                          ×
+                        </button>
                       </div>
                     </div>
+                  )}
 
+                  <div className="flex justify-between pt-6" ref={buttonsRef}>
                     <motion.button
-                      onClick={handleNext}
+                      onClick={handleBack}
+                      className="btn-secondary"
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                    >
+                      <ArrowLeft className="w-4 h-4 mr-2" />
+                      Back
+                    </motion.button>
+                    
+                    <motion.button
+                      onClick={handleStartScan}
                       className="btn-primary"
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
                     >
-                      Take Photo
+                      <Camera className="w-4 h-4 mr-2" />
+                      {capturedImage ? 'Retake Photo' : 'Start Camera'}
                     </motion.button>
                   </div>
                 </motion.div>
               )}
 
+              {/* Results Step */}
               {currentStep === 'results' && (
                 <motion.div
-                  key="results"
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -20 }}
-                  transition={{ duration: 0.3 }}
+                  className="text-center"
                 >
-                  <div className="flex items-center mb-6">
-                    <button
-                      onClick={handleBack}
-                      className="mr-4 p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                    >
-                      <ArrowLeft className="w-5 h-5 text-gray-600" />
-                    </button>
-                    <h3 className="text-xl font-bold text-gray-900">Your Results</h3>
+                  <div className="mb-8">
+                    <div className="w-24 h-24 bg-green-100 mx-auto mb-4 flex items-center justify-center">
+                      <CheckCircle className="w-12 h-12 text-green-600" />
+                    </div>
+                    <h2 className="text-2xl font-bold mb-4">Analysis Complete!</h2>
+                    <p className="text-gray-600 mb-6">
+                      We've analyzed your skin and prepared personalized recommendations.
+                    </p>
                   </div>
 
-                  <div className="text-center">
-                    <div className="bg-green-50 p-8 rounded-lg border border-green-200 mb-6">
-                      <Sparkles className="w-12 h-12 text-green-600 mx-auto mb-4" />
-                      <h4 className="text-2xl font-bold text-gray-900 mb-2">
-                        Analysis Complete!
-                      </h4>
-                      <p className="text-gray-600 mb-6">
-                        Your personalized skincare recommendations are ready
-                      </p>
-                      
-                      <div className="bg-white p-6 rounded-lg border border-gray-200 mb-6">
-                        <div className="flex items-center justify-center space-x-4 mb-4">
-                          <Heart className="w-6 h-6 text-primary-500" />
-                          <span className="text-2xl font-bold text-primary-600">85%</span>
-                          <span className="text-gray-600">Skin Health Score</span>
-                        </div>
-                        
-                        <div className="space-y-3 text-left">
-                          <div className="flex justify-between items-center">
-                            <span className="text-sm text-gray-600">Hydration</span>
-                            <div className="w-20 bg-gray-200 rounded-full h-2">
-                              <div className="bg-green-500 h-2 rounded-full" style={{ width: '80%' }}></div>
-                            </div>
-                          </div>
-                          <div className="flex justify-between items-center">
-                            <span className="text-sm text-gray-600">Evenness</span>
-                            <div className="w-20 bg-gray-200 rounded-full h-2">
-                              <div className="bg-yellow-500 h-2 rounded-full" style={{ width: '65%' }}></div>
-                            </div>
-                          </div>
-                          <div className="flex justify-between items-center">
-                            <span className="text-sm text-gray-600">Firmness</span>
-                            <div className="w-20 bg-gray-200 rounded-full h-2">
-                              <div className="bg-primary-500 h-2 rounded-full" style={{ width: '90%' }}></div>
-                            </div>
-                          </div>
-                        </div>
+                  {capturedImage && (
+                    <div className="mb-6">
+                      <h3 className="font-semibold mb-3">Your Skin Analysis:</h3>
+                      <div className="flex justify-center mb-4">
+                        <img
+                          src={capturedImage}
+                          alt="Analyzed skin"
+                          className="w-32 h-32 object-cover border-2 border-gray-200"
+                        />
                       </div>
                     </div>
+                  )}
 
-                    <div className="space-y-3">
-                      <motion.button
-                        onClick={handleClose}
-                        className="btn-primary w-full"
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
-                      >
-                        View Full Report
-                      </motion.button>
-                      <motion.button
-                        onClick={handleClose}
-                        className="btn-secondary w-full"
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
-                      >
-                        Start Over
-                      </motion.button>
+                  <div className="bg-gray-50 p-6 mb-6 text-left">
+                    <h3 className="font-semibold mb-4">Your Profile:</h3>
+                    <div className="space-y-2 text-sm">
+                      <p><span className="font-medium">Skin Concerns:</span> {selectedConcerns.join(', ')}</p>
+                      <p><span className="font-medium">Skin Type:</span> {selectedSkinType}</p>
+                      <p><span className="font-medium">Age Group:</span> {selectedAgeGroup}</p>
                     </div>
+                  </div>
+
+                  <div className="bg-primary-50 p-6 mb-6">
+                    <h3 className="font-semibold mb-3 text-primary-800">Recommended Products:</h3>
+                    <div className="space-y-3 text-sm text-primary-700">
+                      <div className="flex items-center">
+                        <Sparkles className="w-4 h-4 mr-2" />
+                        <span>Gentle Cleanser for {selectedSkinType} skin</span>
+                      </div>
+                      <div className="flex items-center">
+                        <Heart className="w-4 h-4 mr-2" />
+                        <span>Hydrating Serum for {selectedConcerns[0]?.toLowerCase()}</span>
+                      </div>
+                      <div className="flex items-center">
+                        <FileText className="w-4 h-4 mr-2" />
+                        <span>Custom Skincare Routine</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-between pt-6">
+                    <motion.button
+                      onClick={handleBack}
+                      className="btn-secondary"
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                    >
+                      <ArrowLeft className="w-4 h-4 mr-2" />
+                      Back
+                    </motion.button>
+                    
+                    <motion.button
+                      onClick={onClose}
+                      className="btn-primary"
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                    >
+                      <CheckCircle className="w-4 h-4 mr-2" />
+                      Get Recommendations
+                    </motion.button>
                   </div>
                 </motion.div>
               )}
@@ -609,4 +720,4 @@ export default function SkinAnalysisModal({ isOpen, onClose }: SkinAnalysisModal
       </motion.div>
     </AnimatePresence>
   );
-} 
+}   

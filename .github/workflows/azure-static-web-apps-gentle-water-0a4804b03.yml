@@ -41,7 +41,8 @@ jobs:
           ###### Repository/Build Configurations - These values can be configured to match your app requirements. ######
           # For more information regarding Static Web App workflow configurations, please visit: https://aka.ms/swaworkflowconfig
           app_location: "./frontend" # App source code path
-          api_location: "./api" # Api source code path - optional
+          api_location: "" # Azure SWA requires empty when Next.js not exported
+          skip_api_build: "true"
           output_location: ".next" # Built app content directory for Next.js
           github_id_token: ${{ steps.idtoken.outputs.result }}
           ###### End of Repository/Build Configurations ######

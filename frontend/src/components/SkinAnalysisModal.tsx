@@ -12,11 +12,167 @@ interface SkinAnalysisModalProps {
 
 type Step = 'onboarding' | 'quiz' | 'scan' | 'results';
 
+// Product data interfaces
+interface Product {
+  id: string;
+  name: string;
+  brand: string;
+  image: string;
+  price: number;
+  size: string;
+  description: string;
+  tags: string[];
+  usage: 'morning' | 'evening' | 'both';
+  step: 'cleanse' | 'moisturise' | 'protect' | 'addon';
+  skinTypes: string[];
+  skinConcerns: string[];
+}
+
+interface RoutineStep {
+  step: string;
+  title: string;
+  products: Product[];
+}
+
+interface SkinRoutine {
+  essential: RoutineStep[];
+  expert: RoutineStep[];
+  addons: Product[];
+}
+
+// Mock product data - replace with API calls later
+const mockProducts: Product[] = [
+  {
+    id: 'cleanse-001',
+    name: 'Purifying Cleanser',
+    brand: 'Brand 2',
+    image: 'https://production-cdn.holitionbeauty.com/cms/client/110/file/7d1c1d06-d642-4552-ad1c-0b098cb4870b-product02_Cleanse_purple.png',
+    price: 11,
+    size: '20 ml',
+    description: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Proin convallis volutpat elit, in tincidunt enim volutpat a.',
+    tags: ['Oily'],
+    usage: 'both',
+    step: 'cleanse',
+    skinTypes: ['Oily', 'Normal/Combination'],
+    skinConcerns: ['Acne & Blemishes', 'Dehydration']
+  },
+  {
+    id: 'moisturise-001',
+    name: 'Hydrating Moisturiser',
+    brand: 'Brand 2',
+    image: 'https://production-cdn.holitionbeauty.com/cms/client/110/file/7b0b10fa-0b88-483a-8fa3-1445a815edf1-product01_Moisturiser_blue3.jpg',
+    price: 30,
+    size: '20 ml',
+    description: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Proin convallis volutpat elit, in tincidunt enim volutpat a.',
+    tags: ['Dehydration'],
+    usage: 'morning',
+    step: 'moisturise',
+    skinTypes: ['Dry and/or Sensitive', 'Normal/Combination'],
+    skinConcerns: ['Dehydration', 'Fine Lines & Wrinkles']
+  },
+  {
+    id: 'protect-001',
+    name: 'Calming Sunscreen SPF 50+',
+    brand: 'Brand 3',
+    image: 'https://production-cdn.holitionbeauty.com/cms/client/110/file/c9e4fb4f-4791-4fb3-94b2-e0b38af4887c-product07_protect_green.png',
+    price: 13,
+    size: '20 ml',
+    description: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Proin convallis volutpat elit, in tincidunt enim volutpat a.',
+    tags: [],
+    usage: 'morning',
+    step: 'protect',
+    skinTypes: ['Normal/Combination', 'Oily', 'Dry and/or Sensitive'],
+    skinConcerns: ['Dark Spots & Uneven Tone', 'Fine Lines & Wrinkles']
+  },
+  {
+    id: 'addon-001',
+    name: 'Recovery Facial Oil',
+    brand: 'Brand 1',
+    image: 'https://production-cdn.holitionbeauty.com/cms/client/110/file/454f8804-80eb-4014-9bca-e42ac54ce247-product09_FaceOil_green.png',
+    price: 9,
+    size: '20 ml',
+    description: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Proin convallis volutpat elit, in tincidunt enim volutpat a.',
+    tags: ['Oily'],
+    usage: 'evening',
+    step: 'addon',
+    skinTypes: ['Oily', 'Normal/Combination'],
+    skinConcerns: ['Dehydration', 'Fine Lines & Wrinkles']
+  }
+];
+
+// Mock routine data - replace with API calls later
+const mockRoutine: SkinRoutine = {
+  essential: [
+    {
+      step: 'cleanse',
+      title: 'STEP 1: CLEANSE',
+      products: [mockProducts[0]]
+    },
+    {
+      step: 'moisturise',
+      title: 'STEP 2: MOISTURISE',
+      products: [mockProducts[1]]
+    },
+    {
+      step: 'protect',
+      title: 'STEP 3: PROTECT',
+      products: [mockProducts[2]]
+    }
+  ],
+  expert: [
+    {
+      step: 'cleanse',
+      title: 'STEP 1: CLEANSE',
+      products: [mockProducts[0]]
+    },
+    {
+      step: 'moisturise',
+      title: 'STEP 2: MOISTURISE',
+      products: [mockProducts[1]]
+    },
+    {
+      step: 'protect',
+      title: 'STEP 3: PROTECT',
+      products: [mockProducts[2]]
+    }
+  ],
+  addons: [mockProducts[3]]
+};
+
+// API functions - replace these with actual API calls
+const getProducts = async (): Promise<Product[]> => {
+  // TODO: Replace with actual API call
+  // return await fetch('/api/products').then(res => res.json());
+  return mockProducts;
+};
+
+const getRoutine = async (skinType: string, concerns: string[], ageGroup: string): Promise<SkinRoutine> => {
+  // TODO: Replace with actual API call
+  // return await fetch('/api/routine', {
+  //   method: 'POST',
+  //   headers: { 'Content-Type': 'application/json' },
+  //   body: JSON.stringify({ skinType, concerns, ageGroup })
+  // }).then(res => res.json());
+  return mockRoutine;
+};
+
+const getRecommendedProducts = async (concerns: string[], skinType: string): Promise<Product[]> => {
+  // TODO: Replace with actual API call
+  // return await fetch('/api/recommendations', {
+  //   method: 'POST',
+  //   headers: { 'Content-Type': 'application/json' },
+  //   body: JSON.stringify({ concerns, skinType })
+  // }).then(res => res.json());
+  return mockProducts.filter(product => 
+    product.skinTypes.includes(skinType) || 
+    product.skinConcerns.some(concern => concerns.includes(concern))
+  );
+};
+
 const steps = [
-  { id: 'onboarding', title: 'WELCOME', icon: '🎯' },
-  { id: 'quiz', title: 'QUIZ', icon: '📝' },
-  { id: 'scan', title: 'SCAN', icon: '📸' },
-  { id: 'results', title: 'RESULTS', icon: '✨' }
+  { id: 'quiz', title: 'QUIZ', icon: 'https://production-cdn.holitionbeauty.com/cms/client/110/file/9631a569-ec0d-426a-8f94-357f8ddb98ee-600921e5-1dd7-49e6-819a-d346132b8e24-quiz%20icon.svg' },
+  { id: 'scan', title: 'SCAN', icon: 'https://production-cdn.holitionbeauty.com/cms/client/110/file/cdfa9dcf-2268-4930-8d8d-4209233ae45e-4739aef0-db97-4c29-88b0-dbe6e83b2d74-Group%2035.svg' },
+  { id: 'results', title: 'RESULTS', icon: 'https://production-cdn.holitionbeauty.com/cms/client/110/file/ea856bc1-0ac0-4d32-9796-c588ac0d26bb-ecd99ac8-c52a-45fc-9a01-dc2f136d45b1-shade-finder-2.svg' }
 ];
 
 export default function SkinAnalysisModal({ isOpen, onClose }: SkinAnalysisModalProps) {
@@ -27,6 +183,12 @@ export default function SkinAnalysisModal({ isOpen, onClose }: SkinAnalysisModal
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [showCamera, setShowCamera] = useState(false);
   const [openInfo, setOpenInfo] = useState<string | null>(null);
+  
+  // Product and routine state
+  const [routine, setRoutine] = useState<SkinRoutine | null>(null);
+  const [routineType, setRoutineType] = useState<'essential' | 'expert'>('essential');
+  const [recommendationSource, setRecommendationSource] = useState<'ai' | 'questionnaire'>('ai');
+  const [loading, setLoading] = useState(false);
 
   const skinTypeRef = useRef<HTMLDivElement>(null);
   const ageGroupRef = useRef<HTMLDivElement>(null);
@@ -42,8 +204,30 @@ export default function SkinAnalysisModal({ isOpen, onClose }: SkinAnalysisModal
       setCapturedImage(null);
       setShowCamera(false);
       setOpenInfo(null);
+      setRoutine(null);
+      setRoutineType('essential');
+      setRecommendationSource('ai');
     }
   }, [isOpen]);
+
+  // Load routine when entering results step
+  useEffect(() => {
+    if (currentStep === 'results' && selectedSkinType && selectedConcerns.length > 0) {
+      loadRoutine();
+    }
+  }, [currentStep, selectedSkinType, selectedConcerns]);
+
+  const loadRoutine = async () => {
+    setLoading(true);
+    try {
+      const routineData = await getRoutine(selectedSkinType, selectedConcerns, selectedAgeGroup);
+      setRoutine(routineData);
+    } catch (error) {
+      console.error('Failed to load routine:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Auto-scroll to skin type after 2 concerns selected
   useEffect(() => {
@@ -271,8 +455,8 @@ export default function SkinAnalysisModal({ isOpen, onClose }: SkinAnalysisModal
           className="relative w-full max-w-[540px] max-h-[95vh] bg-white shadow-xl overflow-hidden flex flex-col"
         >
           {/* Header */}
-          <div className="relative bg-primary-600 p-6">
-            <div className="flex items-center justify-between">
+          <div className="relative bg-primary-600">
+            <div className="flex items-center justify-between px-6 py-2">
               <div className="flex items-center space-x-3">
                 <div className="w-8 h-8 bg-white/20 flex items-center justify-center">
                   <Camera className="w-5 h-5 text-white" />
@@ -289,34 +473,50 @@ export default function SkinAnalysisModal({ isOpen, onClose }: SkinAnalysisModal
                 <X className="w-4 h-4 text-white" />
               </button>
             </div>
-
+            {currentStep === 'onboarding' && (
+              <div>
+                <img
+                  src="https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80"
+                  alt="Skin Analysis"
+                  className="w-full h-48 object-cover"
+                />
+              </div>
+            )}
             {/* Progress Steps */}
-            <div className="mt-6 flex items-center justify-center space-x-4">
-              {steps.map((step, index) => (
-                <div key={step.id} className="flex items-center">
-                  <div className="flex flex-col items-center">
-                    <div
-                      className={`w-10 h-10 flex items-center justify-center text-sm font-semibold transition-all duration-200 ${
-                        steps.findIndex(s => s.id === currentStep) >= index
-                          ? 'bg-white text-primary-600'
-                          : 'bg-white/30 text-white'
-                      }`}
-                    >
-                      {step.icon}
-                    </div>
-                    <p className="text-xs text-white/80 mt-1 font-medium">{step.title}</p>
+            <div>
+              {currentStep !== 'onboarding' && (
+                 <div className="mt-6 flex items-center justify-around space-x-4 pb-4 px-6">
+                  <div key={steps[0].id} className="flex flex-col items-center">
+                    <div className="flex flex-col items-center">
+                        <div
+                          className={`w-16 h-16 flex items-center justify-center text-sm font-semibold transition-all duration text-gray-900 ${currentStep === steps[0].id ? 'bg-white' : 'bg-white/50'}`}
+                        >
+                          <img src={steps[0].icon} alt={steps[0].title} className="w-12 h-12" />
+                        </div>
+                      </div>
                   </div>
-                  {index < steps.length - 1 && (
-                    <div
-                      className={`w-6 h-0.5 mx-2 transition-all duration-200 ${
-                        steps.findIndex(s => s.id === currentStep) > index
-                          ? 'bg-white'
-                          : 'bg-white/30'
-                      }`}
-                    />
-                  )}
+                  <div className="w-12 h-0.5 mx-2 transition-all duration-200 bg-gray-900" />
+                  <div key={steps[1].id} className="flex flex-col items-center">
+                    <div className="flex flex-col items-center">
+                        <div
+                          className={`w-16 h-16 flex items-center justify-center text-sm font-semibold transition-all duration text-gray-900 ${currentStep === steps[1].id ? 'bg-white' : 'bg-white/50'}`}
+                        >
+                          <img src={steps[1].icon} alt={steps[1].title} className="w-12 h-12" />
+                        </div>
+                      </div>
+                  </div>
+                  <div className="w-12 h-0.5 mx-2 transition-all duration-200 bg-gray-900" />
+                  <div key={steps[2].id} className="flex flex-col items-center">
+                    <div className="flex flex-col items-center">
+                        <div
+                          className={`w-16 h-16 flex items-center justify-center text-sm font-semibold transition-all duration text-gray-900 ${currentStep === steps[2].id ? 'bg-white' : 'bg-white/50'}`}
+                        >
+                          <img src={steps[2].icon} alt={steps[2].title} className="w-12 h-12" />
+                        </div>
+                      </div>
+                  </div>
                 </div>
-              ))}
+              )}
             </div>
           </div>
 
@@ -332,14 +532,6 @@ export default function SkinAnalysisModal({ isOpen, onClose }: SkinAnalysisModal
                   transition={{ duration: 0.3 }}
                   className="text-center"
                 >
-                  <div className="mb-6">
-                    <img
-                      src="https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80"
-                      alt="Skin Analysis"
-                      className="w-full h-48 object-cover mb-6"
-                    />
-                  </div>
-                  
                   <h3 className="text-2xl font-bold text-gray-900 mb-4">
                     Get Your Virtual Skincare Consultation
                   </h3>
@@ -349,33 +541,48 @@ export default function SkinAnalysisModal({ isOpen, onClose }: SkinAnalysisModal
                     skincare recommendations powered by AI technology.
                   </p>
 
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-                    {[
-                      { icon: '📝', title: 'Assessment', desc: 'Answer questions about your skin' },
-                      { icon: '📸', title: 'Photo', desc: 'Take a photo for AI analysis' },
-                      { icon: '✨', title: 'Results', desc: 'Get personalized recommendations' }
-                    ].map((item, index) => (
-                      <motion.div
-                        key={item.title}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: index * 0.1 }}
-                        className="bg-gray-50 p-4 border border-gray-200"
-                      >
-                        <div className="text-2xl mb-2">{item.icon}</div>
-                        <h4 className="font-semibold text-gray-900 mb-1">{item.title}</h4>
-                        <p className="text-xs text-gray-600">{item.desc}</p>
-                      </motion.div>
-                    ))}
+                  <div className="mt-6 flex items-center justify-around space-x-4">
+                    <div key={steps[0].id} className="flex flex-col items-center">
+                      <div className="flex flex-col items-center">
+                          <div
+                            className={`w-16 h-16 flex items-center justify-center text-sm font-semibold transition-all duration text-gray-900`}
+                          >
+                            <img src={steps[0].icon} alt={steps[0].title} className="w-12 h-12" />
+                          </div>
+                          <p className="text-xs text-gray-900 mt-1 font-medium">{steps[0].title}</p>
+                        </div>
+                    </div>
+                    <div className="w-12 h-0.5 mx-2 transition-all duration-200 bg-gray-900" />
+                    <div key={steps[1].id} className="flex flex-col items-center">
+                      <div className="flex flex-col items-center">
+                          <div
+                            className={`w-16 h-16 flex items-center justify-center text-sm font-semibold transition-all duration text-gray-900`}
+                          >
+                            <img src={steps[1].icon} alt={steps[1].title} className="w-12 h-12" />
+                          </div>
+                          <p className="text-xs text-gray-900 mt-1 font-medium">{steps[1].title}</p>
+                        </div>
+                    </div>
+                    <div className="w-12 h-0.5 mx-2 transition-all duration-200 bg-gray-900" />
+                    <div key={steps[2].id} className="flex flex-col items-center">
+                      <div className="flex flex-col items-center">
+                          <div
+                            className={`w-16 h-16 flex items-center justify-center text-sm font-semibold transition-all duration text-gray-900`}
+                          >
+                            <img src={steps[2].icon} alt={steps[2].title} className="w-12 h-12" />
+                          </div>
+                          <p className="text-xs text-gray-900 mt-1 font-medium">{steps[2].title}</p>
+                        </div>
+                    </div>
                   </div>
 
                   <motion.button
                     onClick={handleNext}
-                    className="btn-primary w-full"
+                    className="btn-primary mt-6 mx-auto"
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                   >
-                    Start Assessment
+                    ACCEPT TO START
                   </motion.button>
                 </motion.div>
               )}
@@ -600,7 +807,7 @@ export default function SkinAnalysisModal({ isOpen, onClose }: SkinAnalysisModal
                   <div className="flex justify-between pt-6" ref={buttonsRef}>
                     <motion.button
                       onClick={handleBack}
-                      className="btn-secondary"
+                      className="btn-secondary flex items-center"
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
                     >
@@ -610,7 +817,7 @@ export default function SkinAnalysisModal({ isOpen, onClose }: SkinAnalysisModal
                     
                     <motion.button
                       onClick={handleStartScan}
-                      className="btn-primary"
+                      className="btn-primary flex items-center"
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
                     >
@@ -622,67 +829,180 @@ export default function SkinAnalysisModal({ isOpen, onClose }: SkinAnalysisModal
               )}
 
               {/* Results Step */}
-              {currentStep === 'results' && (
+              {currentStep === 'scan' && (
                 <motion.div
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -20 }}
-                  className="text-center"
+                  className="space-y-6"
                 >
-                  <div className="mb-8">
-                    <div className="w-24 h-24 bg-green-100 mx-auto mb-4 flex items-center justify-center">
-                      <CheckCircle className="w-12 h-12 text-green-600" />
+                  {/* AI Photo Analysis Section */}
+                  <div className="bg-gradient-to-br from-primary-600 to-primary-700 rounded-lg p-6 text-white">
+                    <h2 className="text-xl font-bold mb-4 text-center">AI PHOTO ANALYSIS</h2>
+                    
+                    {/* Radar Chart Placeholder */}
+                    <div className="relative w-64 h-64 mx-auto mb-4">
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <div className="w-48 h-48 border-2 border-white/30 rounded-full flex items-center justify-center">
+                          <div className="w-32 h-32 border-2 border-white/50 rounded-full flex items-center justify-center">
+                            <div className="w-16 h-16 border-2 border-white/70 rounded-full flex items-center justify-center">
+                              <div className="w-8 h-8 bg-white/20 rounded-full"></div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* Priority Indicator */}
+                      <div className="absolute top-0 right-0 bg-yellow-400 text-primary-800 px-2 py-1 rounded-full text-xs font-bold">
+                        {selectedConcerns[0] || 'Dehydration'} - Your Priority
+                      </div>
+                      
+                      {/* Concern Labels */}
+                      <div className="absolute top-1/4 right-0 text-xs font-semibold">Dehydration</div>
+                      <div className="absolute bottom-1/4 right-0 text-xs font-semibold">Acne & Blemishes</div>
+                      <div className="absolute bottom-1/4 left-0 text-xs font-semibold text-right">Dark Spots &<br/>Uneven Tone</div>
+                      <div className="absolute top-1/4 left-0 text-xs font-semibold text-right">Dark Circles</div>
+                      <div className="absolute top-0 left-1/2 transform -translate-x-1/2 text-xs font-semibold text-center">Fine Lines &<br/>Wrinkles</div>
+                      <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 text-xs font-semibold text-center">Eye Bags</div>
                     </div>
-                    <h2 className="text-2xl font-bold mb-4">Analysis Complete!</h2>
-                    <p className="text-gray-600 mb-6">
-                      We've analyzed your skin and prepared personalized recommendations.
-                    </p>
                   </div>
 
-                  {capturedImage && (
-                    <div className="mb-6">
-                      <h3 className="font-semibold mb-3">Your Skin Analysis:</h3>
-                      <div className="flex justify-center mb-4">
-                        <img
-                          src={capturedImage}
-                          alt="Analyzed skin"
-                          className="w-32 h-32 object-cover border-2 border-gray-200"
+                  {/* Your Skin Routine Section */}
+                  <div className="bg-white border border-gray-200 rounded-lg p-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <div>
+                        <h2 className="text-xl font-bold text-gray-900">YOUR SKIN ROUTINE</h2>
+                        <p className="text-sm text-gray-600 mt-1">
+                          Based on your selected skin concerns and the AI skin health photo analysis, we have personalized your skin routine.
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Routine Type Buttons */}
+                    <div className="routine-btns flex space-x-2 mb-6">
+                      <button 
+                        className={`flex-1 ${routineType === 'essential' ? 'active-btn' : 'inactive-btn'}`}
+                        onClick={() => setRoutineType('essential')}
+                      >
+                        ESSENTIAL ROUTINE
+                      </button>
+                      <button 
+                        className={`flex-1 ${routineType === 'expert' ? 'active-btn' : 'inactive-btn'}`}
+                        onClick={() => setRoutineType('expert')}
+                      >
+                        EXPERT ROUTINE
+                      </button>
+                    </div>
+
+                                         {/* Recommendation Source */}
+                     <div className="mb-6">
+                       <p className="text-sm text-gray-600 mb-2">Your Skin Recommendation By:</p>
+                       <div className="flex space-x-4">
+                         <label className="flex items-center">
+                           <input 
+                             type="radio" 
+                             name="recommendation" 
+                             value="ai" 
+                             checked={recommendationSource === 'ai'}
+                             onChange={() => setRecommendationSource('ai')}
+                             className="mr-2" 
+                           />
+                           <span className="text-sm">AI Photo Analysis</span>
+                         </label>
+                         <label className="flex items-center">
+                           <input 
+                             type="radio" 
+                             name="recommendation" 
+                             value="questionnaire" 
+                             checked={recommendationSource === 'questionnaire'}
+                             onChange={() => setRecommendationSource('questionnaire')}
+                             className="mr-2" 
+                           />
+                           <span className="text-sm">Selected Concerns</span>
+                         </label>
+                       </div>
+                     </div>
+
+                    {/* Detected Concerns */}
+                    <div className="flex space-x-4 mb-6">
+                      <div className="flex items-center space-x-2 bg-orange-100 px-3 py-2 rounded-lg">
+                        <img 
+                          src="https://production-cdn.holitionbeauty.com/cms/client/110/file/eff7f7f1-7c71-475f-926c-85cd3dff0c9b-hydration-3.svg" 
+                          alt="Dehydration" 
+                          className="w-6 h-6"
                         />
+                        <span className="text-sm font-semibold text-orange-800">Dehydration</span>
+                      </div>
+                      <div className="flex items-center space-x-2 bg-yellow-100 px-3 py-2 rounded-lg">
+                        <img 
+                          src="https://production-cdn.holitionbeauty.com/cms/client/110/file/1dc95b48-dbc7-4fdb-a4be-ef0dca1beec9-spot-3.svg" 
+                          alt="Dark Circles" 
+                          className="w-6 h-6"
+                        />
+                        <span className="text-sm font-semibold text-yellow-800">Dark Circles</span>
                       </div>
                     </div>
-                  )}
 
-                  <div className="bg-gray-50 p-6 mb-6 text-left">
-                    <h3 className="font-semibold mb-4">Your Profile:</h3>
-                    <div className="space-y-2 text-sm">
-                      <p><span className="font-medium">Skin Concerns:</span> {selectedConcerns.join(', ')}</p>
-                      <p><span className="font-medium">Skin Type:</span> {selectedSkinType}</p>
-                      <p><span className="font-medium">Age Group:</span> {selectedAgeGroup}</p>
-                    </div>
-                  </div>
+                    {/* Routine Steps */}
+                    {loading ? (
+                      <div className="flex items-center justify-center py-8">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+                        <span className="ml-2 text-gray-600">Loading your routine...</span>
+                      </div>
+                    ) : routine ? (
+                      <div className="space-y-4">
+                        {routine[routineType].map((step, index) => (
+                          <div key={step.step} className="border border-gray-200 rounded-lg p-4">
+                            <h3 className="font-bold text-gray-900 mb-3">{step.title}</h3>
+                            {step.products.map((product) => (
+                              <div key={product.id} className="flex items-center space-x-4">
+                                <img 
+                                  src={product.image} 
+                                  alt={product.name} 
+                                  className="w-16 h-16 object-cover rounded-lg"
+                                />
+                                <div className="flex-1">
+                                  <h4 className="font-semibold text-gray-900">{product.brand} {product.name}</h4>
+                                  <div className="flex items-center space-x-2 mt-1">
+                                    {product.tags.map((tag, tagIndex) => (
+                                      <span 
+                                        key={tagIndex}
+                                        className="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded border border-yellow-300"
+                                      >
+                                        {tag}
+                                      </span>
+                                    ))}
+                                  </div>
+                                  <p className="text-sm text-gray-600 mt-2">{product.description}</p>
+                                  <div className="flex items-center justify-between mt-3">
+                                    <span className="text-sm text-gray-500">{product.size}</span>
+                                    <span className="font-semibold text-gray-900">${product.price}</span>
+                                  </div>
+                                </div>
+                                <button className="bg-primary-600 text-white px-4 py-2 rounded-lg text-sm font-semibold">
+                                  ADD TO BAG
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        ))}
 
-                  <div className="bg-primary-50 p-6 mb-6">
-                    <h3 className="font-semibold mb-3 text-primary-800">Recommended Products:</h3>
-                    <div className="space-y-3 text-sm text-primary-700">
-                      <div className="flex items-center">
-                        <Sparkles className="w-4 h-4 mr-2" />
-                        <span>Gentle Cleanser for {selectedSkinType} skin</span>
+                        {/* Add Full Routine Button */}
+                        <button className="w-full bg-primary-600 text-white py-3 rounded-lg font-semibold">
+                          ADD FULL ROUTINE TO BAG
+                        </button>
                       </div>
-                      <div className="flex items-center">
-                        <Heart className="w-4 h-4 mr-2" />
-                        <span>Hydrating Serum for {selectedConcerns[0]?.toLowerCase()}</span>
+                    ) : (
+                      <div className="text-center py-8 text-gray-500">
+                        No routine available. Please try again.
                       </div>
-                      <div className="flex items-center">
-                        <FileText className="w-4 h-4 mr-2" />
-                        <span>Custom Skincare Routine</span>
-                      </div>
-                    </div>
+                    )}
                   </div>
 
                   <div className="flex justify-between pt-6">
                     <motion.button
                       onClick={handleBack}
-                      className="btn-secondary"
+                      className="btn-secondary flex items-center"
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
                     >
@@ -692,12 +1012,12 @@ export default function SkinAnalysisModal({ isOpen, onClose }: SkinAnalysisModal
                     
                     <motion.button
                       onClick={onClose}
-                      className="btn-primary"
+                      className="btn-primary flex items-center"
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
                     >
                       <CheckCircle className="w-4 h-4 mr-2" />
-                      Get Recommendations
+                      Complete
                     </motion.button>
                   </div>
                 </motion.div>

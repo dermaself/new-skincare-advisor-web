@@ -159,7 +159,7 @@
   }
 
   .answer__text {
-    @apply text-sm font-medium text-gray-900;
+    @apply text-xs font-medium text-gray-900;
   }
 
   .answer__info {
@@ -278,4 +278,28 @@
 
 .clean-focus:hover {
   transform: none;
+}
+
+/* Routine buttons styles */
+.routine-btns > button {
+  border-radius: 10% / 50%;
+  transition: background-color 1s;
+  font-family: var(--font-secondary--bold);
+  font-size: 11px;
+  line-height: 12px;
+  letter-spacing: 1.6px;
+  text-align: center;
+  padding: 13px 23px 13px 24px;
+  border: none;
+  cursor: pointer;
+}
+
+.routine-btns > button.active-btn {
+  background: linear-gradient(270deg, #f1426e 0%, #ea6745 100%);
+  color: #fff;
+}
+
+.routine-btns > button.inactive-btn {
+  background: #f3f4f6;
+  color: #6b7280;
 }

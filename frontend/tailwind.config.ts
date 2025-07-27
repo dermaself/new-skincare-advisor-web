@@ -23,8 +23,8 @@ const config: Config = {
           900: '#0f172a',
           DEFAULT: '#000000',
         },
-        // Clean accent colors
-        accent: {
+        // Clean accent colors palette
+        accentPalette: {
           50: '#f0f9ff',
           100: '#e0f2fe',
           200: '#bae6fd',

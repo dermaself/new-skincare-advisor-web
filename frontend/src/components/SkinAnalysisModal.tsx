@@ -1,5 +1,4 @@
-'use client';
-
+"use client";
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Camera, FileText, Sparkles, Heart, CheckCircle, ArrowLeft, Info } from 'lucide-react';
@@ -366,7 +365,7 @@ export default function SkinAnalysisModal({ isOpen, onClose }: SkinAnalysisModal
 
   const handleConcernToggle = (concern: string) => {
     if (selectedConcerns.includes(concern)) {
-      setSelectedConcerns(selectedConcerns.filter(c => c !== concern));
+      setSelectedConcerns(selectedConcerns.filter((c: string) => c !== concern));
     } else if (selectedConcerns.length < 2) {
       setSelectedConcerns([...selectedConcerns, concern]);
     }

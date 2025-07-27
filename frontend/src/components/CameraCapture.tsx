@@ -1,6 +1,5 @@
 'use client';
-
-import React, { useRef, useState, useEffect } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Camera, RotateCcw, Download, X } from 'lucide-react';
 
@@ -9,7 +8,7 @@ interface CameraCaptureProps {
   onClose: () => void;
 }
 
-const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, onClose }) => {
+const CameraCapture = ({ onCapture, onClose }: CameraCaptureProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [stream, setStream] = useState<MediaStream | null>(null);
@@ -56,7 +55,7 @@ const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, onClose }) => 
 
   const stopCamera = () => {
     if (stream) {
-      stream.getTracks().forEach(track => track.stop());
+      stream.getTracks().forEach((track: MediaStreamTrack) => track.stop());
       setStream(null);
       setIsCameraActive(false);
     }
@@ -102,8 +101,6 @@ const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, onClose }) => 
   if (error) {
     return (
       <motion.div
-        initial={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
         className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm"
       >
         <div className="bg-white p-8 max-w-md mx-4 text-center">
@@ -133,8 +130,6 @@ const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, onClose }) => 
 
   return (
     <motion.div
-      initial={{ opacity: 0, scale: 0.9 }}
-      animate={{ opacity: 1, scale: 1 }}
       className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm"
     >
       <div className="bg-white max-w-2xl w-full mx-4 max-h-[90vh] overflow-hidden">
@@ -144,6 +139,8 @@ const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, onClose }) => 
           <button
             onClick={onClose}
             className="p-2 hover:bg-gray-100 transition-colors"
+            aria-label="Close camera"
+            title="Close camera"
           >
             <X size={24} />
           </button>
@@ -176,6 +173,8 @@ const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, onClose }) => 
                   <button
                     onClick={switchCamera}
                     className="p-2 bg-black bg-opacity-50 text-white hover:bg-opacity-70 transition-all pointer-events-auto"
+                    aria-label="Switch camera"
+                    title="Switch camera"
                   >
                     <RotateCcw size={20} />
                   </button>
@@ -218,6 +217,8 @@ const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, onClose }) => 
                 onClick={capturePhoto}
                 disabled={!isCameraActive || isLoading}
                 className="w-16 h-16 bg-primary-600 text-white hover:bg-primary-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors flex items-center justify-center"
+                aria-label="Capture photo"
+                title="Capture photo"
               >
                 <Camera size={24} />
               </button>

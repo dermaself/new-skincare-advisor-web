@@ -2,7 +2,8 @@
 import React, { useState, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Camera, Upload, X, CheckCircle, AlertCircle, Loader2, Sparkles } from 'lucide-react';
-import ImageUpload from './ImageUpload';
+import dynamic from 'next/dynamic';
+const ImageUpload = dynamic(() => import('./ImageUpload'), { ssr: false });
 import CameraCapture from './CameraCapture';
 import AnalysisResults from './AnalysisResults';
 import { analyzeSkin } from '@/lib/api';

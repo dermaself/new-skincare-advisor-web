@@ -828,7 +828,7 @@ export default function SkinAnalysisModal({ isOpen, onClose }: SkinAnalysisModal
               )}
 
               {/* Results Step */}
-              {currentStep === 'scan' && (
+              {currentStep === 'results' && (
                 <motion.div
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}

@@ -25,6 +25,11 @@ interface Product {
   step: 'cleanse' | 'moisturise' | 'protect' | 'addon';
   skinTypes: string[];
   skinConcerns: string[];
+  shopifyProductId?: string; // Shopify product ID for cart integration
+  shopifyVariantId?: string; // Shopify variant ID
+  inStock: boolean;
+  rating?: number;
+  reviewCount?: number;
 }
 
 interface RoutineStep {
@@ -53,7 +58,12 @@ const mockProducts: Product[] = [
     usage: 'both',
     step: 'cleanse',
     skinTypes: ['Oily', 'Normal/Combination'],
-    skinConcerns: ['Acne & Blemishes', 'Dehydration']
+    skinConcerns: ['Acne & Blemishes', 'Dehydration'],
+    shopifyProductId: 'gid://shopify/Product/123456789',
+    shopifyVariantId: 'gid://shopify/ProductVariant/987654321',
+    inStock: true,
+    rating: 4.5,
+    reviewCount: 127
   },
   {
     id: 'moisturise-001',
@@ -67,7 +77,12 @@ const mockProducts: Product[] = [
     usage: 'morning',
     step: 'moisturise',
     skinTypes: ['Dry and/or Sensitive', 'Normal/Combination'],
-    skinConcerns: ['Dehydration', 'Fine Lines & Wrinkles']
+    skinConcerns: ['Dehydration', 'Fine Lines & Wrinkles'],
+    shopifyProductId: 'gid://shopify/Product/123456790',
+    shopifyVariantId: 'gid://shopify/ProductVariant/987654322',
+    inStock: true,
+    rating: 4.8,
+    reviewCount: 89
   },
   {
     id: 'protect-001',
@@ -81,7 +96,12 @@ const mockProducts: Product[] = [
     usage: 'morning',
     step: 'protect',
     skinTypes: ['Normal/Combination', 'Oily', 'Dry and/or Sensitive'],
-    skinConcerns: ['Dark Spots & Uneven Tone', 'Fine Lines & Wrinkles']
+    skinConcerns: ['Dark Spots & Uneven Tone', 'Fine Lines & Wrinkles'],
+    shopifyProductId: 'gid://shopify/Product/123456791',
+    shopifyVariantId: 'gid://shopify/ProductVariant/987654323',
+    inStock: true,
+    rating: 4.6,
+    reviewCount: 203
   },
   {
     id: 'addon-001',
@@ -95,7 +115,12 @@ const mockProducts: Product[] = [
     usage: 'evening',
     step: 'addon',
     skinTypes: ['Oily', 'Normal/Combination'],
-    skinConcerns: ['Dehydration', 'Fine Lines & Wrinkles']
+    skinConcerns: ['Dehydration', 'Fine Lines & Wrinkles'],
+    shopifyProductId: 'gid://shopify/Product/123456792',
+    shopifyVariantId: 'gid://shopify/ProductVariant/987654324',
+    inStock: true,
+    rating: 4.3,
+    reviewCount: 156
   }
 ];
 
@@ -168,6 +193,71 @@ const getRecommendedProducts = async (concerns: string[], skinType: string): Pro
   );
 };
 
+// Shopify cart integration functions
+const shopifyCart = {
+  // Add product to cart
+  addToCart: async (product: Product, quantity: number = 1): Promise<boolean> => {
+    try {
+      if (typeof window !== 'undefined' && window.parent !== window) {
+        // If embedded in Shopify, communicate with parent
+        window.parent.postMessage({
+          type: 'SHOPIFY_ADD_TO_CART',
+          payload: { 
+            productId: product.shopifyProductId,
+            variantId: product.shopifyVariantId,
+            quantity 
+          }
+        }, '*');
+        return true;
+      } else {
+        // Standalone mode - simulate cart addition
+        console.log(`Added ${quantity}x ${product.name} to cart`);
+        return true;
+      }
+    } catch (error) {
+      console.error('Failed to add to cart:', error);
+      return false;
+    }
+  },
+
+  // Add multiple products to cart
+  addRoutineToCart: async (products: Product[]): Promise<boolean> => {
+    try {
+      if (typeof window !== 'undefined' && window.parent !== window) {
+        // If embedded in Shopify, communicate with parent
+        window.parent.postMessage({
+          type: 'SHOPIFY_ADD_ROUTINE_TO_CART',
+          payload: { 
+            products: products.map(p => ({
+              productId: p.shopifyProductId,
+              variantId: p.shopifyVariantId,
+              quantity: 1
+            }))
+          }
+        }, '*');
+        return true;
+      } else {
+        // Standalone mode - simulate cart addition
+        console.log(`Added ${products.length} products to cart`);
+        return true;
+      }
+    } catch (error) {
+      console.error('Failed to add routine to cart:', error);
+      return false;
+    }
+  },
+
+  // Check if we're in Shopify environment
+  isShopify: (): boolean => {
+    if (typeof window !== 'undefined') {
+      return window.parent !== window || 
+             window.location.hostname.includes('myshopify.com') ||
+             window.location.hostname.includes('shopify.com');
+    }
+    return false;
+  }
+};
+
 const steps = [
   { id: 'quiz', title: 'QUIZ', icon: 'https://production-cdn.holitionbeauty.com/cms/client/110/file/9631a569-ec0d-426a-8f94-357f8ddb98ee-600921e5-1dd7-49e6-819a-d346132b8e24-quiz%20icon.svg' },
   { id: 'scan', title: 'SCAN', icon: 'https://production-cdn.holitionbeauty.com/cms/client/110/file/cdfa9dcf-2268-4930-8d8d-4209233ae45e-4739aef0-db97-4c29-88b0-dbe6e83b2d74-Group%2035.svg' },
@@ -188,6 +278,11 @@ export default function SkinAnalysisModal({ isOpen, onClose }: SkinAnalysisModal
   const [routineType, setRoutineType] = useState<'essential' | 'expert'>('essential');
   const [recommendationSource, setRecommendationSource] = useState<'ai' | 'questionnaire'>('ai');
   const [loading, setLoading] = useState(false);
+  
+  // Cart state
+  const [cartItems, setCartItems] = useState<{ [productId: string]: number }>({});
+  const [cartLoading, setCartLoading] = useState<{ [productId: string]: boolean }>({});
+  const [isShopify, setIsShopify] = useState(false);
 
   const skinTypeRef = useRef<HTMLDivElement>(null);
   const ageGroupRef = useRef<HTMLDivElement>(null);
@@ -227,6 +322,51 @@ export default function SkinAnalysisModal({ isOpen, onClose }: SkinAnalysisModal
       setLoading(false);
     }
   };
+
+  // Cart functions
+  const handleAddToCart = async (product: Product) => {
+    setCartLoading(prev => ({ ...prev, [product.id]: true }));
+    try {
+      const success = await shopifyCart.addToCart(product, 1);
+      if (success) {
+        setCartItems(prev => ({
+          ...prev,
+          [product.id]: (prev[product.id] || 0) + 1
+        }));
+      }
+    } catch (error) {
+      console.error('Failed to add to cart:', error);
+    } finally {
+      setCartLoading(prev => ({ ...prev, [product.id]: false }));
+    }
+  };
+
+  const handleAddRoutineToCart = async () => {
+    if (!routine) return;
+    
+    setCartLoading(prev => ({ ...prev, routine: true }));
+    try {
+      const allProducts = routine[routineType].flatMap(step => step.products);
+      const success = await shopifyCart.addRoutineToCart(allProducts);
+      if (success) {
+        // Add all products to cart state
+        const newCartItems = { ...cartItems };
+        allProducts.forEach(product => {
+          newCartItems[product.id] = (newCartItems[product.id] || 0) + 1;
+        });
+        setCartItems(newCartItems);
+      }
+    } catch (error) {
+      console.error('Failed to add routine to cart:', error);
+    } finally {
+      setCartLoading(prev => ({ ...prev, routine: false }));
+    }
+  };
+
+  // Detect Shopify environment
+  useEffect(() => {
+    setIsShopify(shopifyCart.isShopify());
+  }, []);
 
   // Auto-scroll to skin type after 2 concerns selected
   useEffect(() => {
@@ -874,6 +1014,11 @@ export default function SkinAnalysisModal({ isOpen, onClose }: SkinAnalysisModal
                         <p className="text-sm text-gray-600 mt-1">
                           Based on your selected skin concerns and the AI skin health photo analysis, we have personalized your skin routine.
                         </p>
+                        {isShopify && (
+                          <p className="text-xs text-blue-600 mt-2">
+                            💡 Products will be added to your Shopify cart automatically
+                          </p>
+                        )}
                       </div>
                     </div>
 
@@ -953,43 +1098,102 @@ export default function SkinAnalysisModal({ isOpen, onClose }: SkinAnalysisModal
                         {routine[routineType].map((step, index) => (
                           <div key={step.step} className="border border-gray-200 rounded-lg p-4">
                             <h3 className="font-bold text-gray-900 mb-3">{step.title}</h3>
-                            {step.products.map((product) => (
-                              <div key={product.id} className="flex items-center space-x-4">
-                                <img 
-                                  src={product.image} 
-                                  alt={product.name} 
-                                  className="w-16 h-16 object-cover rounded-lg"
-                                />
-                                <div className="flex-1">
-                                  <h4 className="font-semibold text-gray-900">{product.brand} {product.name}</h4>
-                                  <div className="flex items-center space-x-2 mt-1">
-                                    {product.tags.map((tag, tagIndex) => (
-                                      <span 
-                                        key={tagIndex}
-                                        className="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded border border-yellow-300"
-                                      >
-                                        {tag}
-                                      </span>
-                                    ))}
-                                  </div>
-                                  <p className="text-sm text-gray-600 mt-2">{product.description}</p>
-                                  <div className="flex items-center justify-between mt-3">
-                                    <span className="text-sm text-gray-500">{product.size}</span>
-                                    <span className="font-semibold text-gray-900">${product.price}</span>
-                                  </div>
-                                </div>
-                                <button className="bg-primary-600 text-white px-4 py-2 rounded-lg text-sm font-semibold">
-                                  ADD TO BAG
-                                </button>
-                              </div>
-                            ))}
+                                                         {step.products.map((product) => (
+                               <div key={product.id} className="flex items-center space-x-4">
+                                 <img 
+                                   src={product.image} 
+                                   alt={product.name} 
+                                   className="w-16 h-16 object-cover rounded-lg"
+                                 />
+                                 <div className="flex-1">
+                                   <div className="flex items-center justify-between">
+                                     <h4 className="font-semibold text-gray-900">{product.brand} {product.name}</h4>
+                                     <div className="flex items-center space-x-1">
+                                       {product.rating && (
+                                         <div className="flex items-center">
+                                           <span className="text-yellow-400">★</span>
+                                           <span className="text-sm text-gray-600 ml-1">{product.rating}</span>
+                                           {product.reviewCount && (
+                                             <span className="text-xs text-gray-500 ml-1">({product.reviewCount})</span>
+                                           )}
+                                         </div>
+                                       )}
+                                     </div>
+                                   </div>
+                                   <div className="flex items-center space-x-2 mt-1">
+                                     {product.tags.map((tag, tagIndex) => (
+                                       <span 
+                                         key={tagIndex}
+                                         className="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded border border-yellow-300"
+                                       >
+                                         {tag}
+                                       </span>
+                                     ))}
+                                     {!product.inStock && (
+                                       <span className="px-2 py-1 bg-red-100 text-red-800 text-xs rounded border border-red-300">
+                                         Out of Stock
+                                       </span>
+                                     )}
+                                   </div>
+                                   <p className="text-sm text-gray-600 mt-2">{product.description}</p>
+                                   <div className="flex items-center justify-between mt-3">
+                                     <div className="flex items-center space-x-4">
+                                       <span className="text-sm text-gray-500">{product.size}</span>
+                                       <span className="font-semibold text-gray-900">${product.price}</span>
+                                       {cartItems[product.id] > 0 && (
+                                         <span className="text-sm text-green-600 font-medium">
+                                           {cartItems[product.id]} in cart
+                                         </span>
+                                       )}
+                                     </div>
+                                   </div>
+                                 </div>
+                                 <button 
+                                   onClick={() => handleAddToCart(product)}
+                                   disabled={!product.inStock || cartLoading[product.id]}
+                                   className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
+                                     !product.inStock 
+                                       ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                       : cartLoading[product.id]
+                                       ? 'bg-primary-400 text-white cursor-wait'
+                                       : 'bg-primary-600 text-white hover:bg-primary-700'
+                                   }`}
+                                 >
+                                   {cartLoading[product.id] ? (
+                                     <div className="flex items-center">
+                                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                                       Adding...
+                                     </div>
+                                   ) : !product.inStock ? (
+                                     'Out of Stock'
+                                   ) : (
+                                     'ADD TO BAG'
+                                   )}
+                                 </button>
+                               </div>
+                             ))}
                           </div>
                         ))}
 
-                        {/* Add Full Routine Button */}
-                        <button className="w-full bg-primary-600 text-white py-3 rounded-lg font-semibold">
-                          ADD FULL ROUTINE TO BAG
-                        </button>
+                                                 {/* Add Full Routine Button */}
+                         <button 
+                           onClick={handleAddRoutineToCart}
+                           disabled={cartLoading.routine}
+                           className={`w-full py-3 rounded-lg font-semibold transition-all ${
+                             cartLoading.routine
+                               ? 'bg-primary-400 text-white cursor-wait'
+                               : 'bg-primary-600 text-white hover:bg-primary-700'
+                           }`}
+                         >
+                           {cartLoading.routine ? (
+                             <div className="flex items-center justify-center">
+                               <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                               Adding Routine to Cart...
+                             </div>
+                           ) : (
+                             'ADD FULL ROUTINE TO BAG'
+                           )}
+                         </button>
                       </div>
                     ) : (
                       <div className="text-center py-8 text-gray-500">

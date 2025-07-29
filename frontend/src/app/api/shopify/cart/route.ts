@@ -220,7 +220,7 @@ async function addToCart(cartId: string, variantId: string, quantity: number = 1
   const response = await fetch(`https://${SHOPIFY_DOMAIN}/api/2024-01/graphql.json`, {
     method: 'POST',
     headers: {
-      'X-Shopify-Storefront-Access-Token': SHOPIFY_STOREFRONT_ACCESS_TOKEN,
+      'X-Shopify-Storefront-Access-Token': SHOPIFY_STOREFRONT_ACCESS_TOKEN!,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({

@@ -447,8 +447,6 @@ export default function Home() {
                   <motion.button
                     type="submit"
                     className="btn-primary w-full"
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
                   >
                     SUBMIT
                   </motion.button>

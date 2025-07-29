@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const SHOPIFY_DOMAIN = process.env.SHOPIFY_DOMAIN;
+const SHOPIFY_DOMAIN = process.env.NEXT_PUBLIC_SHOPIFY_DOMAIN;
 const SHOPIFY_STOREFRONT_ACCESS_TOKEN = process.env.SHOPIFY_STOREFRONT_ACCESS_TOKEN;
 
 export async function POST(request: NextRequest) {
@@ -114,7 +114,7 @@ async function createCart(variantId: string, quantity: number = 1) {
   const response = await fetch(`https://${SHOPIFY_DOMAIN}/api/2024-01/graphql.json`, {
     method: 'POST',
     headers: {
-      'X-Shopify-Storefront-Access-Token': SHOPIFY_STOREFRONT_ACCESS_TOKEN,
+      'X-Shopify-Storefront-Access-Token': SHOPIFY_STOREFRONT_ACCESS_TOKEN!,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
@@ -311,7 +311,7 @@ async function updateCartItem(cartId: string, lineId: string, quantity: number) 
   const response = await fetch(`https://${SHOPIFY_DOMAIN}/api/2024-01/graphql.json`, {
     method: 'POST',
     headers: {
-      'X-Shopify-Storefront-Access-Token': SHOPIFY_STOREFRONT_ACCESS_TOKEN,
+      'X-Shopify-Storefront-Access-Token': SHOPIFY_STOREFRONT_ACCESS_TOKEN!,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
@@ -402,7 +402,7 @@ async function removeFromCart(cartId: string, lineId: string) {
   const response = await fetch(`https://${SHOPIFY_DOMAIN}/api/2024-01/graphql.json`, {
     method: 'POST',
     headers: {
-      'X-Shopify-Storefront-Access-Token': SHOPIFY_STOREFRONT_ACCESS_TOKEN,
+      'X-Shopify-Storefront-Access-Token': SHOPIFY_STOREFRONT_ACCESS_TOKEN!,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
@@ -482,7 +482,7 @@ async function getCart(cartId: string) {
   const response = await fetch(`https://${SHOPIFY_DOMAIN}/api/2024-01/graphql.json`, {
     method: 'POST',
     headers: {
-      'X-Shopify-Storefront-Access-Token': SHOPIFY_STOREFRONT_ACCESS_TOKEN,
+      'X-Shopify-Storefront-Access-Token': SHOPIFY_STOREFRONT_ACCESS_TOKEN!,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({

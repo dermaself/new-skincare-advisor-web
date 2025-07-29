@@ -23,11 +23,40 @@ body {
 
 /* Button Styles */
 .btn-primary {
-  @apply bg-black hover:bg-gradient-to-r hover:from-pink-500 hover:to-orange-500 text-white font-medium py-3 px-6 border-none transition-all duration-300 focus:outline-none focus:ring-0 focus:ring-offset-0 shadow-sm hover:shadow-md;
+  @apply bg-black text-white font-medium py-3 px-6 border-0 outline-none shadow-sm;
+  border: none !important;
+  outline: none !important;
+  transition: background-color 0.3s ease-in-out;
+}
+
+.btn-primary:hover {
+  border: none !important;
+  outline: none !important;
+  background-color: #ff4d79;
+}
+
+.btn-primary:focus {
+  border: none !important;
+  outline: none !important;
 }
 
 .btn-secondary {
-  @apply bg-gradient-to-r from-pink-500 to-orange-500 hover:from-pink-600 hover:to-orange-600 text-white font-medium py-3 px-6 border-none transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 shadow-sm hover:shadow-md;
+  @apply text-white font-medium py-3 px-6 border-0 outline-none shadow-sm;
+  border: none !important;
+  outline: none !important;
+  background-color: #ff4d79;
+  transition: background-color 0.3s ease-in-out;
+}
+
+.btn-secondary:hover {
+  border: none !important;
+  outline: none !important;
+  background-color: #ff6b8a;
+}
+
+.btn-secondary:focus {
+  border: none !important;
+  outline: none !important;
 }
 
 /* Card and Form Styles */

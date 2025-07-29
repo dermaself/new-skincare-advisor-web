@@ -86,6 +86,9 @@ module.exports = async function (context, req) {
       blobName,
       mimeType,
       metadata,
+      uploadUrl: uploadUrl,
+      readUrl: readUrl,
+      blobClientUrl: blobClient.url,
       duration: Date.now() - startTime
     });
     
@@ -163,25 +166,26 @@ async function generateSasToken(blobClient, permissions = 'r') {
     permissions: BlobSASPermissions.parse(permissions),
     startsOn: new Date(Date.now() - 5 * 60 * 1000), // 5 min prima per clock skew
     expiresOn: new Date(Date.now() + config.limits.uploadUrlTTL * 1000),
-    protocol: 'https',
-    ipRange: { start: '0.0.0.0', end: '255.255.255.255' } // Restrizione IP se necessario
+    protocol: 'https'
   };
   
   return generateBlobSASQueryParameters(sasOptions, sharedKeyCredential).toString();
 }
 
 /**
- * Ottieni URL per lettura del blob
+ * Restituisce sempre un URL pubblico per garantire accesso a servizi esterni come Roboflow.
  */
 async function getReadUrl(blobClient) {
-  // Se il container è pubblico, ritorna URL diretto
-  // Altrimenti genera SAS di sola lettura
-  try {
-    const properties = await blobClient.getProperties();
-    return blobClient.url;
-  } catch (error) {
-    // Container privato, genera SAS
-    const sasToken = await generateSasToken(blobClient, 'r');
-    return `${blobClient.url}?${sasToken}`;
-  }
+  // Per container pubblico, usa l'URL base senza SAS token
+  const publicUrl = blobClient.url;
+  
+  // Log dettagliato per debugging
+  logger.info('Generated public URL', {
+    blobName: blobClient.name,
+    blobUrl: blobClient.url,
+    publicUrl: publicUrl,
+    containerPublic: true
+  });
+  
+  return publicUrl;
 }

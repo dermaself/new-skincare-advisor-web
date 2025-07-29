@@ -161,6 +161,9 @@ function createCircuitBreaker(asyncFunction, options = {}) {
   
   const breaker = new CircuitBreaker(asyncFunction, finalOptions);
   
+  // Aggiungi il fallback come proprietà del breaker per accesso esterno
+  breaker.fallback = finalOptions.fallback;
+  
   // Logging eventi
   breaker.on('open', () => {
     logger.warn('Circuit breaker opened', { name: finalOptions.name });

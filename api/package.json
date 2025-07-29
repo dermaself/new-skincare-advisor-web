@@ -4,7 +4,7 @@
   "description": "Scalable Azure Functions API for Dermaself",
   "scripts": {
     "start": "func start",
-    "test": "jest",
+    "test": "jest --runInBand --detectOpenHandles",
     "lint": "eslint . --ext .js"
   },
   "dependencies": {

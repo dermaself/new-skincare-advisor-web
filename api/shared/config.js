@@ -58,8 +58,8 @@ const config = {
   },
   roboflow: {
     getApiKey: () => getSecret('RoboflowApiKey', 'ROBOFLOW_API_KEY'),
-    model: process.env.ROBOFLOW_MODEL,
-    version: process.env.ROBOFLOW_VERSION || '1',
+    getModel: () => process.env.ROBOFLOW_MODEL,
+    getVersion: () => process.env.ROBOFLOW_VERSION || '1',
     timeout: parseInt(process.env.ROBOFLOW_TIMEOUT || '10000'),
     maxRetries: parseInt(process.env.ROBOFLOW_MAX_RETRIES || '3')
   },

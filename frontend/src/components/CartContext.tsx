@@ -21,6 +21,10 @@ export interface CartItem {
       }>;
     };
   };
+  attributes?: Array<{
+    key: string;
+    value: string;
+  }>;
 }
 
 export interface Cart {
@@ -92,11 +96,14 @@ function cartReducer(state: CartState, action: CartAction): CartState {
 // Context
 interface CartContextType {
   state: CartState;
-  addToCart: (variantId: string, quantity?: number) => Promise<void>;
+  addToCart: (variantId: string, quantity?: number, customAttributes?: Array<{key: string, value: string}>) => Promise<void>;
   updateCartItem: (lineId: string, quantity: number) => Promise<void>;
   removeFromCart: (lineId: string) => Promise<void>;
   getCart: (cartId: string) => Promise<void>;
   clearCart: () => void;
+  isProductInCart: (variantId: string) => boolean;
+  getCartItemLineId: (variantId: string) => string | null;
+  refreshCart: () => Promise<void>;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -132,7 +139,46 @@ export function CartProvider({ children }: CartProviderProps) {
     }
   }, [state.cart]);
 
-  const addToCart = async (variantId: string, quantity: number = 1) => {
+  // Periodic cart refresh to stay synchronized with Shopify
+  useEffect(() => {
+    if (!state.cart) return;
+
+    const refreshInterval = setInterval(async () => {
+      try {
+        await refreshCart();
+      } catch (error) {
+        console.error('Failed to refresh cart:', error);
+      }
+    }, 30000); // Refresh every 30 seconds
+
+    return () => clearInterval(refreshInterval);
+  }, [state.cart]);
+
+  // Helper function to check if a product is in cart
+  const isProductInCart = (variantId: string): boolean => {
+    if (!state.cart) return false;
+    return state.cart.lines.some(line => line.merchandise.id === variantId);
+  };
+
+  // Helper function to get cart item line ID
+  const getCartItemLineId = (variantId: string): string | null => {
+    if (!state.cart) return null;
+    const line = state.cart.lines.find(line => line.merchandise.id === variantId);
+    return line ? line.id : null;
+  };
+
+  // Helper function to refresh cart from server
+  const refreshCart = async () => {
+    if (!state.cart) return;
+    
+    try {
+      await getCart(state.cart.id);
+    } catch (error) {
+      console.error('Failed to refresh cart:', error);
+    }
+  };
+
+  const addToCart = async (variantId: string, quantity: number = 1, customAttributes?: Array<{key: string, value: string}>) => {
     dispatch({ type: 'SET_LOADING', payload: true });
     dispatch({ type: 'SET_ERROR', payload: null });
 
@@ -151,6 +197,7 @@ export function CartProvider({ children }: CartProviderProps) {
             cartId: state.cart.id,
             variantId,
             quantity,
+            customAttributes,
           }),
         });
       } else {
@@ -164,6 +211,7 @@ export function CartProvider({ children }: CartProviderProps) {
             action: 'create_cart',
             variantId,
             quantity,
+            customAttributes,
           }),
         });
       }
@@ -196,6 +244,7 @@ export function CartProvider({ children }: CartProviderProps) {
                 })),
               },
             },
+            attributes: edge.node.attributes || [],
           })),
           cost: data.cart.cost,
         };
@@ -259,6 +308,7 @@ export function CartProvider({ children }: CartProviderProps) {
                 })),
               },
             },
+            attributes: edge.node.attributes || [],
           })),
           cost: data.cart.cost,
         };
@@ -321,6 +371,7 @@ export function CartProvider({ children }: CartProviderProps) {
                 })),
               },
             },
+            attributes: edge.node.attributes || [],
           })),
           cost: data.cart.cost,
         };
@@ -380,6 +431,7 @@ export function CartProvider({ children }: CartProviderProps) {
                 })),
               },
             },
+            attributes: edge.node.attributes || [],
           })),
           cost: data.cart.cost,
         };
@@ -407,6 +459,9 @@ export function CartProvider({ children }: CartProviderProps) {
     removeFromCart,
     getCart,
     clearCart,
+    isProductInCart,
+    getCartItemLineId,
+    refreshCart,
   };
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;

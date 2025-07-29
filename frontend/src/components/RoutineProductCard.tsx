@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { ShoppingCart, Plus, Minus, Loader2, CheckCircle, Sun, Moon } from 'lucide-react';
+import { ShoppingCart, Plus, Minus, Loader2, CheckCircle, Sun, Moon, Trash2 } from 'lucide-react';
 import { useCart } from './CartContext';
 
 interface ProductVariant {
@@ -48,33 +48,95 @@ export default function RoutineProductCard({
   showAddAllButton = false,
   onAddAllToCart 
 }: RoutineProductCardProps) {
-  const { addToCart, state } = useCart();
+  const { addToCart, removeFromCart, isProductInCart, getCartItemLineId, state } = useCart();
   const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(
     product.variants[0] || null
   );
   const [quantity, setQuantity] = useState(1);
-  const [isAddingToCart, setIsAddingToCart] = useState(false);
-  const [showSuccess, setShowSuccess] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [showSuccess, setShowSuccess] = useState<'added' | 'removed' | false>(false);
+  const [showError, setShowError] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+
+  // Check if product is in cart
+  const variantId = selectedVariant ? `gid://shopify/ProductVariant/${selectedVariant.id}` : null;
+  const isInCart = variantId ? isProductInCart(variantId) : false;
+  const cartLineId = variantId ? getCartItemLineId(variantId) : null;
+
+  // Refresh cart state when component mounts or cart changes
+  useEffect(() => {
+    // This will be handled by the cart context automatically
+  }, [state.cart]);
 
   const handleAddToCart = async () => {
-    if (!selectedVariant) return;
+    if (!selectedVariant || !variantId) return;
 
-    setIsAddingToCart(true);
+    setIsLoading(true);
     setShowSuccess(false);
+    setShowError(false);
+    setErrorMessage('');
 
     try {
-      // Convert the variant ID to the format expected by Shopify Storefront API
-      const variantId = `gid://shopify/ProductVariant/${selectedVariant.id}`;
+      // Add custom attributes for tracking recommended products
+      const customAttributes = [
+        {
+          key: 'source',
+          value: 'dermaself_recommendation'
+        },
+        {
+          key: 'recommendation_type',
+          value: 'skin_analysis'
+        },
+        {
+          key: 'product_step',
+          value: stepTitle.toLowerCase().replace('step ', '').replace(':', '')
+        },
+        {
+          key: 'added_at',
+          value: new Date().toISOString()
+        }
+      ];
       
-      await addToCart(variantId, quantity);
-      setShowSuccess(true);
+      await addToCart(variantId, quantity, customAttributes);
+      setShowSuccess('added');
       
       // Hide success message after 2 seconds
       setTimeout(() => setShowSuccess(false), 2000);
     } catch (error) {
       console.error('Failed to add to cart:', error);
+      setErrorMessage(error instanceof Error ? error.message : 'Failed to add to cart');
+      setShowError(true);
+      
+      // Hide error message after 3 seconds
+      setTimeout(() => setShowError(false), 3000);
     } finally {
-      setIsAddingToCart(false);
+      setIsLoading(false);
+    }
+  };
+
+  const handleRemoveFromCart = async () => {
+    if (!cartLineId) return;
+
+    setIsLoading(true);
+    setShowSuccess(false);
+    setShowError(false);
+    setErrorMessage('');
+
+    try {
+      await removeFromCart(cartLineId);
+      setShowSuccess('removed');
+      
+      // Hide success message after 2 seconds
+      setTimeout(() => setShowSuccess(false), 2000);
+    } catch (error) {
+      console.error('Failed to remove from cart:', error);
+      setErrorMessage(error instanceof Error ? error.message : 'Failed to remove from cart');
+      setShowError(true);
+      
+      // Hide error message after 3 seconds
+      setTimeout(() => setShowError(false), 3000);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -172,19 +234,27 @@ export default function RoutineProductCard({
               </div>
             </div>
             
-            {/* Add to Cart Button */}
+            {/* Cart Button */}
             <button 
-              className="add-to-bag-btn"
-              onClick={handleAddToCart}
-              disabled={isAddingToCart || !selectedVariant || !isVariantAvailable(selectedVariant) || state.loading}
+              className={`cart-btn ${isInCart ? 'remove-btn' : 'add-btn'}`}
+              onClick={isInCart ? handleRemoveFromCart : handleAddToCart}
+              disabled={isLoading || !selectedVariant || !isVariantAvailable(selectedVariant) || state.loading}
             >
-              {isAddingToCart || state.loading ? (
+              {isLoading || state.loading ? (
                 <div className="flex items-center justify-center">
                   <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                  Adding...
+                  {isInCart ? 'Removing...' : 'Adding...'}
+                </div>
+              ) : isInCart ? (
+                <div className="flex items-center justify-center">
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Remove from Cart
                 </div>
               ) : (
-                'ADD TO BAG'
+                <div className="flex items-center justify-center">
+                  <ShoppingCart className="w-4 h-4 mr-2" />
+                  Add to Cart
+                </div>
               )}
             </button>
           </div>
@@ -200,7 +270,27 @@ export default function RoutineProductCard({
           >
             <div className="text-white text-center">
               <CheckCircle className="w-12 h-12 mx-auto mb-2" />
-              <p className="font-semibold">Added to Cart!</p>
+              <p className="font-semibold">
+                {showSuccess === 'added' ? 'Added to Cart!' : 'Removed from Cart!'}
+              </p>
+            </div>
+          </motion.div>
+        )}
+
+        {/* Error Overlay */}
+        {showError && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 bg-red-500 bg-opacity-90 flex items-center justify-center rounded-lg"
+          >
+            <div className="text-white text-center">
+              <div className="w-12 h-12 mx-auto mb-2 flex items-center justify-center">
+                <span className="text-2xl">⚠️</span>
+              </div>
+              <p className="font-semibold">Error</p>
+              <p className="text-sm mt-1">{errorMessage}</p>
             </div>
           </motion.div>
         )}
@@ -226,6 +316,47 @@ export default function RoutineProductCard({
           )}
         </button>
       )}
+
+      <style jsx>{`
+        .cart-btn {
+          padding: 12px 24px;
+          border-radius: 8px;
+          font-weight: 600;
+          transition: all 0.2s ease;
+          border: none;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          min-width: 140px;
+        }
+
+        .add-btn {
+          background-color: #3b82f6;
+          color: white;
+        }
+
+        .add-btn:hover:not(:disabled) {
+          background-color: #2563eb;
+          transform: translateY(-1px);
+        }
+
+        .remove-btn {
+          background-color: #ef4444;
+          color: white;
+        }
+
+        .remove-btn:hover:not(:disabled) {
+          background-color: #dc2626;
+          transform: translateY(-1px);
+        }
+
+        .cart-btn:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+          transform: none;
+        }
+      `}</style>
     </section>
   );
 } 

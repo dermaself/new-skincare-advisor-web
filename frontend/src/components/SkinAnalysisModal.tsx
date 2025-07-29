@@ -45,159 +45,135 @@ interface SkinRoutine {
   addons: Product[];
 }
 
-// Mock product data - replace with API calls later
-const mockProducts: Product[] = [
-  {
-    id: 'cleanse-001',
-    name: 'Purifying Cleanser',
-    brand: 'Brand 2',
-    image: 'https://production-cdn.holitionbeauty.com/cms/client/110/file/7d1c1d06-d642-4552-ad1c-0b098cb4870b-product02_Cleanse_purple.png',
-    price: 11,
-    size: '20 ml',
-    description: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Proin convallis volutpat elit, in tincidunt enim volutpat a.',
-    tags: ['Oily'],
-    usage: 'both',
-    step: 'cleanse',
-    skinTypes: ['Oily', 'Normal/Combination'],
-    skinConcerns: ['Acne & Blemishes', 'Dehydration'],
-    shopifyProductId: 'gid://shopify/Product/123456789',
-    shopifyVariantId: 'gid://shopify/ProductVariant/987654321',
-    inStock: true,
-    rating: 4.5,
-    reviewCount: 127
-  },
-  {
-    id: 'moisturise-001',
-    name: 'Hydrating Moisturiser',
-    brand: 'Brand 2',
-    image: 'https://production-cdn.holitionbeauty.com/cms/client/110/file/7b0b10fa-0b88-483a-8fa3-1445a815edf1-product01_Moisturiser_blue3.jpg',
-    price: 30,
-    size: '20 ml',
-    description: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Proin convallis volutpat elit, in tincidunt enim volutpat a.',
-    tags: ['Dehydration'],
-    usage: 'morning',
-    step: 'moisturise',
-    skinTypes: ['Dry and/or Sensitive', 'Normal/Combination'],
-    skinConcerns: ['Dehydration', 'Fine Lines & Wrinkles'],
-    shopifyProductId: 'gid://shopify/Product/123456790',
-    shopifyVariantId: 'gid://shopify/ProductVariant/987654322',
-    inStock: true,
-    rating: 4.8,
-    reviewCount: 89
-  },
-  {
-    id: 'protect-001',
-    name: 'Calming Sunscreen SPF 50+',
-    brand: 'Brand 3',
-    image: 'https://production-cdn.holitionbeauty.com/cms/client/110/file/c9e4fb4f-4791-4fb3-94b2-e0b38af4887c-product07_protect_green.png',
-    price: 13,
-    size: '20 ml',
-    description: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Proin convallis volutpat elit, in tincidunt enim volutpat a.',
-    tags: [],
-    usage: 'morning',
-    step: 'protect',
-    skinTypes: ['Normal/Combination', 'Oily', 'Dry and/or Sensitive'],
-    skinConcerns: ['Dark Spots & Uneven Tone', 'Fine Lines & Wrinkles'],
-    shopifyProductId: 'gid://shopify/Product/123456791',
-    shopifyVariantId: 'gid://shopify/ProductVariant/987654323',
-    inStock: true,
-    rating: 4.6,
-    reviewCount: 203
-  },
-  {
-    id: 'addon-001',
-    name: 'Recovery Facial Oil',
-    brand: 'Brand 1',
-    image: 'https://production-cdn.holitionbeauty.com/cms/client/110/file/454f8804-80eb-4014-9bca-e42ac54ce247-product09_FaceOil_green.png',
-    price: 9,
-    size: '20 ml',
-    description: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Proin convallis volutpat elit, in tincidunt enim volutpat a.',
-    tags: ['Oily'],
-    usage: 'evening',
-    step: 'addon',
-    skinTypes: ['Oily', 'Normal/Combination'],
-    skinConcerns: ['Dehydration', 'Fine Lines & Wrinkles'],
-    shopifyProductId: 'gid://shopify/Product/123456792',
-    shopifyVariantId: 'gid://shopify/ProductVariant/987654324',
-    inStock: true,
-    rating: 4.3,
-    reviewCount: 156
+// Function to fetch real products from Shopify API
+const fetchRealProducts = async (): Promise<Product[]> => {
+  try {
+    const response = await fetch('/api/shopify/storefront');
+    if (!response.ok) {
+      throw new Error('Failed to fetch products');
+    }
+    
+    const data = await response.json();
+    
+    if (!data.success || !data.products || data.products.length === 0) {
+      throw new Error('No products available');
+    }
+    
+    // Transform Shopify products to our Product interface
+    const transformedProducts: Product[] = data.products.map((shopifyProduct: any, index: number) => {
+      const firstVariant = shopifyProduct.variants[0];
+      const firstImage = shopifyProduct.images[0];
+      
+      // Generate random skin-related data for demonstration
+      const skinTypes = ['Normal/Combination', 'Oily', 'Dry and/or Sensitive'];
+      const skinConcerns = ['Fine Lines & Wrinkles', 'Dehydration', 'Dark Spots & Uneven Tone', 'Acne & Blemishes', 'Dark Circles / Eye Bags'];
+      const steps = ['cleanse', 'moisturise', 'protect', 'addon'];
+      const usages = ['morning', 'evening', 'both'];
+      
+      return {
+        id: shopifyProduct.id || `product-${index}`,
+        name: shopifyProduct.title || 'Skincare Product',
+        brand: shopifyProduct.vendor || 'Skincare Brand',
+        image: firstImage?.src || 'https://via.placeholder.com/300x300?text=Product',
+        price: parseFloat(firstVariant?.price || '0'),
+        size: '30ml', // Default size
+        description: shopifyProduct.description || 'A premium skincare product designed for your skin needs.',
+        tags: shopifyProduct.tags ? shopifyProduct.tags.split(',').map((tag: string) => tag.trim()) : [],
+        usage: usages[Math.floor(Math.random() * usages.length)] as 'morning' | 'evening' | 'both',
+        step: steps[Math.floor(Math.random() * steps.length)] as 'cleanse' | 'moisturise' | 'protect' | 'addon',
+        skinTypes: [skinTypes[Math.floor(Math.random() * skinTypes.length)]],
+        skinConcerns: [skinConcerns[Math.floor(Math.random() * skinConcerns.length)]],
+        shopifyProductId: shopifyProduct.id,
+        shopifyVariantId: firstVariant?.id,
+        inStock: firstVariant?.inventory_quantity > 0 || true,
+        rating: 4.0 + Math.random() * 1.0, // Random rating between 4.0-5.0
+        reviewCount: Math.floor(Math.random() * 200) + 10 // Random review count between 10-210
+      };
+    });
+    
+    return transformedProducts;
+  } catch (error) {
+    console.error('Error fetching real products:', error);
+    // Return empty array if API fails
+    return [];
   }
-];
+};
 
-// Mock routine data - replace with API calls later
-const mockRoutine: SkinRoutine = {
-  essential: [
-    {
-      step: 'cleanse',
-      title: 'STEP 1: CLEANSE',
-      products: [mockProducts[0]]
-    },
-    {
-      step: 'moisturise',
-      title: 'STEP 2: MOISTURISE',
-      products: [mockProducts[1]]
-    },
-    {
-      step: 'protect',
-      title: 'STEP 3: PROTECT',
-      products: [mockProducts[2]]
-    }
-  ],
-  expert: [
-    {
-      step: 'cleanse',
-      title: 'STEP 1: CLEANSE',
-      products: [mockProducts[0]]
-    },
-    {
-      step: 'moisturise',
-      title: 'STEP 2: MOISTURISE',
-      products: [mockProducts[1]]
-    },
-    {
-      step: 'protect',
-      title: 'STEP 3: PROTECT',
-      products: [mockProducts[2]]
-    }
-  ],
-  addons: [mockProducts[3]]
+// Function to get 3 random products
+const getRandomProducts = (products: Product[], count: number = 3): Product[] => {
+  if (products.length <= count) {
+    return products;
+  }
+  
+  const shuffled = [...products].sort(() => 0.5 - Math.random());
+  return shuffled.slice(0, count);
+};
+
+// Function to create routine from products
+const createRoutineFromProducts = (products: Product[]): SkinRoutine => {
+  const randomProducts = getRandomProducts(products, 3);
+  
+  return {
+    essential: [
+      {
+        step: 'cleanse',
+        title: 'STEP 1: CLEANSE',
+        products: [randomProducts[0] || products[0]]
+      },
+      {
+        step: 'moisturise',
+        title: 'STEP 2: MOISTURISE',
+        products: [randomProducts[1] || products[1]]
+      },
+      {
+        step: 'protect',
+        title: 'STEP 3: PROTECT',
+        products: [randomProducts[2] || products[2]]
+      }
+    ],
+    expert: [
+      {
+        step: 'cleanse',
+        title: 'STEP 1: CLEANSE',
+        products: [randomProducts[0] || products[0]]
+      },
+      {
+        step: 'moisturise',
+        title: 'STEP 2: MOISTURISE',
+        products: [randomProducts[1] || products[1]]
+      },
+      {
+        step: 'protect',
+        title: 'STEP 3: PROTECT',
+        products: [randomProducts[2] || products[2]]
+      }
+    ],
+    addons: products.slice(3, 4) // Use 4th product as addon if available
+  };
 };
 
 // API functions - replace these with actual API calls
 const getProducts = async (): Promise<Product[]> => {
-  // TODO: Replace with actual API call
-  // return await fetch('/api/products').then(res => res.json());
-  return mockProducts;
+  return await fetchRealProducts();
 };
 
 const getRoutine = async (skinType: string, concerns: string[], ageGroup: string): Promise<SkinRoutine> => {
-  // TODO: Replace with actual API call
-  // return await fetch('/api/routine', {
-  //   method: 'POST',
-  //   headers: { 'Content-Type': 'application/json' },
-  //   body: JSON.stringify({ skinType, concerns, ageGroup })
-  // }).then(res => res.json());
-  return mockRoutine;
+  const products = await fetchRealProducts();
+  return createRoutineFromProducts(products);
 };
 
 const getRecommendedProducts = async (concerns: string[], skinType: string): Promise<Product[]> => {
-  // TODO: Replace with actual API call
-  // return await fetch('/api/recommendations', {
-  //   method: 'POST',
-  //   headers: { 'Content-Type': 'application/json' },
-  //   body: JSON.stringify({ concerns, skinType })
-  // }).then(res => res.json());
-  return mockProducts.filter(product => 
+  const products = await fetchRealProducts();
+  return products.filter((product: Product) => 
     product.skinTypes.includes(skinType) || 
-    product.skinConcerns.some(concern => concerns.includes(concern))
+    product.skinConcerns.some((concern: string) => concerns.includes(concern))
   );
 };
 
 // Shopify cart integration functions
 const shopifyCart = {
   // Add product to cart
-  addToCart: async (product: Product, quantity: number = 1): Promise<boolean> => {
+  addToCart: async (product: Product, quantity: number = 1, customAttributes?: Array<{key: string, value: string}>): Promise<boolean> => {
     try {
       if (typeof window !== 'undefined' && window.parent !== window) {
         // If embedded in Shopify, communicate with parent
@@ -206,13 +182,14 @@ const shopifyCart = {
           payload: { 
             productId: product.shopifyProductId,
             variantId: product.shopifyVariantId,
-            quantity 
+            quantity,
+            customAttributes
           }
         }, '*');
         return true;
       } else {
         // Standalone mode - simulate cart addition
-        console.log(`Added ${quantity}x ${product.name} to cart`);
+        console.log(`Added ${quantity}x ${product.name} to cart with attributes:`, customAttributes);
         return true;
       }
     } catch (error) {
@@ -279,6 +256,7 @@ export default function SkinAnalysisModal({ isOpen, onClose }: SkinAnalysisModal
   const [routineType, setRoutineType] = useState<'essential' | 'expert'>('essential');
   const [recommendationSource, setRecommendationSource] = useState<'ai' | 'questionnaire'>('ai');
   const [loading, setLoading] = useState(false);
+  const [realProducts, setRealProducts] = useState<Product[]>([]);
   
   // Cart state
   const [cartItems, setCartItems] = useState<{ [productId: string]: number }>({});
@@ -302,6 +280,7 @@ export default function SkinAnalysisModal({ isOpen, onClose }: SkinAnalysisModal
       setRoutine(null);
       setRoutineType('essential');
       setRecommendationSource('ai');
+      setRealProducts([]); // Clear real products when modal closes
     }
   }, [isOpen]);
 
@@ -312,10 +291,36 @@ export default function SkinAnalysisModal({ isOpen, onClose }: SkinAnalysisModal
     }
   }, [currentStep, selectedSkinType, selectedConcerns]);
 
+  // Fetch real products when modal opens
+  useEffect(() => {
+    if (isOpen && realProducts.length === 0) {
+      const loadProducts = async () => {
+        try {
+          const products = await fetchRealProducts();
+          setRealProducts(products);
+        } catch (error) {
+          console.error('Failed to load products:', error);
+        }
+      };
+      loadProducts();
+    }
+  }, [isOpen, realProducts.length]);
+
   const loadRoutine = async () => {
     setLoading(true);
     try {
-      const routineData = await getRoutine(selectedSkinType, selectedConcerns, selectedAgeGroup);
+      // Use real products if available, otherwise fetch them
+      let products = realProducts;
+      if (products.length === 0) {
+        products = await fetchRealProducts();
+        setRealProducts(products);
+      }
+      
+      if (products.length === 0) {
+        throw new Error('No products available');
+      }
+      
+      const routineData = createRoutineFromProducts(products);
       setRoutine(routineData);
     } catch (error) {
       console.error('Failed to load routine:', error);
@@ -348,15 +353,51 @@ export default function SkinAnalysisModal({ isOpen, onClose }: SkinAnalysisModal
     setCartLoading(prev => ({ ...prev, routine: true }));
     try {
       const allProducts = routine[routineType].flatMap(step => step.products);
-      const success = await shopifyCart.addRoutineToCart(allProducts);
-      if (success) {
-        // Add all products to cart state
-        const newCartItems = { ...cartItems };
-        allProducts.forEach(product => {
-          newCartItems[product.id] = (newCartItems[product.id] || 0) + 1;
-        });
-        setCartItems(newCartItems);
+      
+      // Use the cart context to add products with custom attributes
+      for (const product of allProducts) {
+        if (product.shopifyVariantId) {
+          const customAttributes = [
+            {
+              key: 'source',
+              value: 'dermaself_recommendation'
+            },
+            {
+              key: 'recommendation_type',
+              value: 'skin_analysis_routine'
+            },
+            {
+              key: 'routine_type',
+              value: routineType
+            },
+            {
+              key: 'skin_concerns',
+              value: selectedConcerns.join(',')
+            },
+            {
+              key: 'skin_type',
+              value: selectedSkinType
+            },
+            {
+              key: 'age_group',
+              value: selectedAgeGroup
+            },
+            {
+              key: 'added_at',
+              value: new Date().toISOString()
+            }
+          ];
+          
+          await shopifyCart.addToCart(product, 1, customAttributes);
+        }
       }
+      
+      // Update cart items state
+      const newCartItems = { ...cartItems };
+      allProducts.forEach(product => {
+        newCartItems[product.id] = (newCartItems[product.id] || 0) + 1;
+      });
+      setCartItems(newCartItems);
     } catch (error) {
       console.error('Failed to add routine to cart:', error);
     } finally {

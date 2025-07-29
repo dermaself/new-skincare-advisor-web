@@ -3,6 +3,10 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { ShoppingBag, AlertCircle, CheckCircle, Loader2 } from 'lucide-react';
+import { CartProvider } from '../../components/CartContext';
+import Cart from '../../components/Cart';
+import ProductCard from '../../components/ProductCard';
+import CartDebug from '../../components/CartDebug';
 
 interface ShopifyProduct {
   id: number;
@@ -175,12 +179,12 @@ export default function ShopifyTestPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-4xl mx-auto px-4">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-white rounded-lg shadow-lg p-6 mb-8"
-        >
+      <div className="max-w-6xl mx-auto px-4">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-white rounded-lg shadow-lg p-6 mb-8"
+          >
           <div className="flex items-center space-x-3 mb-6">
             <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
               <ShoppingBag className="w-6 h-6 text-white" />
@@ -338,27 +342,7 @@ export default function ShopifyTestPage() {
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {products.slice(0, 9).map((product) => (
-                  <div key={product.id} className="border border-gray-200 rounded-lg p-4">
-                    {product.images?.[0] && (
-                      <img
-                        src={product.images[0].src}
-                        alt={product.title}
-                        className="w-full h-32 object-cover rounded-lg mb-3"
-                      />
-                    )}
-                    <h4 className="font-semibold text-gray-900 mb-1">{product.title}</h4>
-                    <p className="text-sm text-gray-600 mb-2">{product.vendor}</p>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-500">
-                        {product.variants?.length || 0} variants
-                      </span>
-                      {product.variants?.[0] && (
-                        <span className="font-semibold text-gray-900">
-                          ${parseFloat(product.variants[0].price).toFixed(2)}
-                        </span>
-                      )}
-                    </div>
-                  </div>
+                  <ProductCard key={product.id} product={product} />
                 ))}
               </div>
               {products.length > 9 && (
@@ -369,6 +353,16 @@ export default function ShopifyTestPage() {
             </div>
           )}
         </motion.div>
+      </div>
+
+      {/* Cart Section */}
+      <div className="mt-8">
+        <Cart />
+      </div>
+
+      {/* Debug Section */}
+      <div className="mt-8">
+        <CartDebug />
       </div>
     </div>
   );

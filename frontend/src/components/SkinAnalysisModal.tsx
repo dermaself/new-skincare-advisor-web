@@ -3,6 +3,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Camera, FileText, Sparkles, Heart, CheckCircle, ArrowLeft, Info } from 'lucide-react';
 import CameraCapture from './CameraCapture';
+import RoutineProductCard from './RoutineProductCard';
 
 interface SkinAnalysisModalProps {
   isOpen: boolean;
@@ -1096,104 +1097,36 @@ export default function SkinAnalysisModal({ isOpen, onClose }: SkinAnalysisModal
                     ) : routine ? (
                       <div className="space-y-4">
                         {routine[routineType].map((step, index) => (
-                          <div key={step.step} className="border border-gray-200 rounded-lg p-4">
-                            <h3 className="font-bold text-gray-900 mb-3">{step.title}</h3>
-                                                         {step.products.map((product) => (
-                               <div key={product.id} className="flex items-center space-x-4">
-                                 <img 
-                                   src={product.image} 
-                                   alt={product.name} 
-                                   className="w-16 h-16 object-cover rounded-lg"
-                                 />
-                                 <div className="flex-1">
-                                   <div className="flex items-center justify-between">
-                                     <h4 className="font-semibold text-gray-900">{product.brand} {product.name}</h4>
-                                     <div className="flex items-center space-x-1">
-                                       {product.rating && (
-                                         <div className="flex items-center">
-                                           <span className="text-yellow-400">★</span>
-                                           <span className="text-sm text-gray-600 ml-1">{product.rating}</span>
-                                           {product.reviewCount && (
-                                             <span className="text-xs text-gray-500 ml-1">({product.reviewCount})</span>
-                                           )}
-                                         </div>
-                                       )}
-                                     </div>
-                                   </div>
-                                   <div className="flex items-center space-x-2 mt-1">
-                                     {product.tags.map((tag, tagIndex) => (
-                                       <span 
-                                         key={tagIndex}
-                                         className="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded border border-yellow-300"
-                                       >
-                                         {tag}
-                                       </span>
-                                     ))}
-                                     {!product.inStock && (
-                                       <span className="px-2 py-1 bg-red-100 text-red-800 text-xs rounded border border-red-300">
-                                         Out of Stock
-                                       </span>
-                                     )}
-                                   </div>
-                                   <p className="text-sm text-gray-600 mt-2">{product.description}</p>
-                                   <div className="flex items-center justify-between mt-3">
-                                     <div className="flex items-center space-x-4">
-                                       <span className="text-sm text-gray-500">{product.size}</span>
-                                       <span className="font-semibold text-gray-900">${product.price}</span>
-                                       {cartItems[product.id] > 0 && (
-                                         <span className="text-sm text-green-600 font-medium">
-                                           {cartItems[product.id]} in cart
-                                         </span>
-                                       )}
-                                     </div>
-                                   </div>
-                                 </div>
-                                 <button 
-                                   onClick={() => handleAddToCart(product)}
-                                   disabled={!product.inStock || cartLoading[product.id]}
-                                   className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
-                                     !product.inStock 
-                                       ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                                       : cartLoading[product.id]
-                                       ? 'bg-primary-400 text-white cursor-wait'
-                                       : 'bg-primary-600 text-white hover:bg-primary-700'
-                                   }`}
-                                 >
-                                   {cartLoading[product.id] ? (
-                                     <div className="flex items-center">
-                                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                                       Adding...
-                                     </div>
-                                   ) : !product.inStock ? (
-                                     'Out of Stock'
-                                   ) : (
-                                     'ADD TO BAG'
-                                   )}
-                                 </button>
-                               </div>
-                             ))}
-                          </div>
+                          <RoutineProductCard
+                            key={step.step}
+                            product={{
+                              id: parseInt(step.products[0].id) || 1,
+                              title: step.products[0].name,
+                              vendor: step.products[0].brand,
+                              product_type: 'skincare',
+                              tags: step.products[0].tags.join(', '),
+                              variants: [{
+                                id: step.products[0].shopifyVariantId?.split('/').pop() || '1',
+                                title: 'Default',
+                                price: step.products[0].price.toString(),
+                                inventory_quantity: step.products[0].inStock ? 10 : 0
+                              }],
+                              images: [{
+                                id: 1,
+                                src: step.products[0].image,
+                                alt: step.products[0].name
+                              }],
+                              body_html: step.products[0].description,
+                              created_at: new Date().toISOString(),
+                              updated_at: new Date().toISOString()
+                            }}
+                            stepNumber={index + 1}
+                            stepTitle={step.title.split(': ')[1] || step.title}
+                            isLastStep={index === routine[routineType].length - 1}
+                            showAddAllButton={index === routine[routineType].length - 1}
+                            onAddAllToCart={handleAddRoutineToCart}
+                          />
                         ))}
-
-                                                 {/* Add Full Routine Button */}
-                         <button 
-                           onClick={handleAddRoutineToCart}
-                           disabled={cartLoading.routine}
-                           className={`w-full py-3 rounded-lg font-semibold transition-all ${
-                             cartLoading.routine
-                               ? 'bg-primary-400 text-white cursor-wait'
-                               : 'bg-primary-600 text-white hover:bg-primary-700'
-                           }`}
-                         >
-                           {cartLoading.routine ? (
-                             <div className="flex items-center justify-center">
-                               <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                               Adding Routine to Cart...
-                             </div>
-                           ) : (
-                             'ADD FULL ROUTINE TO BAG'
-                           )}
-                         </button>
                       </div>
                     ) : (
                       <div className="text-center py-8 text-gray-500">

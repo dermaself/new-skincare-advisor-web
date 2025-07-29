@@ -1,6 +1,7 @@
 'use client';
 
 import { Camera, Sparkles, Heart } from 'lucide-react';
+import CartIcon from './CartIcon';
 
 export default function Header() {
   return (
@@ -34,6 +35,7 @@ export default function Header() {
               <Heart className="w-5 h-5" />
               <span className="hidden sm:inline">Favorites</span>
             </button>
+            <CartIcon />
             <button className="flex items-center space-x-2 bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition-colors">
               <Sparkles className="w-5 h-5" />
               <span>Try Analysis</span>

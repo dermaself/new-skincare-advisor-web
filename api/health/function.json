@@ -5,7 +5,10 @@
       "authLevel": "anonymous",
       "type": "httpTrigger",
       "direction": "in",
-      "methods": ["get"],
+      "methods": [
+        "get",
+        "options"
+      ],
       "name": "req",
       "route": "health"
     },

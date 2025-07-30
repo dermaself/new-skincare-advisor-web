@@ -6,7 +6,7 @@ import dynamic from 'next/dynamic';
 const ImageUpload = dynamic(() => import('./ImageUpload'), { ssr: false });
 import CameraCapture from './CameraCapture';
 import AnalysisResults from './AnalysisResults';
-import { analyzeSkin } from '@/lib/api';
+import { analyzeSkin, AnalysisResponse } from '@/lib/api';
 
 export type SkinConcern = {
   name: string;
@@ -15,11 +15,44 @@ export type SkinConcern = {
   description: string;
 };
 
+// For backward compatibility, create a mapper function
+const mapToLegacyFormat = (response: AnalysisResponse): AnalysisResult => {
+  return {
+    concerns: response.concerns || [],
+    recommendations: Array.isArray(response.recommendations) 
+      ? response.recommendations 
+      : response.recommendations?.skincare_routine?.map(cat => 
+          cat.modules.map(mod => mod.main_product?.product_name || 'Product').join(', ')
+        ) || [],
+    overallHealth: response.overallHealth || calculateHealthFromAcne(response.acne),
+    imageUrl: response.imageUrl || '',
+    // Include new data for enhanced features
+    acneAnalysis: response.acne,
+    productRecommendations: response.recommendations
+  };
+};
+
+const calculateHealthFromAcne = (acne?: any): number => {
+  if (!acne) return 75; // Default value
+  
+  const { severity } = acne;
+  switch (severity) {
+    case 'None': return 95;
+    case 'Mild': return 80;
+    case 'Moderate': return 65;
+    case 'Severe': return 45;
+    default: return 75;
+  }
+};
+
 export type AnalysisResult = {
   concerns: SkinConcern[];
   recommendations: string[];
   overallHealth: number;
   imageUrl: string;
+  // Enhanced data
+  acneAnalysis?: any;
+  productRecommendations?: any;
 };
 
 export default function SkinAnalysis() {
@@ -42,8 +75,9 @@ export default function SkinAnalysis() {
     setError(null);
 
     try {
-      const result = await analyzeSkin(selectedImage);
-      setAnalysisResult(result);
+      const apiResponse = await analyzeSkin(selectedImage);
+      const mappedResult = mapToLegacyFormat(apiResponse);
+      setAnalysisResult(mappedResult);
       setStep('results');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Analysis failed. Please try again.');

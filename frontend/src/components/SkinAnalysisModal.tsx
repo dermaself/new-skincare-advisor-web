@@ -248,6 +248,7 @@ export default function SkinAnalysisModal({ isOpen, onClose }: SkinAnalysisModal
   const [selectedSkinType, setSelectedSkinType] = useState<string>('');
   const [selectedAgeGroup, setSelectedAgeGroup] = useState<string>('');
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
+  const [imageMetadata, setImageMetadata] = useState<any>(null);
   const [showCamera, setShowCamera] = useState(false);
   const [openInfo, setOpenInfo] = useState<string | null>(null);
   
@@ -582,14 +583,122 @@ export default function SkinAnalysisModal({ isOpen, onClose }: SkinAnalysisModal
     setShowCamera(true);
   };
 
-  const handleImageCapture = (imageData: string) => {
+  const handleImageCapture = async (imageData: string, metadata?: any) => {
     setCapturedImage(imageData);
+    setImageMetadata(metadata);
     setShowCamera(false);
-    // Auto-advance to results after a short delay
-    setTimeout(() => {
+    
+    // Trigger analysis immediately with user data and recommendations
+    try {
+      setLoading(true);
+      
+      // Prepare user data from quiz responses
+      const userData = {
+        first_name: 'User',
+        last_name: 'Test',
+        birthdate: selectedAgeGroup ? calculateBirthdate(selectedAgeGroup) : '1990-01-01',
+        gender: 'female' as const, // Default for now, can be enhanced with gender selection in quiz
+        budget_level: 'High' as const,
+        shop_domain: 'dermaself'
+      };
+      
+      // Call the new API with recommendations
+      const { analyzeSkinWithRecommendations } = await import('../lib/api');
+      const analysisResult = await analyzeSkinWithRecommendations(
+        imageData,
+        userData,
+        metadata
+      );
+      
+      // Transform result to match expected format
+      const transformedResult = transformAnalysisResult(analysisResult);
+      setRoutine(transformedResult.routine);
       setCurrentStep('results');
-    }, 1000);
+      
+    } catch (error) {
+      console.error('Analysis failed:', error);
+      // Still advance to results with mock data for now
+      setTimeout(() => {
+        setCurrentStep('results');
+      }, 1000);
+    } finally {
+      setLoading(false);
+    }
   };
+
+  // Helper function to calculate birthdate from age group
+  const calculateBirthdate = (ageGroup: string): string => {
+    const currentYear = new Date().getFullYear();
+    switch (ageGroup) {
+      case '18-25': return `${currentYear - 22}-01-01`;
+      case '26-35': return `${currentYear - 30}-01-01`;
+      case '36-45': return `${currentYear - 40}-01-01`;
+      case '46+': return `${currentYear - 50}-01-01`;
+      default: return '1990-01-01';
+    }
+  };
+
+  // Helper function to transform API response to expected format
+  const transformAnalysisResult = (apiResponse: any) => {
+    // If we have recommendations from the API, use them
+    if (apiResponse.recommendations?.skincare_routine) {
+      return {
+        routine: {
+          essential: apiResponse.recommendations.skincare_routine.filter((cat: any) => 
+            cat.category === 'Skincare'
+          ).map((cat: any) => ({
+            step: cat.modules[0]?.module || 'Step',
+            title: cat.modules[0]?.module || 'Step',
+            products: [
+              cat.modules[0]?.main_product,
+              ...cat.modules[0]?.alternative_products || []
+            ].filter(Boolean).map(transformProduct)
+          })),
+          expert: apiResponse.recommendations.skincare_routine.filter((cat: any) => 
+            cat.category === 'Makeup'
+          ).map((cat: any) => ({
+            step: cat.modules[0]?.module || 'Step',
+            title: cat.modules[0]?.module || 'Step',
+            products: [
+              cat.modules[0]?.main_product,
+              ...cat.modules[0]?.alternative_products || []
+            ].filter(Boolean).map(transformProduct)
+          })),
+          addons: []
+        }
+      };
+    }
+    
+    // Fallback to existing logic
+    return { 
+      routine: {
+        essential: [],
+        expert: [],
+        addons: []
+      }
+    };
+  };
+
+  // Helper function to transform API product to our format
+  const transformProduct = (apiProduct: any) => ({
+    id: apiProduct.product_id?.toString() || Math.random().toString(),
+    name: apiProduct.product_name || 'Product',
+    brand: apiProduct.brand || 'Brand',
+    image: apiProduct.image_url || '',
+    price: apiProduct.best_price || 0,
+    size: apiProduct.volume || '50ml',
+    description: apiProduct.info || 'No description available',
+    tags: apiProduct.composition?.split(',').slice(0, 3) || [],
+    usage: 'both' as const,
+    step: 'cleanse' as const,
+    skinTypes: apiProduct.skin_type?.split(',') || [],
+    skinConcerns: [],
+    shopifyProductId: apiProduct.product_id?.toString(),
+    shopifyVariantId: apiProduct.product_id?.toString(),
+    inStock: true,
+    rating: apiProduct.rating || 4.5,
+    reviewCount: 100
+  });
 
   const handleCameraClose = () => {
     setShowCamera(false);
@@ -601,12 +710,41 @@ export default function SkinAnalysisModal({ isOpen, onClose }: SkinAnalysisModal
 
   if (!isOpen) return null;
 
+  // If camera is shown, render it embedded within the modal
   if (showCamera) {
     return (
-      <CameraCapture
-        onCapture={handleImageCapture}
-        onClose={handleCameraClose}
-      />
+      <AnimatePresence>
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+        >
+          {/* Backdrop */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            onClick={handleCameraClose}
+          />
+
+          {/* Modal */}
+          <motion.div
+            initial={{ scale: 0.95, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.95, opacity: 0 }}
+            transition={{ type: "spring", damping: 25, stiffness: 300 }}
+            className="relative w-full max-w-[540px] max-h-[95vh] bg-white shadow-xl overflow-hidden flex flex-col"
+          >
+            <CameraCapture
+              onCapture={handleImageCapture}
+              onClose={handleCameraClose}
+              embedded={true}
+            />
+          </motion.div>
+        </motion.div>
+      </AnimatePresence>
     );
   }
 
@@ -650,6 +788,8 @@ export default function SkinAnalysisModal({ isOpen, onClose }: SkinAnalysisModal
               <button
                 onClick={handleClose}
                 className="w-8 h-8 bg-white/20 flex items-center justify-center hover:bg-white/30 transition-colors"
+                aria-label="Close modal"
+                title="Close modal"
               >
                 <X className="w-4 h-4 text-white" />
               </button>
@@ -814,6 +954,8 @@ export default function SkinAnalysisModal({ isOpen, onClose }: SkinAnalysisModal
                           <button
                             className="answer__info-button"
                             onClick={() => toggleInfo(concern.name)}
+                            aria-label={`More information about ${concern.name}`}
+                            title={`More information about ${concern.name}`}
                           >
                             <Info className="info-image-closed" />
                           </button>
@@ -858,6 +1000,8 @@ export default function SkinAnalysisModal({ isOpen, onClose }: SkinAnalysisModal
                           <button
                             className="answer__info-button"
                             onClick={() => toggleInfo(type.name)}
+                            aria-label={`More information about ${type.name}`}
+                            title={`More information about ${type.name}`}
                           >
                             <Info className="info-image-closed" />
                           </button>

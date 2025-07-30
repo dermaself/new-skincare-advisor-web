@@ -4,7 +4,7 @@
       "authLevel": "anonymous",
       "type": "httpTrigger",
       "direction": "in",
-      "methods": ["post"],
+      "methods": ["post", "options"],
       "name": "req",
       "route": "upload-url"
     },

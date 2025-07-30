@@ -99,6 +99,21 @@ async function initServiceBus() {
 module.exports = async function (context, req) {
   const startTime = Date.now();
   
+  // Handle CORS preflight requests
+  if (req.method === 'OPTIONS') {
+    context.res = {
+      status: 200,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-user-id, x-forwarded-for',
+        'Access-Control-Max-Age': '86400'
+      },
+      body: {}
+    };
+    return;
+  }
+  
   try {
     // Rate limiting
     const rateLimitPassed = await inferRateLimiter(context);
@@ -110,7 +125,12 @@ module.exports = async function (context, req) {
       logger.warn('Validation failed', { error: error.message });
       context.res = {
         status: 400,
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-user-id, x-forwarded-for'
+        },
         body: {
           error: 'Validation Error',
           message: error.details[0].message
@@ -126,7 +146,12 @@ module.exports = async function (context, req) {
       logger.warn('Validation failed', { error: 'URL immagine richiesta' });
       context.res = {
         status: 400,
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-user-id, x-forwarded-for'
+        },
         body: { error: 'URL immagine richiesta' }
       };
       return;
@@ -160,7 +185,12 @@ module.exports = async function (context, req) {
       });
       context.res = {
         status: 400,
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-user-id, x-forwarded-for'
+        },
         body: { error: 'URL deve essere un Azure Blob Storage valido' }
       };
       return;
@@ -170,7 +200,12 @@ module.exports = async function (context, req) {
     if (isValidAzureUrl && imageUrl.includes('?sv=') && !validateSasPermissions(imageUrl)) {
       context.res = {
         status: 400,
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-user-id, x-forwarded-for'
+        },
         body: {
           error: 'Invalid Permissions',
           message: 'URL immagine non ha permessi di lettura'
@@ -195,7 +230,12 @@ module.exports = async function (context, req) {
       
       context.res = {
         status: 202, // Accepted
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-user-id, x-forwarded-for'
+        },
         body: {
           message: 'Richiesta accettata per elaborazione',
           jobId: messageId,
@@ -215,7 +255,10 @@ module.exports = async function (context, req) {
       context.res = {
         headers: { 
           'Content-Type': 'application/json',
-          'X-Cache': 'HIT'
+          'X-Cache': 'HIT',
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-user-id, x-forwarded-for'
         },
         body: cached
       };
@@ -260,7 +303,10 @@ module.exports = async function (context, req) {
       context.res = {
         headers: { 
           'Content-Type': 'application/json',
-          'X-Cache': 'MISS'
+          'X-Cache': 'MISS',
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-user-id, x-forwarded-for'
         },
         body: enrichedWithRecommendations
       };
@@ -272,7 +318,10 @@ module.exports = async function (context, req) {
       context.res = {
         headers: { 
           'Content-Type': 'application/json',
-          'X-Cache': 'MISS'
+          'X-Cache': 'MISS',
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-user-id, x-forwarded-for'
         },
         body: enriched
       };
@@ -312,7 +361,10 @@ module.exports = async function (context, req) {
           status: 200,
           headers: { 
             'Content-Type': 'application/json',
-            'X-Cache': 'FALLBACK'
+            'X-Cache': 'FALLBACK',
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+            'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-user-id, x-forwarded-for'
           },
           body: enriched
         };
@@ -324,7 +376,12 @@ module.exports = async function (context, req) {
     
     context.res = {
       status: 503,
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-user-id, x-forwarded-for'
+      },
       body: {
         error: 'Service Unavailable',
         message: 'Servizio temporaneamente non disponibile',

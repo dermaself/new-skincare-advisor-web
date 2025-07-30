@@ -59,18 +59,76 @@ api.interceptors.response.use(
 export interface UploadUrlResponse {
   uploadUrl: string;
   blobName: string;
+  blobUrl?: string; // Public URL for the uploaded blob
 }
 
 export interface AnalysisResponse {
-  concerns: Array<{
+  // Roboflow inference data
+  predictions: Array<any>;
+  image: {
+    width: number;
+    height: number;
+  };
+  
+  // Acne analysis
+  acne: {
+    counts: Record<string, number>;
+    severity: 'None' | 'Mild' | 'Moderate' | 'Severe';
+    classification: string;
+  };
+  
+  // Product recommendations
+  recommendations?: {
+    user: {
+      first_name: string;
+      last_name: string;
+      age: string;
+      gender: string;
+    };
+    skincare_routine: Array<{
+      category: string;
+      modules: Array<{
+        module: string;
+        main_product: any;
+        alternative_products: Array<any>;
+      }>;
+    }>;
+  };
+  
+  // Metadata
+  recommendations_meta?: {
+    success: boolean;
+    duration: number;
+    error?: string;
+  };
+  
+  // Legacy compatibility
+  concerns?: Array<{
     name: string;
     confidence: number;
     severity: 'low' | 'medium' | 'high';
     description: string;
   }>;
-  recommendations: string[];
-  overallHealth: number;
-  imageUrl: string;
+  overallHealth?: number;
+  imageUrl?: string;
+}
+
+export interface ImageMetadata {
+  source: 'camera' | 'file';
+  facingMode?: 'user' | 'environment';
+  fileName?: string;
+  fileSize?: number;
+  timestamp: number;
+}
+
+export interface UserData {
+  first_name?: string;
+  last_name?: string;
+  birthdate?: string;
+  gender?: 'male' | 'female' | 'other';
+  erythema?: boolean;
+  budget_level?: 'Low' | 'Medium' | 'High';
+  shop_domain?: string;
 }
 
 export interface HealthCheckResponse {
@@ -87,41 +145,151 @@ export interface HealthCheckResponse {
 /**
  * Get upload URL for image
  */
-export async function getUploadUrl(): Promise<UploadUrlResponse> {
-  const response = await api.get('/upload-url');
+export async function getUploadUrl(mimeType: string = 'image/jpeg'): Promise<UploadUrlResponse> {
+  // OWASP: Validate MIME type
+  const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+  if (!allowedTypes.includes(mimeType)) {
+    throw new Error('Invalid image type. Only JPEG, PNG, and WebP are allowed.');
+  }
+
+  const response = await api.post('/upload-url', { mimeType });
   return response.data;
 }
 
 /**
- * Analyze skin image
+ * Upload image file to blob storage
  */
-export async function analyzeSkin(imageDataUrl: string): Promise<AnalysisResponse> {
+export async function uploadImageFile(file: File): Promise<string> {
+  // OWASP: Validate file
+  const maxSize = 10 * 1024 * 1024; // 10MB
+  const minSize = 1024; // 1KB
+  const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+  
+  if (!allowedTypes.includes(file.type)) {
+    throw new Error('Invalid file type. Only JPEG, PNG, and WebP images are allowed.');
+  }
+  
+  if (file.size > maxSize) {
+    throw new Error('File is too large. Maximum size is 10MB.');
+  }
+  
+  if (file.size < minSize) {
+    throw new Error('File is too small. Minimum size is 1KB.');
+  }
+
   try {
-    // First, get upload URL
-    const { uploadUrl, blobName } = await getUploadUrl();
+    // Get upload URL with correct MIME type
+    const { uploadUrl, blobUrl, blobName } = await getUploadUrl(file.type);
     
-    // Convert data URL to blob
-    const base64Data = imageDataUrl.split(',')[1];
-    const blob = await fetch(`data:image/jpeg;base64,${base64Data}`).then(res => res.blob());
-    
-    // Upload image to Azure Storage
-    await axios.put(uploadUrl, blob, {
+    // Upload file to Azure Blob Storage
+    const uploadResponse = await fetch(uploadUrl, {
+      method: 'PUT',
+      body: file,
       headers: {
-        'Content-Type': 'image/jpeg',
+        'Content-Type': file.type,
         'x-ms-blob-type': 'BlockBlob',
       },
     });
     
-    // Analyze the uploaded image
-    const response = await api.post('/infer', {
-      imageUrl: blobName,
+    if (!uploadResponse.ok) {
+      throw new Error(`Upload failed with status ${uploadResponse.status}`);
+    }
+    
+    // Return public URL or construct from blobName
+    return blobUrl || blobName;
+  } catch (error) {
+    console.error('File upload failed:', error);
+    throw error;
+  }
+}
+
+/**
+ * Upload base64 image to blob storage
+ */
+export async function uploadBase64Image(imageDataUrl: string): Promise<string> {
+  try {
+    // Convert data URL to blob
+    const response = await fetch(imageDataUrl);
+    const blob = await response.blob();
+    
+    // Validate blob size
+    const maxSize = 10 * 1024 * 1024; // 10MB
+    if (blob.size > maxSize) {
+      throw new Error('Image is too large. Maximum size is 10MB.');
+    }
+    
+    // Get upload URL
+    const { uploadUrl, blobUrl, blobName } = await getUploadUrl(blob.type);
+    
+    // Upload to Azure Blob Storage
+    const uploadResponse = await fetch(uploadUrl, {
+      method: 'PUT',
+      body: blob,
+      headers: {
+        'Content-Type': blob.type,
+        'x-ms-blob-type': 'BlockBlob',
+      },
     });
+    
+    if (!uploadResponse.ok) {
+      throw new Error(`Upload failed with status ${uploadResponse.status}`);
+    }
+    
+    // Return public URL or construct from blobName
+    return blobUrl || blobName;
+  } catch (error) {
+    console.error('Base64 upload failed:', error);
+    throw error;
+  }
+}
+
+/**
+ * Analyze skin image with user data and recommendations
+ */
+export async function analyzeSkinWithRecommendations(
+  imageSource: string | File,
+  userData?: UserData,
+  metadata?: ImageMetadata
+): Promise<AnalysisResponse> {
+  try {
+    let imageUrl: string;
+    
+    // Upload image based on source type
+    if (typeof imageSource === 'string') {
+      // Base64 data URL from camera
+      imageUrl = await uploadBase64Image(imageSource);
+    } else {
+      // File from upload
+      imageUrl = await uploadImageFile(imageSource);
+    }
+    
+    // Prepare inference request
+    const requestBody = {
+      imageUrl,
+      userData: userData || {},
+      includeRecommendations: true,
+      metadata: {
+        ...metadata,
+        apiVersion: '1.0',
+        clientTimestamp: Date.now()
+      }
+    };
+    
+    // Call inference API
+    const response = await api.post('/infer', requestBody);
     
     return response.data;
   } catch (error) {
-    console.error('Skin analysis error:', error);
+    console.error('Analysis failed:', error);
     throw error;
   }
+}
+
+/**
+ * Legacy function for backward compatibility
+ */
+export async function analyzeSkin(imageDataUrl: string): Promise<AnalysisResponse> {
+  return analyzeSkinWithRecommendations(imageDataUrl);
 }
 
 /**

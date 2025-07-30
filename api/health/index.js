@@ -8,6 +8,21 @@ const logger = createLogger('health');
 
 module.exports = async function (context, req) {
   const startTime = Date.now();
+  
+  // Handle CORS preflight requests
+  if (req.method === 'OPTIONS') {
+    context.res = {
+      status: 200,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-user-id, x-forwarded-for',
+        'Access-Control-Max-Age': '86400'
+      },
+      body: {}
+    };
+    return;
+  }
   const checks = {
     status: 'healthy',
     timestamp: new Date().toISOString(),
@@ -53,7 +68,10 @@ module.exports = async function (context, req) {
       status: allHealthy ? 200 : 503,
       headers: {
         'Content-Type': 'application/json',
-        'Cache-Control': 'no-cache, no-store, must-revalidate'
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-user-id, x-forwarded-for'
       },
       body: checks
     };
@@ -68,7 +86,10 @@ module.exports = async function (context, req) {
       status: 503,
       headers: {
         'Content-Type': 'application/json',
-        'Cache-Control': 'no-cache, no-store, must-revalidate'
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-user-id, x-forwarded-for'
       },
       body: checks
     };

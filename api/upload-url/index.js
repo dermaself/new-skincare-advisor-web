@@ -44,6 +44,22 @@ const uploadRateLimiter = rateLimitMiddleware({
 module.exports = async function (context, req) {
   const startTime = Date.now();
   
+  // Handle CORS preflight requests
+  if (req.method === 'OPTIONS') {
+    context.res = {
+      status: 200,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+        'Access-Control-Allow-Headers': '*',
+        'Access-Control-Max-Age': '86400',
+        'Content-Type': 'application/json'
+      },
+      body: {}
+    };
+    return;
+  }
+  
   try {
     // Rate limiting
     const rateLimitPassed = await uploadRateLimiter(context);
@@ -53,14 +69,19 @@ module.exports = async function (context, req) {
     const { error, value } = requestSchema.validate(req.body);
     if (error) {
       logger.warn('Validation failed', { error: error.message });
-      context.res = {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' },
-        body: {
-          error: 'Validation Error',
-          message: error.details[0].message
-        }
-      };
+          context.res = {
+      status: 400,
+      headers: { 
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+        'Access-Control-Allow-Headers': '*'
+      },
+      body: {
+        error: 'Validation Error',
+        message: error.details[0].message
+      }
+    };
       return;
     }
 
@@ -99,7 +120,12 @@ module.exports = async function (context, req) {
     });
 
     context.res = {
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+        'Access-Control-Allow-Headers': '*'
+      },
       body: {
         uploadUrl,
         blobUrl: readUrl,
@@ -113,7 +139,12 @@ module.exports = async function (context, req) {
     
     context.res = {
       status: 500,
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+        'Access-Control-Allow-Headers': '*'
+      },
       body: {
         error: 'Internal Server Error',
         message: 'Impossibile generare URL di upload'

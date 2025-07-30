@@ -9,7 +9,13 @@
       "routePrefix": "api",
       "maxConcurrentRequests": 100,
       "maxOutstandingRequests": 200,
-      "dynamicThrottlesEnabled": true
+      "dynamicThrottlesEnabled": true,
+      "cors": {
+        "allowedOrigins": ["*"],
+        "allowedMethods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        "allowedHeaders": ["*"],
+        "maxAge": 86400
+      }
     }
   },
   "functionTimeout": "00:00:30",

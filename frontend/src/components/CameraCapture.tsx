@@ -31,7 +31,7 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
   const [currentCamera, setCurrentCamera] = useState<'front' | 'back'>('front');
   const [luminosity, setLuminosity] = useState<number>(0);
   const [showGuidance, setShowGuidance] = useState(true);
-  const [cameraState, setCameraState] = useState<CameraState>('qr');
+  const [cameraState, setCameraState] = useState<CameraState>(embedded ? 'live' : 'qr');
   const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string>('');
   const [facePosition, setFacePosition] = useState<FacePosition | null>(null);
   const [detectionInterval, setDetectionInterval] = useState<NodeJS.Timeout | null>(null);
@@ -866,6 +866,8 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
           accept="image/*"
           onChange={handleFileUpload}
           className="hidden"
+          aria-label="Upload file"
+          title="Upload file"
         />
       </div>
     </motion.div>

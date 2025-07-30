@@ -9,6 +9,8 @@ const { rateLimitMiddleware } = require('../shared/rateLimit');
 const cache = require('../shared/cache');
 const { computeAcneMetrics } = require('../shared/acneMetrics');
 const { enrichWithRecommendations } = require('../shared/recommendations');
+const { computeRednessMetrics } = require('../shared/rednessMetrics');
+const { v4: uuidv4 } = require('uuid');
 
 const logger = createLogger('infer');
 
@@ -49,7 +51,17 @@ const requestSchema = Joi.object({
   }).optional().default({}),
   
   // Flag per includere raccomandazioni prodotti
-  includeRecommendations: Joi.boolean().default(true)
+  includeRecommendations: Joi.boolean().default(true),
+  
+  // Metadati opzionali per tracking e debugging
+  metadata: Joi.object({
+    source: Joi.string().max(50).optional(),
+    fileName: Joi.string().max(255).optional(),
+    fileSize: Joi.number().integer().min(0).optional(),
+    timestamp: Joi.number().integer().min(0).optional(),
+    apiVersion: Joi.string().max(20).optional(),
+    clientTimestamp: Joi.number().integer().min(0).optional()
+  }).optional()
 });
 
 // Rate limiter per inferenze
@@ -139,7 +151,7 @@ module.exports = async function (context, req) {
       return;
     }
 
-    const { imageUrl, sync, userId, webhookUrl, userData, includeRecommendations } = value;
+    const { imageUrl, sync, userId, webhookUrl, userData, includeRecommendations, metadata } = value;
 
     // Validazione input
     if (!imageUrl) {
@@ -265,85 +277,73 @@ module.exports = async function (context, req) {
       return;
     }
 
-    // Chiama Roboflow con circuit breaker e retry
-    const result = await pRetry(
-      async () => {
-        try {
-          return await roboflowBreaker.fire(imageUrl);
-        } catch (error) {
-          // Se il circuit breaker è aperto, usa il fallback
-          if (error.code === 'EOPENBREAKER') {
-            logger.warn('Circuit breaker open, using fallback');
-            return await roboflowBreaker.fallback(imageUrl);
-          }
-          throw error;
-        }
-      },
-      {
+    // Esegui chiamate a Roboflow e Redness API in parallelo
+    const base64Image = await imageUrlToBase64(imageUrl);
+    
+    const [roboflowResult, rednessResult] = await Promise.all([
+      pRetry(() => roboflowBreaker.fire(imageUrl), {
         retries: config.roboflow.maxRetries,
-        factor: 2,
-        minTimeout: 1000,
-        maxTimeout: 10000,
-        onFailedAttempt: (error) => {
-          logger.warn(`Roboflow attempt ${error.attemptNumber} failed`, {
-            error: error.message,
-            retriesLeft: error.retriesLeft
-          });
-        }
-      }
-    );
+        onFailedAttempt: error => logger.warn(`Roboflow attempt ${error.attemptNumber} failed. Retries left: ${error.retriesLeft}`)
+      }),
+      callRednessAPI(base64Image)
+    ]);
+    
+    // Calcola metriche per acne e rossore
+    const acneMetrics = computeAcneMetrics(roboflowResult.predictions || []);
+    const rednessMetrics = computeRednessMetrics(rednessResult);
 
-    // Calcola metriche acne e arricchisci risultato
-    const acne = computeAcneMetrics(result.predictions || []);
-    const enriched = { ...result, acne };
+    // Aggiorna i dati utente con il rilevamento dell'eritema
+    const updatedUserData = { ...userData, erythema: rednessMetrics.erythema };
 
-    // Arricchisci con raccomandazioni (se richiesto)
+    // Arricchisci il risultato con raccomandazioni se richiesto
+    let finalResult = {
+      inference_id: uuidv4(),
+      ...roboflowResult,
+      acne: acneMetrics,
+      redness: rednessMetrics
+    };
+    
     if (includeRecommendations) {
-      const enrichedWithRecommendations = await enrichWithRecommendations(enriched, userData);
-      context.res = {
-        headers: { 
-          'Content-Type': 'application/json',
-          'X-Cache': 'MISS',
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-          'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-user-id, x-forwarded-for'
-        },
-        body: enrichedWithRecommendations
-      };
-    } else {
-      // Salva in cache se non è fallback
-      if (!result.fallback) {
-        await cache.set(cacheKey, enriched, 300); // Cache per 5 minuti
-      }
-      context.res = {
-        headers: { 
-          'Content-Type': 'application/json',
-          'X-Cache': 'MISS',
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-          'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-user-id, x-forwarded-for'
-        },
-        body: enriched
-      };
+      finalResult = await enrichWithRecommendations(finalResult, updatedUserData);
     }
+    
+    // Salva in cache se non è un fallback
+    if (!roboflowResult.fallback) {
+      await cache.set(cacheKey, finalResult, 300); // Cache per 5 minuti
+    }
+
+    context.res = {
+      headers: { 
+        'Content-Type': 'application/json',
+        'X-Cache': 'MISS',
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-user-id, x-forwarded-for'
+      },
+      body: finalResult
+    };
 
     // Log metriche
     const duration = Date.now() - startTime;
     logger.info('Inference completed', {
       imageUrl,
       duration,
-      predictionsCount: result.predictions?.length || 0,
-      acneSeverity: acne.severity,
-      acneClassification: acne.classification,
-      cached: false
+      predictionsCount: roboflowResult.predictions?.length || 0,
+      acneSeverity: acneMetrics.severity,
+      acneClassification: acneMetrics.classification,
+      rednessPercentage: rednessMetrics.redness_perc,
+      cached: false,
+      metadata: metadata || null
     });
  
     logger.trackEvent('InferenceCompleted', {
       userId,
-      predictionsCount: result.predictions?.length || 0,
-      acneSeverity: acne.severity,
-      acneClassification: acne.classification,
-      cached: false
+      predictionsCount: roboflowResult.predictions?.length || 0,
+      acneSeverity: acneMetrics.severity,
+      acneClassification: acneMetrics.classification,
+      rednessPercentage: rednessMetrics.redness_perc,
+      cached: false,
+      metadata: metadata || null
     }, { duration });
 
   } catch (error) {
@@ -494,6 +494,60 @@ async function callRoboflowAPI(imageUrl) {
     });
 
     throw error;
+  }
+}
+
+/**
+ * Converte un'immagine da URL a stringa base64.
+ * @param {string} imageUrl - L'URL dell'immagine.
+ * @returns {Promise<string>} La stringa base64 dell'immagine.
+ */
+async function imageUrlToBase64(imageUrl) {
+  try {
+    const response = await axios.get(imageUrl, {
+      responseType: 'arraybuffer'
+    });
+    return Buffer.from(response.data, 'binary').toString('base64');
+  } catch (error) {
+    logger.error('Failed to convert image URL to base64', { imageUrl, error: error.message });
+    throw new Error('Could not fetch or convert image from URL.');
+  }
+}
+
+/**
+ * Chiama l'API di redness detection.
+ * @param {string} base64Image - L'immagine in formato base64.
+ * @returns {Promise<Object>} Il risultato dall'API di redness.
+ */
+async function callRednessAPI(base64Image) {
+  const apiUrl = await config.redness.getApiUrl();
+  const apiKey = await config.redness.getApiKey();
+  const fullUrl = `${apiUrl}?code=${apiKey}`;
+
+  try {
+    const response = await axios.post(fullUrl, 
+      { base64image: base64Image },
+      { 
+        timeout: config.redness.timeout,
+        headers: { 'Content-Type': 'application/json' }
+      }
+    );
+    logger.info('Redness API call successful');
+    return response.data;
+  } catch (error) {
+    logger.error('Redness API call failed', { 
+      error: error.message,
+      status: error.response?.status,
+      data: error.response?.data 
+    });
+    // Ritorna un oggetto di fallback per non bloccare il flusso principale
+    return {
+      num_polygons: 0,
+      polygons: [],
+      analysis_width: 0,
+      analysis_height: 0,
+      error: 'Redness API call failed'
+    };
   }
 }
 

@@ -63,6 +63,11 @@ const config = {
     timeout: parseInt(process.env.ROBOFLOW_TIMEOUT || '10000'),
     maxRetries: parseInt(process.env.ROBOFLOW_MAX_RETRIES || '3')
   },
+  redness: {
+    getApiUrl: () => getSecret('RednessApiUrl', 'REDNESS_API_URL'),
+    getApiKey: () => getSecret('RednessApiKey', 'REDNESS_API_KEY'),
+    timeout: parseInt(process.env.REDNESS_API_TIMEOUT || '15000')
+  },
   redis: {
     getConnectionString: () => getSecret('RedisConnection', 'REDIS_CONNECTION_STRING')
   },

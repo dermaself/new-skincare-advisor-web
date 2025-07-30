@@ -9,11 +9,11 @@ const RECOMMENDATIONS_API_URL = 'https://azure-products-recommendation-api-ekbsh
 
 /**
  * Mappa i dati di analisi acne al formato richiesto dall'API di raccomandazioni
- * @param {Object} acneAnalysis - Risultato dell'analisi acne
+ * @param {Object} inferenceResult - Risultato completo dell'inferenza
  * @param {Object} userData - Dati utente opzionali
  * @returns {Object} Payload per l'API di raccomandazioni
  */
-function mapAcneToRecommendationPayload(acneAnalysis, userData = {}) {
+function mapAcneToRecommendationPayload(inferenceResult, userData = {}) {
   // Mappa la severità dall'analisi acne
   const severityMapping = {
     'None': 'none',
@@ -43,15 +43,15 @@ function mapAcneToRecommendationPayload(acneAnalysis, userData = {}) {
     last_name: userData.last_name || '',
     birthdate: userData.birthdate || '1990-01-01',
     gender: userData.gender || 'female',
-    acne_type: determineAcneType(acneAnalysis.counts),
-    acne_severity: severityMapping[acneAnalysis.severity] || 'mild',
-    erythema: userData.erythema || false,
+    acne_type: determineAcneType(inferenceResult.acne.counts),
+    acne_severity: severityMapping[inferenceResult.acne.severity] || 'mild',
+    erythema: userData.erythema, // Usa il valore aggiornato
     budget_level: userData.budget_level || 'Medium',
     shop_domain: userData.shop_domain || 'dermaself'
   };
 
-  logger.info('Mapped acne analysis to recommendation payload', {
-    acneAnalysis: acneAnalysis,
+  logger.info('Mapped inference result to recommendation payload', {
+    inferenceResult: inferenceResult,
     payload: payload
   });
 
@@ -60,15 +60,15 @@ function mapAcneToRecommendationPayload(acneAnalysis, userData = {}) {
 
 /**
  * Chiama l'API di raccomandazioni esterna
- * @param {Object} acneAnalysis - Risultato dell'analisi acne  
+ * @param {Object} inferenceResult - Risultato completo dell'inferenza
  * @param {Object} userData - Dati utente opzionali
  * @returns {Promise<Object>} Raccomandazioni prodotti
  */
-async function getProductRecommendations(acneAnalysis, userData = {}) {
+async function getProductRecommendations(inferenceResult, userData = {}) {
   const startTime = Date.now();
   
   try {
-    const payload = mapAcneToRecommendationPayload(acneAnalysis, userData);
+    const payload = mapAcneToRecommendationPayload(inferenceResult, userData);
     
     logger.info('Calling recommendations API', {
       url: RECOMMENDATIONS_API_URL,
@@ -135,7 +135,7 @@ async function getProductRecommendations(acneAnalysis, userData = {}) {
  */
 async function enrichWithRecommendations(inferenceResult, userData = {}) {
   try {
-    const recommendations = await getProductRecommendations(inferenceResult.acne, userData);
+    const recommendations = await getProductRecommendations(inferenceResult, userData);
     
     return {
       ...inferenceResult,

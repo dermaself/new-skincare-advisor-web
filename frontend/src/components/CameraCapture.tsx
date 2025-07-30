@@ -7,6 +7,7 @@ import QRCode from 'qrcode';
 interface CameraCaptureProps {
   onCapture: (imageData: string) => void;
   onClose: () => void;
+  embedded?: boolean;
 }
 
 type CameraState = 'qr' | 'live' | 'preview';
@@ -18,7 +19,7 @@ interface FacePosition {
   confidence: number; // 0-1
 }
 
-const CameraCapture = ({ onCapture, onClose }: CameraCaptureProps) => {
+const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCaptureProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -601,9 +602,9 @@ const CameraCapture = ({ onCapture, onClose }: CameraCaptureProps) => {
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-75 backdrop-blur-sm p-4"
+      className={`${embedded ? 'absolute' : 'fixed'} inset-0 z-50 flex items-center justify-center bg-black bg-opacity-75 backdrop-blur-sm p-4`}
     >
-      <div className="bg-white w-full max-w-4xl h-full max-h-[95vh] overflow-hidden rounded-2xl shadow-2xl flex flex-col">
+      <div className={`bg-white w-full ${embedded ? 'h-full' : 'max-w-4xl h-full max-h-[95vh]'} overflow-hidden rounded-2xl shadow-2xl flex flex-col`}>
         {/* Header */}
         <div className="flex items-center justify-between p-4 md:p-6 border-b border-gray-200 flex-shrink-0">
           <div>

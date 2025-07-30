@@ -1,14 +1,12 @@
 import axios from 'axios';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:7071/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://new-skincare-advisor-api-fqc8dffvg5ghene2.westeurope-01.azurewebsites.net/api';
 
-// Create axios instance with default config
+// Axios instance pre-configured for our API
 const api = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 30000, // 30 seconds
-  headers: {
-    'Content-Type': 'application/json',
-  },
+  timeout: 30000,
+  headers: { 'Content-Type': 'application/json' },
 });
 
 // Request interceptor for logging

@@ -15,7 +15,8 @@
     "lucide-react": "0.294.0",
     "framer-motion": "10.16.16",
     "react-dropzone": "14.2.3",
-    "axios": "1.6.2"
+    "axios": "1.6.2",
+    "qrcode": "^1.5.3"
   },
   "devDependencies": {
     "typescript": "5.2.2",

@@ -8,6 +8,7 @@ const { createLogger } = require('../shared/logger');
 const { rateLimitMiddleware } = require('../shared/rateLimit');
 const cache = require('../shared/cache');
 const { computeAcneMetrics } = require('../shared/acneMetrics');
+const { enrichWithRecommendations } = require('../shared/recommendations');
 
 const logger = createLogger('infer');
 
@@ -29,13 +30,26 @@ const requestSchema = Joi.object({
       return value;
     })
     .messages({
-      'custom.invalidStorageUrl': 'URL deve essere un Azure Blob Storage valido',
-      'string.uri': 'URL non valido',
-      'any.required': 'imageUrl è obbligatorio'
+      'custom.invalidStorageUrl': 'URL deve essere un Azure Blob Storage valido'
     }),
-  sync: Joi.boolean().default(true), // Elaborazione sincrona o asincrona
-  userId: Joi.string().optional(),
-  webhookUrl: Joi.string().uri().optional() // Per notifiche asincrone
+  
+  sync: Joi.boolean().default(true),
+  userId: Joi.string().max(100).optional(),
+  webhookUrl: Joi.string().uri().max(512).optional(),
+  
+  // Dati utente opzionali per raccomandazioni prodotti
+  userData: Joi.object({
+    first_name: Joi.string().max(50).optional(),
+    last_name: Joi.string().max(50).optional(), 
+    birthdate: Joi.string().pattern(/^\d{4}-\d{2}-\d{2}$/).optional(),
+    gender: Joi.string().valid('male', 'female', 'other').optional(),
+    erythema: Joi.boolean().optional(),
+    budget_level: Joi.string().valid('Low', 'Medium', 'High').optional(),
+    shop_domain: Joi.string().max(50).optional()
+  }).optional().default({}),
+  
+  // Flag per includere raccomandazioni prodotti
+  includeRecommendations: Joi.boolean().default(true)
 });
 
 // Rate limiter per inferenze
@@ -66,12 +80,12 @@ const roboflowBreaker = cache.createCircuitBreaker(callRoboflowAPI, {
   }
 });
 
-// Service Bus client per elaborazione asincrona
-let serviceBusClient;
-let queueSender;
+// Variables globali per Service Bus
+let serviceBusClient = null;
+let queueSender = null;
 
 async function initServiceBus() {
-  if (!process.env.SERVICE_BUS_CONNECTION_STRING) return;
+  if (!process.env.SERVICE_BUS_CONNECTION_STRING || serviceBusClient) return;
   
   try {
     serviceBusClient = new ServiceBusClient(process.env.SERVICE_BUS_CONNECTION_STRING);
@@ -81,9 +95,6 @@ async function initServiceBus() {
     logger.error('Failed to initialize Service Bus', error);
   }
 }
-
-// Inizializza Service Bus all'avvio
-initServiceBus();
 
 module.exports = async function (context, req) {
   const startTime = Date.now();
@@ -108,7 +119,7 @@ module.exports = async function (context, req) {
       return;
     }
 
-    const { imageUrl, sync, userId, webhookUrl } = value;
+    const { imageUrl, sync, userId, webhookUrl, userData, includeRecommendations } = value;
 
     // Validazione input
     if (!imageUrl) {
@@ -167,6 +178,9 @@ module.exports = async function (context, req) {
       };
       return;
     }
+
+    // Inizializza Service Bus se necessario
+    await initServiceBus();
 
     // Se elaborazione asincrona e Service Bus disponibile
     if (!sync && queueSender) {
@@ -240,9 +254,28 @@ module.exports = async function (context, req) {
     const acne = computeAcneMetrics(result.predictions || []);
     const enriched = { ...result, acne };
 
-    // Salva in cache se non è fallback
-    if (!result.fallback) {
-      await cache.set(cacheKey, enriched, 300); // Cache per 5 minuti
+    // Arricchisci con raccomandazioni (se richiesto)
+    if (includeRecommendations) {
+      const enrichedWithRecommendations = await enrichWithRecommendations(enriched, userData);
+      context.res = {
+        headers: { 
+          'Content-Type': 'application/json',
+          'X-Cache': 'MISS'
+        },
+        body: enrichedWithRecommendations
+      };
+    } else {
+      // Salva in cache se non è fallback
+      if (!result.fallback) {
+        await cache.set(cacheKey, enriched, 300); // Cache per 5 minuti
+      }
+      context.res = {
+        headers: { 
+          'Content-Type': 'application/json',
+          'X-Cache': 'MISS'
+        },
+        body: enriched
+      };
     }
 
     // Log metriche
@@ -263,14 +296,6 @@ module.exports = async function (context, req) {
       acneClassification: acne.classification,
       cached: false
     }, { duration });
-
-    context.res = {
-      headers: { 
-        'Content-Type': 'application/json',
-        'X-Cache': 'MISS'
-      },
-      body: enriched
-    };
 
   } catch (error) {
     logger.error('Inference failed', error);

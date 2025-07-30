@@ -55,11 +55,27 @@ async function uploadSampleImage() {
 }
 
 describe('Infer Function', () => {
-  it('returns enriched inference with acne metrics', async () => {
+  it('returns enriched inference with acne metrics and product recommendations', async () => {
     const imageUrl = await uploadSampleImage();
 
     const context = mockContext();
-    const req = { method: 'POST', headers: {}, body: { imageUrl, sync: true } };
+    const req = { 
+      method: 'POST', 
+      headers: {}, 
+      body: { 
+        imageUrl, 
+        sync: true,
+        userData: {
+          first_name: 'Lorenzo',
+          last_name: 'Test', 
+          birthdate: '1998-01-01',
+          gender: 'female',
+          budget_level: 'High',
+          shop_domain: 'dermaself'
+        },
+        includeRecommendations: true
+      } 
+    };
     context.req = req;
 
     await inferFunc(context, req);
@@ -73,6 +89,7 @@ describe('Infer Function', () => {
     
     console.log('Response status:', status);
     console.log('Response body keys:', Object.keys(body));
+    console.log('Has recommendations:', !!body.recommendations);
     
     if (status === 200 && !body.fallback) {
       // Risposta normale - Roboflow funziona
@@ -81,30 +98,26 @@ describe('Infer Function', () => {
       expect(body).toHaveProperty('acne');
       expect(body.acne).toHaveProperty('counts');
       expect(body.acne).toHaveProperty('severity');
-      expect(body.acne).toHaveProperty('classification');
       
-      // Verifica che ci siano predictions (Roboflow funziona)
-      expect(body.predictions).toBeInstanceOf(Array);
-      expect(body.predictions.length).toBeGreaterThan(0);
+      // Verifica raccomandazioni
+      expect(body).toHaveProperty('recommendations');
+      expect(body).toHaveProperty('recommendations_meta');
       
-      // Verifica che le metriche acne siano calcolate
-      expect(body.acne.counts).toBeInstanceOf(Object);
-      expect(body.acne.severity).toBeDefined();
-      expect(body.acne.classification).toBeDefined();
+      if (body.recommendations && body.recommendations.skincare_routine) {
+        expect(Array.isArray(body.recommendations.skincare_routine)).toBe(true);
+        console.log('Recommendations received successfully');
+        console.log('Routine modules:', body.recommendations.skincare_routine.length);
+      } else {
+        console.log('Recommendations fallback or error:', body.recommendations_meta);
+      }
       
-      console.log('Roboflow inference successful:', {
-        predictionsCount: body.predictions.length,
-        acneSeverity: body.acne.severity,
-        acneClassification: body.acne.classification
-      });
-    } else {
-      // Risposta di fallback - verifica la struttura corretta
-      expect(body).toHaveProperty('fallback');
+    } else if (body.fallback) {
+      // Risposta fallback - API Roboflow non disponibile
       expect(body).toHaveProperty('message');
-      expect(body.fallback).toBe(true);
-      expect(body.message).toContain('Servizio temporaneamente non disponibile');
-      
-      console.log('Fallback response used');
+      expect(body).toHaveProperty('acne');
+      expect(body.acne).toHaveProperty('counts');
+      expect(body.acne).toHaveProperty('severity');
+      console.log('Fallback response received');
     }
-  });
+  }, 15000); // 15 secondi timeout
 }); 

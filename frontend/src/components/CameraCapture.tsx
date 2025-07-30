@@ -415,6 +415,10 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
           const onLoadedMetadata = () => {
             video.removeEventListener('loadedmetadata', onLoadedMetadata);
             video.removeEventListener('error', onError);
+            video.play().catch(err => {
+              console.error("Video play failed:", err);
+              setError("Could not play video stream.");
+            });
             console.log('Video loaded successfully');
             setIsCameraActive(true);
           };
@@ -511,7 +515,7 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
     if (videoRef.current && canvasRef.current) {
       const video = videoRef.current;
       const canvas = canvasRef.current;
-      const context = canvas.getContext('2d');
+      const context = canvas.getContext('2d', { willReadFrequently: true });
 
       if (context) {
         canvas.width = video.videoWidth;

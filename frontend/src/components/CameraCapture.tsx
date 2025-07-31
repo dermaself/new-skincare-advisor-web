@@ -145,9 +145,9 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
       
       const mediaStream = await navigator.mediaDevices.getUserMedia({
         video: {
-          facingMode: currentCamera,
-          width: { ideal: 720 },
-          height: { ideal: 1280 },
+          facingMode: 'user', // Explicitly request front camera
+          width: { ideal: 720, min: 640 },
+          height: { ideal: 1280, min: 480 },
           aspectRatio: { ideal: 0.5625 } // 9:16 aspect ratio for portrait
         },
         audio: false,
@@ -172,6 +172,8 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
           console.log('Video ready state:', video.readyState);
           console.log('Video paused:', video.paused);
           console.log('Video current time:', video.currentTime);
+          console.log('Video dimensions:', video.videoWidth, 'x', video.videoHeight);
+          console.log('Video element dimensions:', video.offsetWidth, 'x', video.offsetHeight);
         };
         
         const onCanPlay = () => {
@@ -182,13 +184,20 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
           console.log('Video is playing');
         };
         
+        const onError = (e: Event) => {
+          console.error('Video error event:', e);
+        };
+        
         video.addEventListener('loadedmetadata', onLoadedMetadata);
         video.addEventListener('canplay', onCanPlay);
         video.addEventListener('playing', onPlaying);
+        video.addEventListener('error', onError);
         
         // Simple video start with error handling
         try {
+          console.log('Attempting to play video...');
           await video.play();
+          console.log('Video play successful');
           setIsCameraActive(true);
           setIsLoading(false);
           console.log('Camera started successfully');
@@ -246,6 +255,10 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
 
   const startFaceDetection = () => {
     if (!videoRef.current) return;
+    
+    // Temporarily disable face detection to ensure camera works
+    console.log('Face detection disabled for now');
+    return;
     
     // Add a small delay to ensure video is fully loaded
     setTimeout(() => {
@@ -359,47 +372,9 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
   };
 
   const getLuminosityStatus = () => {
-    if (!videoRef.current) return;
-    
-    const video = videoRef.current;
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    
-    // Check if video has valid dimensions
-    if (video.videoWidth === 0 || video.videoHeight === 0) {
-      return;
-    }
-    
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-    
-    // Set canvas dimensions to match video
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    
-    // Double-check canvas dimensions are valid
-    if (canvas.width === 0 || canvas.height === 0) {
-      return;
-    }
-    
-    try {
-      ctx.drawImage(video, 0, 0);
-      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      
-      let totalLuminosity = 0;
-      for (let i = 0; i < imageData.data.length; i += 4) {
-        const r = imageData.data[i];
-        const g = imageData.data[i + 1];
-        const b = imageData.data[i + 2];
-        totalLuminosity += (r * 0.299 + g * 0.587 + b * 0.114);
-      }
-      
-      const avgLuminosity = totalLuminosity / (imageData.data.length / 4);
-      setLuminosity(avgLuminosity);
-    } catch (error) {
-      console.error('Error in luminosity detection:', error);
-      // Don't update luminosity on error
-    }
+    // Temporarily disable luminosity detection
+    console.log('Luminosity detection disabled');
+    return;
   };
 
   const isSkinTone = (r: number, g: number, b: number): boolean => {
@@ -414,14 +389,10 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
       return 'Move to a brighter area';
     } else if (luminosity > 200) {
       return 'Move to a less bright area';
-    } else if (!facePosition) {
-      return 'Place face inside frame';
-    } else if (!isFaceInPosition(facePosition)) {
-      return 'Turn face to camera';
     } else if (countdown > 0) {
       return 'Hold still...';
     } else {
-      return 'Perfect! Hold still...';
+      return 'Position your face in the center';
     }
   };
 
@@ -698,88 +669,45 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
           )}
           
           {cameraState === 'live' && (
-            <div className="relative w-full max-w-sm h-96 rounded-2xl border-2 border-gray-300 bg-gray-100">
+            <div className="relative w-full max-w-xs h-[28rem] rounded-2xl border-2 border-gray-300 bg-black overflow-hidden">
               <video
                 ref={videoRef}
                 autoPlay
                 playsInline
                 muted
-                className="w-full h-full object-cover rounded-2xl -scale-x-100"
+                className="w-full h-full object-cover"
                 style={{
                   width: '100%',
                   height: '100%',
-                  backgroundColor: '#000',
-                  display: 'block',
-                  objectPosition: 'center'
+                  display: 'block'
+                }}
+                onLoadedMetadata={() => {
+                  console.log('Video metadata loaded');
+                  if (videoRef.current) {
+                    console.log('Video dimensions:', videoRef.current.videoWidth, 'x', videoRef.current.videoHeight);
+                    console.log('Video element dimensions:', videoRef.current.offsetWidth, 'x', videoRef.current.offsetHeight);
+                    console.log('Video srcObject:', videoRef.current.srcObject);
+                    console.log('Video readyState:', videoRef.current.readyState);
+                    console.log('Video paused:', videoRef.current.paused);
+                  }
+                }}
+                onCanPlay={() => {
+                  console.log('Video can play');
+                }}
+                onPlaying={() => {
+                  console.log('Video is playing');
+                }}
+                onError={(e) => {
+                  console.error('Video error:', e);
                 }}
               />
               
-              {/* Face detection frame overlay */}
-              {facePosition && (
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div 
-                    className="relative flex h-full w-full items-center justify-center"
-                    style={{
-                      width: `${(facePosition.width / (videoRef.current?.videoWidth || 1)) * 100}%`,
-                      height: `${(facePosition.height / (videoRef.current?.videoHeight || 1)) * 100}%`,
-                    }}
-                  >
-                    {/* Face frame with animated border */}
-                    <svg 
-                      className="absolute inset-0 h-full w-full drop-shadow-[0px_0px_6px_currentColor]"
-                      viewBox="0 0 240 317"
-                    >
-                      <rect 
-                        x="8" 
-                        y="8" 
-                        width="224" 
-                        height="301" 
-                        rx="40" 
-                        fill="none" 
-                        strokeWidth="3" 
-                        strokeLinecap="round" 
-                        strokeDasharray="100, 173, 110, 96" 
-                        vectorEffect="non-scaling-stroke" 
-                        className="drop-shadow-[0px_0px_1px_rgba(0,0,0,0.4)] stroke-white"
-                        style={{
-                          animation: isFaceInPosition(facePosition) ? 'pulse 2s infinite' : 'none'
-                        }}
-                      />
-                    </svg>
-                  </div>
+              {/* Debug info */}
+              {isCameraActive && videoRef.current && (
+                <div className="absolute bottom-2 left-2 bg-black bg-opacity-50 text-white px-2 py-1 rounded text-xs z-20">
+                  {videoRef.current.videoWidth} x {videoRef.current.videoHeight}
                 </div>
               )}
-              
-              {/* Guidance overlay */}
-              <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-20">
-                <div className="help">
-                  <div className="guidance">
-                    <div className="casing">
-                      <div className="placeholder">
-                        {getGuidanceMessage()}
-                      </div>
-                      <div className="reel">
-                        {getGuidanceMessage()}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              
-              {/* Countdown overlay */}
-              {countdown > 0 && (
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <p className="countdown absolute top-1/2 transform -translate-y-1/2 text-[3.5rem] leading-none text-white [text-shadow:0px_0px_1px_rgba(0,0,0,0.4)]">
-                    {countdown}
-                  </p>
-                </div>
-              )}
-              
-              {/* Luminosity indicator */}
-              <div className="absolute top-2 right-2 flex items-center gap-2 bg-black bg-opacity-50 text-white px-2 py-1 rounded text-xs">
-                {luminosity < 50 ? <Moon size={12} /> : <Sun size={12} />}
-                <span>{Math.round(luminosity)}</span>
-              </div>
               
               {/* Camera status indicator */}
               {isCameraActive && (
@@ -788,12 +716,12 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
                 </div>
               )}
               
-              {/* Debug info */}
-              {isCameraActive && videoRef.current && (
-                <div className="absolute bottom-2 left-2 bg-black bg-opacity-50 text-white px-2 py-1 rounded text-xs z-20">
-                  {videoRef.current.videoWidth} x {videoRef.current.videoHeight}
+              {/* Bottom centered guidance */}
+              <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-20">
+                <div className="bg-black bg-opacity-75 text-white px-6 py-3 rounded-lg text-sm text-center max-w-xs">
+                  Position your face in the center
                 </div>
-              )}
+              </div>
             </div>
           )}
 

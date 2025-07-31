@@ -1,7 +1,7 @@
 'use client';
 import React, { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Camera, X, Upload, QrCode, RotateCcw, Sun, Moon, CheckCircle, ArrowLeft, Smartphone, User, Move, Target } from 'lucide-react';
+import { Camera, X, Upload, RotateCcw, User, Move, CheckCircle, QrCode, Target, MoveHorizontal, Sun, Check } from 'lucide-react';
 import QRCode from 'qrcode';
 import * as faceapi from 'face-api.js';
 
@@ -40,6 +40,8 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
   const [faceCenter, setFaceCenter] = useState<{x: number, y: number} | null>(null);
   const [detectedFaces, setDetectedFaces] = useState<any[]>([]);
   const detectedFacesRef = useRef<any[]>([]);
+  const [guidanceMessage, setGuidanceMessage] = useState<string>('Position your face in the center');
+  const [guidanceType, setGuidanceType] = useState<'default' | 'position' | 'distance' | 'angle' | 'lighting'>('default');
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -438,6 +440,9 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
           setDetectedFaces(detections);
           setFaceDetected(detections.length > 0);
           
+          // Update guidance based on detection results
+          updateGuidance(detections, facePosition, 0.5); // Default luminosity for now
+          
           if (detections.length > 0) {
             const detection = detections[0];
             const { box } = detection;
@@ -483,11 +488,14 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
                 setCountdown(0);
               }
             }
-          } else {
-            console.log('No face detected');
-            setFaceDetected(false);
-            setFacePosition(null);
-            setFaceAngle(null);
+                        } else {
+                console.log('No face detected');
+                setFaceDetected(false);
+                setFacePosition(null);
+                setFaceAngle(null);
+                
+                // Update guidance for no face detected
+                updateGuidance([], null, 0.5);
             
             if (autoCaptureTimer) {
               clearTimeout(autoCaptureTimer);
@@ -520,12 +528,66 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
   };
 
   const getLuminosityStatus = () => {
-    // Temporarily disable luminosity detection
+    // Luminosity detection disabled for now
     console.log('Luminosity detection disabled');
-    return;
   };
 
+  const updateGuidance = (detections: any[], facePosition: any, luminosity: number) => {
+    if (detections.length === 0) {
+      setGuidanceMessage('Place face inside frame');
+      setGuidanceType('position');
+      return;
+    }
 
+    const detection = detections[0];
+    const { box } = detection;
+    
+    // Check if face is too far (too small)
+    const faceArea = box.width * box.height;
+    const videoArea = videoRef.current ? videoRef.current.videoWidth * videoRef.current.videoHeight : 0;
+    const faceRatio = videoArea > 0 ? faceArea / videoArea : 0;
+    
+    if (faceRatio < 0.1) { // Face is too small (too far)
+      setGuidanceMessage('Move camera closer');
+      setGuidanceType('distance');
+      return;
+    }
+    
+    // Check if face is too close (too large)
+    if (faceRatio > 0.6) {
+      setGuidanceMessage('Move camera back');
+      setGuidanceType('distance');
+      return;
+    }
+    
+    // Check if face is centered
+    const videoWidth = videoRef.current?.videoWidth || 640;
+    const videoHeight = videoRef.current?.videoHeight || 480;
+    const centerX = videoWidth / 2;
+    const centerY = videoHeight / 2;
+    const faceCenterX = box.x + box.width / 2;
+    const faceCenterY = box.y + box.height / 2;
+    
+    const xOffset = Math.abs(faceCenterX - centerX) / centerX;
+    const yOffset = Math.abs(faceCenterY - centerY) / centerY;
+    
+    if (xOffset > 0.3 || yOffset > 0.3) {
+      setGuidanceMessage('Center your face in the frame');
+      setGuidanceType('position');
+      return;
+    }
+    
+    // Check lighting (if we had luminosity detection)
+    if (luminosity < 0.3) {
+      setGuidanceMessage('Face the light source');
+      setGuidanceType('lighting');
+      return;
+    }
+    
+    // All good!
+    setGuidanceMessage('Perfect! Hold still');
+    setGuidanceType('default');
+  };
 
   const getGuidanceMessage = (): string => {
     if (countdown > 0) {
@@ -857,34 +919,26 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
                 }}
               />
               
-              {/* Debug info */}
-              {isCameraActive && videoRef.current && (
-                <div className="absolute bottom-2 left-2 bg-black bg-opacity-50 text-white px-2 py-1 rounded text-xs z-20">
-                  {videoRef.current.videoWidth} x {videoRef.current.videoHeight}
-                    </div>
-              )}
-              
-              {/* Debug state display */}
-              <div className="absolute top-2 right-2 bg-red-500 text-white px-2 py-1 rounded text-xs z-20">
-                Face: {faceDetected ? 'Yes' : 'No'} | Mode: {modelsLoaded ? 'face-api.js' : 'Simple'} | Conf: {faceDetected ? 'High' : 'Low'}
-                    </div>
 
-              {/* Camera status indicator */}
-              {isCameraActive && (
-                <div className="absolute top-2 left-2 bg-green-500 text-white px-2 py-1 rounded text-xs z-20">
-                  Camera Active
-                          </div>
-                        )}
               
-              {/* Bottom centered guidance */}
+              {/* Dynamic Guidance Text */}
               <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-20">
-                <div className="bg-black bg-opacity-75 text-white px-6 py-3 rounded-lg text-sm text-center max-w-xs">
-                  <div className="mb-1 text-xs opacity-75">
-                    {modelsLoaded ? 'AI Face Detection' : 'Simple Detection'}
+                <div className={`px-6 py-3 rounded-lg text-sm text-center max-w-xs transition-all duration-300 ${
+                  guidanceType === 'default' ? 'bg-green-500 bg-opacity-90 text-white' :
+                  guidanceType === 'position' ? 'bg-blue-500 bg-opacity-90 text-white' :
+                  guidanceType === 'distance' ? 'bg-yellow-500 bg-opacity-90 text-black' :
+                  guidanceType === 'lighting' ? 'bg-orange-500 bg-opacity-90 text-white' :
+                  'bg-black bg-opacity-75 text-white'
+                }`}>
+                  <div className="font-medium flex items-center justify-center gap-2">
+                    {guidanceType === 'default' && <Check size={16} />}
+                    {guidanceType === 'position' && <Target size={16} />}
+                    {guidanceType === 'distance' && <MoveHorizontal size={16} />}
+                    {guidanceType === 'lighting' && <Sun size={16} />}
+                    {guidanceMessage}
                   </div>
-                  {getGuidanceMessage()}
-                      </div>
-                    </div>
+                </div>
+              </div>
                   </div>
             )}
 

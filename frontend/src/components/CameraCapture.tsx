@@ -3,6 +3,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Camera, X, Upload, QrCode, RotateCcw, Sun, Moon, CheckCircle, ArrowLeft, Smartphone, User, Move, Target } from 'lucide-react';
 import QRCode from 'qrcode';
+import * as faceapi from 'face-api.js';
 
 interface CameraCaptureProps {
   onCapture: (imageData: string) => void;
@@ -33,19 +34,63 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
   const [autoCaptureTimer, setAutoCaptureTimer] = useState<NodeJS.Timeout | null>(null);
   const [countdown, setCountdown] = useState<number>(0);
   const [isGeneratingQR, setIsGeneratingQR] = useState(false);
+  const [faceDetected, setFaceDetected] = useState(false);
+  const [faceAngle, setFaceAngle] = useState<{x: number, y: number, z: number} | null>(null);
+  const [modelsLoaded, setModelsLoaded] = useState(false);
+  const [faceCenter, setFaceCenter] = useState<{x: number, y: number} | null>(null);
+  const [detectedFaces, setDetectedFaces] = useState<any[]>([]);
+  const detectedFacesRef = useRef<any[]>([]);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const overlayCanvasRef = useRef<HTMLCanvasElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const isMountedRef = useRef(true);
   const initializationInProgressRef = useRef(false);
 
   useEffect(() => {
     isMountedRef.current = true;
+    
+    // Load face-api.js models
+    const loadModels = async () => {
+      try {
+        console.log('Loading face-api.js models...');
+        
+        // Load models from the correct CDN URL
+        const MODEL_URL = 'https://justadudewhohacks.github.io/face-api.js/models';
+        
+        await Promise.all([
+          faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
+          faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
+          faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL)
+        ]);
+        
+        setModelsLoaded(true);
+        console.log('face-api.js models loaded successfully');
+      } catch (error) {
+        console.error('Error loading face-api.js models:', error);
+        setError('Failed to load face detection models');
+      }
+    };
+
+    // Only load models if we're not in SSR
+    if (typeof window !== 'undefined') {
+      loadModels();
+    }
+
     return () => {
       isMountedRef.current = false;
+      stopCamera();
     };
   }, []);
+
+  // Restart face detection when models are loaded
+  useEffect(() => {
+    if (modelsLoaded && isCameraActive && !detectionInterval) {
+      console.log('Models loaded, restarting face detection...');
+      startFaceDetection();
+    }
+  }, [modelsLoaded, isCameraActive]);
 
   useEffect(() => {
     if (cameraState === 'live') {
@@ -204,8 +249,12 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
           console.log('Video dimensions:', video.videoWidth, 'x', video.videoHeight);
           console.log('Video element dimensions:', video.offsetWidth, 'x', video.offsetHeight);
           
-          // Start face detection
-          startFaceDetection();
+          // Start face detection only if models are loaded
+          if (modelsLoaded) {
+            startFaceDetection();
+          } else {
+            console.log('Camera started, waiting for models to load before starting face detection...');
+          }
           
         } catch (playError) {
           console.log('Video play failed:', playError);
@@ -226,8 +275,12 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
             setIsLoading(false);
             console.log('Camera started successfully with fallback');
             
-            // Start face detection
-            startFaceDetection();
+            // Start face detection only if models are loaded
+            if (modelsLoaded) {
+              startFaceDetection();
+            } else {
+              console.log('Camera started with fallback, waiting for models to load before starting face detection...');
+            }
             
           } catch (fallbackError) {
             console.log('Fallback video start also failed:', fallbackError);
@@ -254,115 +307,210 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
   };
 
   const startFaceDetection = () => {
-    if (!videoRef.current) return;
+    if (!videoRef.current) {
+      console.log('Cannot start face detection - no video element');
+      return;
+    }
     
-    // Temporarily disable face detection to ensure camera works
-    console.log('Face detection disabled for now');
-    return;
+    console.log('Starting face detection (face-api.js:', !!modelsLoaded, ')');
+    
+    // Wait for models to be loaded before starting detection
+    if (!modelsLoaded) {
+      console.log('Waiting for models to load before starting face detection...');
+      return;
+    }
     
     // Add a small delay to ensure video is fully loaded
     setTimeout(() => {
       if (!videoRef.current || !isMountedRef.current) return;
       
-      const interval = setInterval(() => {
+      const interval = setInterval(async () => {
         if (!videoRef.current || !isMountedRef.current) {
           clearInterval(interval);
           return;
         }
         
-        detectFacePosition();
+        await detectFacePosition();
         getLuminosityStatus();
-      }, 100);
+        drawFaceOverlay();
+      }, 200); // Faster detection for better responsiveness
       
       setDetectionInterval(interval);
-    }, 500); // 500ms delay to ensure video is ready
+    }, 1000); // Increased delay to ensure video is ready
   };
 
-  const detectFacePosition = () => {
-    if (!videoRef.current) return;
+  const drawFaceOverlay = () => {
+    if (!overlayCanvasRef.current || !videoRef.current) return;
     
-    const video = videoRef.current;
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    
-    // Check if video has valid dimensions
-    if (video.videoWidth === 0 || video.videoHeight === 0) {
-      console.log('Video dimensions not ready yet');
-      return;
-    }
-    
+    const canvas = overlayCanvasRef.current;
     const ctx = canvas.getContext('2d');
+    const video = videoRef.current;
+    
     if (!ctx) return;
     
-    // Set canvas dimensions to match video
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
+    // Set canvas size to match video element display size (not video dimensions)
+    canvas.width = video.offsetWidth;
+    canvas.height = video.offsetHeight;
     
-    // Double-check canvas dimensions are valid
-    if (canvas.width === 0 || canvas.height === 0) {
-      console.log('Canvas dimensions are invalid');
+    // Clear previous drawings
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    console.log('Drawing overlay - detectedFaces:', detectedFacesRef.current.length, 'canvas size:', canvas.width, 'x', canvas.height);
+    
+    // Draw face detection rectangles
+    detectedFacesRef.current.forEach((detection, index) => {
+      const { box } = detection;
+      
+      // Scale the detection box to match the display size
+      const scaleX = canvas.width / video.videoWidth;
+      const scaleY = canvas.height / video.videoHeight;
+      
+      const scaledBox = {
+        x: box.x * scaleX,
+        y: box.y * scaleY,
+        width: box.width * scaleX,
+        height: box.height * scaleY
+      };
+      
+      console.log('Drawing face', index + 1, 'at:', scaledBox);
+      
+      // Draw rectangle around face
+      ctx.strokeStyle = faceDetected ? '#00ff00' : '#ff0000'; // Green if face detected, red if not
+      ctx.lineWidth = 3;
+      ctx.strokeRect(scaledBox.x, scaledBox.y, scaledBox.width, scaledBox.height);
+      
+      // Add face label
+      ctx.fillStyle = faceDetected ? '#00ff00' : '#ff0000';
+      ctx.font = '16px Arial';
+      ctx.fillText(`Face ${index + 1}`, scaledBox.x, scaledBox.y - 10);
+      
+      // Draw corner indicators
+      const cornerSize = 10;
+      ctx.fillStyle = faceDetected ? '#00ff00' : '#ff0000';
+      
+      // Top-left corner
+      ctx.fillRect(scaledBox.x - 2, scaledBox.y - 2, cornerSize, 4);
+      ctx.fillRect(scaledBox.x - 2, scaledBox.y - 2, 4, cornerSize);
+      
+      // Top-right corner
+      ctx.fillRect(scaledBox.x + scaledBox.width - cornerSize + 2, scaledBox.y - 2, cornerSize, 4);
+      ctx.fillRect(scaledBox.x + scaledBox.width - 2, scaledBox.y - 2, 4, cornerSize);
+      
+      // Bottom-left corner
+      ctx.fillRect(scaledBox.x - 2, scaledBox.y + scaledBox.height - 2, cornerSize, 4);
+      ctx.fillRect(scaledBox.x - 2, scaledBox.y + scaledBox.height - cornerSize + 2, 4, cornerSize);
+      
+      // Bottom-right corner
+      ctx.fillRect(scaledBox.x + scaledBox.width - cornerSize + 2, scaledBox.y + scaledBox.height - 2, cornerSize, 4);
+      ctx.fillRect(scaledBox.x + scaledBox.width - 2, scaledBox.y + scaledBox.height - cornerSize + 2, 4, cornerSize);
+    });
+  };
+
+  const detectFacePosition = async () => {
+    if (!videoRef.current) {
+      console.log('Face detection skipped - no video element');
       return;
     }
     
     try {
-      ctx.drawImage(video, 0, 0);
-      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const video = videoRef.current;
       
-      // Enhanced face detection simulation
-      const centerX = canvas.width / 2;
-      const centerY = canvas.height / 2;
-      const faceSize = Math.min(canvas.width, canvas.height) * 0.4; // Slightly larger face area
-      
-      // Simulate face position with some variation
-      const faceX = centerX - faceSize / 2 + (Math.random() - 0.5) * 50;
-      const faceY = centerY - faceSize / 2 + (Math.random() - 0.5) * 30;
-      
-      setFacePosition({
-        x: faceX,
-        y: faceY,
-        width: faceSize,
-        height: faceSize * 1.3 // More realistic face proportions
-      });
-      
-      // Auto-capture logic with better positioning
-      if (facePosition && isFaceInPosition(facePosition)) {
-        if (!autoCaptureTimer) {
-          const timer = setTimeout(() => {
-            if (isMountedRef.current) {
-              capturePhoto();
-            }
-          }, 3000);
-          setAutoCaptureTimer(timer);
-          setCountdown(3);
-          
-          // Start countdown animation
-          const countdownInterval = setInterval(() => {
-            setCountdown(prev => {
-              if (prev <= 1) {
-                clearInterval(countdownInterval);
-                return 0;
-              }
-              return prev - 1;
-            });
-          }, 1000);
-        }
-      } else {
-        if (autoCaptureTimer) {
-          clearTimeout(autoCaptureTimer);
-          setAutoCaptureTimer(null);
-          setCountdown(0);
-        }
+      // Only process if video is ready
+      if (video.readyState < 2) {
+        console.log('Video not ready, skipping face detection');
+        return;
       }
-    } catch (error) {
-      console.error('Error in face detection:', error);
-      // Don't update face position on error
-    }
-  };
+      
+      // If models are loaded, use face-api.js
+      if (modelsLoaded) {
+        try {
+                               const detections = await faceapi.detectAllFaces(video, new faceapi.TinyFaceDetectorOptions({
+            inputSize: 224,
+            scoreThreshold: 0.5
+          }));
+          
+          console.log('Face detection results:', detections.length, 'faces detected');
+          if (detections.length > 0) {
+            console.log('First face detection:', detections[0]);
+          }
+          
+          detectedFacesRef.current = detections;
+          setDetectedFaces(detections);
+          setFaceDetected(detections.length > 0);
+          
+          if (detections.length > 0) {
+            const detection = detections[0];
+            const { box } = detection;
+            
+            console.log('Face detected:', box);
+            
+            const facePos = {
+              x: box.x,
+              y: box.y,
+              width: box.width,
+              height: box.height
+            };
+            
+            setFacePosition(facePos);
+            setFaceAngle({ x: 0, y: 0, z: 0 }); // face-api.js doesn't provide angle
+            
+            // Check if face is in good position
+            if (isFaceInPosition(facePos)) {
+              console.log('Face in good position, starting countdown');
+              if (!autoCaptureTimer) {
+                const timer = setTimeout(() => {
+                  if (isMountedRef.current) {
+                    capturePhoto();
+                  }
+                }, 3000);
+                setAutoCaptureTimer(timer);
+                setCountdown(3);
+                
+                const countdownInterval = setInterval(() => {
+                  setCountdown(prev => {
+                    if (prev <= 1) {
+                      clearInterval(countdownInterval);
+                      return 0;
+                    }
+                    return prev - 1;
+                  });
+                }, 1000);
+              }
+            } else {
+              if (autoCaptureTimer) {
+                clearTimeout(autoCaptureTimer);
+                setAutoCaptureTimer(null);
+                setCountdown(0);
+              }
+            }
+          } else {
+            console.log('No face detected');
+            setFaceDetected(false);
+            setFacePosition(null);
+            setFaceAngle(null);
+            
+            if (autoCaptureTimer) {
+              clearTimeout(autoCaptureTimer);
+              setAutoCaptureTimer(null);
+              setCountdown(0);
+            }
+          }
+                 } catch (faceApiError) {
+           console.error('face-api.js face detection error:', faceApiError);
+         }
+       } else {
+         console.log('face-api.js models not loaded yet');
+       }
+      
+     } catch (error) {
+       console.error('Face detection error:', error);
+     }
+   };
 
   const isFaceInPosition = (face: FacePosition): boolean => {
     if (!videoRef.current) return false;
     
-    const video = videoRef.current;
+          const video = videoRef.current;
     const centerX = video.videoWidth / 2;
     const centerY = video.videoHeight / 2;
     const tolerance = 50;
@@ -377,20 +525,17 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
     return;
   };
 
-  const isSkinTone = (r: number, g: number, b: number): boolean => {
-    // Simple skin tone detection
-    return r > 95 && g > 40 && b > 20 &&
-           Math.max(r, g, b) - Math.min(r, g, b) > 15 &&
-           Math.abs(r - g) > 15 && r > g && r > b;
-  };
+
 
   const getGuidanceMessage = (): string => {
-    if (luminosity < 50) {
-      return 'Move to a brighter area';
-    } else if (luminosity > 200) {
-      return 'Move to a less bright area';
-    } else if (countdown > 0) {
-      return 'Hold still...';
+    if (countdown > 0) {
+      return `Hold still... ${countdown}`;
+    } else if (!faceDetected) {
+      return 'Please face inside frame';
+    } else if (facePosition && !isFaceInPosition(facePosition)) {
+      return 'Center your face in the frame';
+    } else if (faceDetected && facePosition && isFaceInPosition(facePosition)) {
+      return 'Perfect! Hold still...';
     } else {
       return 'Position your face in the center';
     }
@@ -410,7 +555,7 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
     if (autoCaptureTimer) {
       clearTimeout(autoCaptureTimer);
       setAutoCaptureTimer(null);
-      setCountdown(0);
+    setCountdown(0);
     }
     
     setIsCameraActive(false);
@@ -433,20 +578,20 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
   const capturePhoto = () => {
     if (!videoRef.current || !canvasRef.current) return;
     
-    const video = videoRef.current;
-    const canvas = canvasRef.current;
+      const video = videoRef.current;
+      const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d');
-    
+
     if (!ctx) return;
     
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
     
     ctx.drawImage(video, 0, 0);
-    const imageData = canvas.toDataURL('image/jpeg', 0.8);
+        const imageData = canvas.toDataURL('image/jpeg', 0.8);
     
-    setCapturedImage(imageData);
-    setCameraState('preview');
+        setCapturedImage(imageData);
+        setCameraState('preview');
     stopCamera();
   };
 
@@ -466,15 +611,15 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
     const file = event.target.files?.[0];
     if (!file) return;
     
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const result = e.target?.result as string;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const result = e.target?.result as string;
       if (result) {
         setCapturedImage(result);
         setCameraState('preview');
       }
-    };
-    reader.readAsDataURL(file);
+      };
+      reader.readAsDataURL(file);
   };
 
   const triggerFileUpload = () => {
@@ -632,9 +777,9 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
               <div className="text-white text-center">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
                 <p>Starting camera...</p>
-              </div>
-            </div>
-          )}
+                  </div>
+                    </div>
+                  )}
           
           {cameraState === 'qr' && (
             <div className="flex flex-col items-center justify-center gap-6 liqa-lg:gap-10">
@@ -643,7 +788,7 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
                   <div className="text-white text-center">
                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
                     <p>Generating QR code...</p>
-                  </div>
+                </div>
                 ) : (
                   qrCodeDataUrl ? (
                     <img 
@@ -664,10 +809,10 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
                 <p className="!text-2xl mx-auto max-w-[22ch] text-base font-normal -tracking-[0.02rem] text-opacity-60 liqa-md:max-w-[30ch] liqa-lg:max-w-[35ch]">
                   The results will be shown here
                 </p>
-              </div>
-            </div>
-          )}
-          
+                    </div>
+                  </div>
+                )}
+
           {cameraState === 'live' && (
             <div className="relative w-full max-w-xs h-[28rem] rounded-2xl border-2 border-gray-300 bg-black overflow-hidden">
               <video
@@ -702,37 +847,55 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
                 }}
               />
               
+              {/* Face detection overlay canvas */}
+              <canvas
+                ref={overlayCanvasRef}
+                className="absolute inset-0 w-full h-full pointer-events-none"
+                style={{
+                  width: '100%',
+                  height: '100%'
+                }}
+              />
+              
               {/* Debug info */}
               {isCameraActive && videoRef.current && (
                 <div className="absolute bottom-2 left-2 bg-black bg-opacity-50 text-white px-2 py-1 rounded text-xs z-20">
                   {videoRef.current.videoWidth} x {videoRef.current.videoHeight}
-                </div>
+                    </div>
               )}
               
+              {/* Debug state display */}
+              <div className="absolute top-2 right-2 bg-red-500 text-white px-2 py-1 rounded text-xs z-20">
+                Face: {faceDetected ? 'Yes' : 'No'} | Mode: {modelsLoaded ? 'face-api.js' : 'Simple'} | Conf: {faceDetected ? 'High' : 'Low'}
+                    </div>
+
               {/* Camera status indicator */}
               {isCameraActive && (
                 <div className="absolute top-2 left-2 bg-green-500 text-white px-2 py-1 rounded text-xs z-20">
                   Camera Active
-                </div>
-              )}
+                          </div>
+                        )}
               
               {/* Bottom centered guidance */}
               <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-20">
                 <div className="bg-black bg-opacity-75 text-white px-6 py-3 rounded-lg text-sm text-center max-w-xs">
-                  Position your face in the center
-                </div>
-              </div>
-            </div>
-          )}
+                  <div className="mb-1 text-xs opacity-75">
+                    {modelsLoaded ? 'AI Face Detection' : 'Simple Detection'}
+                  </div>
+                  {getGuidanceMessage()}
+                      </div>
+                    </div>
+                  </div>
+            )}
 
-          {cameraState === 'preview' && (
+            {cameraState === 'preview' && (
             <div className="relative w-full max-w-sm h-96 rounded-2xl border-2 border-gray-300">
-              <img
-                src={capturedImage!}
-                alt="Captured photo"
+                    <img
+                      src={capturedImage!}
+                      alt="Captured photo"
                 className="w-full h-full object-cover rounded-2xl"
-              />
-            </div>
+                    />
+                  </div>
           )}
           
           {/* Upload button overlay */}
@@ -743,8 +906,8 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
             >
               <Upload size={20} />
             </button>
-          </div>
-        </div>
+                    </div>
+                  </div>
 
         {/* Controls */}
         <div className="p-4 bg-gray-50">
@@ -776,8 +939,8 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
                   className="absolute hidden"
                 />
               </label>
-            </div>
-          )}
+                </div>
+            )}
 
           {cameraState === 'live' && (
             <div className="flex flex-col items-center gap-4">
@@ -790,13 +953,13 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
                   <RotateCcw size={20} />
                 </button>
                 
-                <button
-                  onClick={capturePhoto}
-                  disabled={!isCameraActive || isLoading}
+              <button
+                onClick={capturePhoto}
+                disabled={!isCameraActive || isLoading}
                   className="w-16 h-16 bg-blue-600 text-white hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-all flex items-center justify-center rounded-full shadow-lg"
-                >
+              >
                   <Camera size={24} />
-                </button>
+              </button>
                 
                 <button
                   onClick={() => setShowGuidance(!showGuidance)}
@@ -860,4 +1023,4 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
   );
 };
 
-export default CameraCapture; 
+export default CameraCapture;

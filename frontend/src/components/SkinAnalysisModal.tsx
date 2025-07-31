@@ -735,7 +735,7 @@ export default function SkinAnalysisModal({ isOpen, onClose }: SkinAnalysisModal
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.95, opacity: 0 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="relative w-full max-w-[540px] max-h-[95vh] bg-white shadow-xl overflow-hidden flex flex-col"
+            className="relative w-full max-w-[540px] max-h-[95vh] bg-white shadow-xl overflow-hidden flex flex-col h-full"
           >
             <CameraCapture
               onCapture={handleImageCapture}

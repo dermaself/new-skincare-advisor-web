@@ -865,10 +865,10 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
               </div>
               
               <div className="flex flex-col gap-2 text-center">
-                <h2 className="text-lg md:text-xl lg:text-3xl tracking-tight text-white">
+                <h2 className="text-lg md:text-xl lg:text-xl tracking-tight text-white">
                   Scan this QR code to take a photo with your smartphone
                 </h2>
-                <p className="text-sm md:text-base lg:text-2xl mx-auto max-w-[22ch] font-normal -tracking-[0.02rem] text-white text-opacity-60 liqa-md:max-w-[30ch] liqa-lg:max-w-[35ch]">
+                <p className="text-sm md:text-base lg:text-base mx-auto max-w-[22ch] font-normal -tracking-[0.02rem] text-white text-opacity-60 liqa-md:max-w-[30ch] liqa-lg:max-w-[35ch]">
                   The results will be shown here
                 </p>
                     </div>

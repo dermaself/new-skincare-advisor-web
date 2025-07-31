@@ -10,7 +10,7 @@ interface SkinAnalysisModalProps {
   onClose: () => void;
 }
 
-type Step = 'onboarding' | 'quiz' | 'scan' | 'results';
+type Step = 'onboarding' | 'quiz' | 'scan' | 'loading' | 'results';
 
 // Product data interfaces
 interface Product {
@@ -555,7 +555,7 @@ export default function SkinAnalysisModal({ isOpen, onClose }: SkinAnalysisModal
   };
 
   const handleNext = () => {
-    const stepOrder: Step[] = ['onboarding', 'quiz', 'scan', 'results'];
+    const stepOrder: Step[] = ['onboarding', 'quiz', 'scan', 'loading', 'results'];
     const currentIndex = stepOrder.indexOf(currentStep);
     if (currentIndex < stepOrder.length - 1) {
       setCurrentStep(stepOrder[currentIndex + 1]);
@@ -563,7 +563,7 @@ export default function SkinAnalysisModal({ isOpen, onClose }: SkinAnalysisModal
   };
 
   const handleBack = () => {
-    const stepOrder: Step[] = ['onboarding', 'quiz', 'scan', 'results'];
+    const stepOrder: Step[] = ['onboarding', 'quiz', 'scan', 'loading', 'results'];
     const currentIndex = stepOrder.indexOf(currentStep);
     if (currentIndex > 0) {
       setCurrentStep(stepOrder[currentIndex - 1]);
@@ -588,10 +588,23 @@ export default function SkinAnalysisModal({ isOpen, onClose }: SkinAnalysisModal
     setImageMetadata(metadata);
     setShowCamera(false);
     
+    // Set default quiz values if they're empty to ensure proper flow
+    if (!selectedSkinType) {
+      setSelectedSkinType('Normal/Combination');
+    }
+    if (selectedConcerns.length === 0) {
+      setSelectedConcerns(['Fine Lines & Wrinkles', 'Dehydration']);
+    }
+    if (!selectedAgeGroup) {
+      setSelectedAgeGroup('26-35');
+    }
+    
+    // Show loading state immediately
+    setLoading(true);
+    setCurrentStep('loading');
+    
     // Trigger analysis immediately with user data and recommendations
     try {
-      setLoading(true);
-      
       // Prepare user data from quiz responses
       const userData = {
         first_name: 'User',
@@ -1070,7 +1083,23 @@ export default function SkinAnalysisModal({ isOpen, onClose }: SkinAnalysisModal
                 </motion.div>
               )}
 
-
+              {/* Loading Step */}
+              {currentStep === 'loading' && (
+                <motion.div
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  className="space-y-6"
+                >
+                  <div className="flex flex-col items-center justify-center py-12">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mb-4"></div>
+                    <h2 className="text-xl font-bold text-gray-900 mb-2">Analyzing Your Photo</h2>
+                    <p className="text-gray-600 text-center max-w-md">
+                      Our AI is analyzing your skin and creating personalized recommendations...
+                    </p>
+                  </div>
+                </motion.div>
+              )}
 
               {/* Results Step */}
               {currentStep === 'results' && (

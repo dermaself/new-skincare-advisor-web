@@ -10,7 +10,7 @@ interface SkinAnalysisModalProps {
   onClose: () => void;
 }
 
-type Step = 'onboarding' | 'quiz' | 'scan' | 'results';
+type Step = 'onboarding' | 'quiz' | 'scan' | 'loading' | 'results';
 
 // Product data interfaces
 interface Product {
@@ -555,7 +555,7 @@ export default function SkinAnalysisModal({ isOpen, onClose }: SkinAnalysisModal
   };
 
   const handleNext = () => {
-    const stepOrder: Step[] = ['onboarding', 'quiz', 'scan', 'results'];
+    const stepOrder: Step[] = ['onboarding', 'quiz', 'scan', 'loading', 'results'];
     const currentIndex = stepOrder.indexOf(currentStep);
     if (currentIndex < stepOrder.length - 1) {
       setCurrentStep(stepOrder[currentIndex + 1]);
@@ -563,7 +563,7 @@ export default function SkinAnalysisModal({ isOpen, onClose }: SkinAnalysisModal
   };
 
   const handleBack = () => {
-    const stepOrder: Step[] = ['onboarding', 'quiz', 'scan', 'results'];
+    const stepOrder: Step[] = ['onboarding', 'quiz', 'scan', 'loading', 'results'];
     const currentIndex = stepOrder.indexOf(currentStep);
     if (currentIndex > 0) {
       setCurrentStep(stepOrder[currentIndex - 1]);
@@ -588,10 +588,23 @@ export default function SkinAnalysisModal({ isOpen, onClose }: SkinAnalysisModal
     setImageMetadata(metadata);
     setShowCamera(false);
     
+    // Set default quiz values if they're empty to ensure proper flow
+    if (!selectedSkinType) {
+      setSelectedSkinType('Normal/Combination');
+    }
+    if (selectedConcerns.length === 0) {
+      setSelectedConcerns(['Fine Lines & Wrinkles', 'Dehydration']);
+    }
+    if (!selectedAgeGroup) {
+      setSelectedAgeGroup('26-35');
+    }
+    
+    // Show loading state immediately
+    setLoading(true);
+    setCurrentStep('loading');
+    
     // Trigger analysis immediately with user data and recommendations
     try {
-      setLoading(true);
-      
       // Prepare user data from quiz responses
       const userData = {
         first_name: 'User',
@@ -775,23 +788,23 @@ export default function SkinAnalysisModal({ isOpen, onClose }: SkinAnalysisModal
         >
           {/* Header */}
           <div className="relative bg-primary-600">
-            <div className="flex items-center justify-between px-6 py-2">
-              <div className="flex items-center space-x-3">
-                <div className="w-8 h-8 bg-white/20 flex items-center justify-center">
-                  <Camera className="w-5 h-5 text-white" />
+            <div className="flex items-center justify-between px-4 py-2">
+              <div className="flex items-center space-x-2">
+                <div className="w-6 h-6 bg-white/20 flex items-center justify-center">
+                  <Camera className="w-4 h-4 text-white" />
                 </div>
                 <div>
-                  <h2 className="text-white font-semibold text-lg">DermaSelf</h2>
-                  <p className="text-white/80 text-sm">AI Skin Analysis</p>
+                  <h2 className="text-white font-semibold text-base">DermaSelf</h2>
+                  <p className="text-white/80 text-xs">AI Skin Analysis</p>
                 </div>
               </div>
               <button
                 onClick={handleClose}
-                className="w-8 h-8 bg-white/20 flex items-center justify-center hover:bg-white/30 transition-colors"
+                className="w-6 h-6 bg-white/20 flex items-center justify-center hover:bg-white/30 transition-colors"
                 aria-label="Close modal"
                 title="Close modal"
               >
-                <X className="w-4 h-4 text-white" />
+                <X className="w-3 h-3 text-white" />
               </button>
             </div>
             {currentStep === 'onboarding' && (
@@ -799,40 +812,40 @@ export default function SkinAnalysisModal({ isOpen, onClose }: SkinAnalysisModal
                 <img
                   src="https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80"
                   alt="Skin Analysis"
-                  className="w-full h-48 object-cover"
+                  className="w-full h-32 object-cover"
                 />
               </div>
             )}
             {/* Progress Steps */}
             <div>
               {currentStep !== 'onboarding' && (
-                 <div className="mt-6 flex items-center justify-around space-x-4 pb-4 px-6">
+                 <div className="mt-2 flex items-center justify-around space-x-2 pb-2 px-4">
                   <div key={steps[0].id} className="flex flex-col items-center">
                     <div className="flex flex-col items-center">
                         <div
-                          className={`w-16 h-16 flex items-center justify-center text-sm font-semibold transition-all duration text-gray-900 ${currentStep === steps[0].id ? 'bg-white' : 'bg-white/50'}`}
+                          className={`w-10 h-10 flex items-center justify-center text-sm font-semibold transition-all duration text-gray-900 ${currentStep === steps[0].id ? 'bg-white' : 'bg-white/50'}`}
                         >
-                          <img src={steps[0].icon} alt={steps[0].title} className="w-12 h-12" />
+                          <img src={steps[0].icon} alt={steps[0].title} className="w-6 h-6" />
                         </div>
                       </div>
                   </div>
-                  <div className="w-12 h-0.5 mx-2 transition-all duration-200 bg-gray-900" />
+                  <div className="w-6 h-0.5 mx-1 transition-all duration-200 bg-gray-900" />
                   <div key={steps[1].id} className="flex flex-col items-center">
                     <div className="flex flex-col items-center">
                         <div
-                          className={`w-16 h-16 flex items-center justify-center text-sm font-semibold transition-all duration text-gray-900 ${currentStep === steps[1].id ? 'bg-white' : 'bg-white/50'}`}
+                          className={`w-10 h-10 flex items-center justify-center text-sm font-semibold transition-all duration text-gray-900 ${currentStep === steps[1].id ? 'bg-white' : 'bg-white/50'}`}
                         >
-                          <img src={steps[1].icon} alt={steps[1].title} className="w-12 h-12" />
+                          <img src={steps[1].icon} alt={steps[1].title} className="w-6 h-6" />
                         </div>
                       </div>
                   </div>
-                  <div className="w-12 h-0.5 mx-2 transition-all duration-200 bg-gray-900" />
+                  <div className="w-6 h-0.5 mx-1 transition-all duration-200 bg-gray-900" />
                   <div key={steps[2].id} className="flex flex-col items-center">
                     <div className="flex flex-col items-center">
                         <div
-                          className={`w-16 h-16 flex items-center justify-center text-sm font-semibold transition-all duration text-gray-900 ${currentStep === steps[2].id ? 'bg-white' : 'bg-white/50'}`}
+                          className={`w-10 h-10 flex items-center justify-center text-sm font-semibold transition-all duration text-gray-900 ${currentStep === steps[2].id ? 'bg-white' : 'bg-white/50'}`}
                         >
-                          <img src={steps[2].icon} alt={steps[2].title} className="w-12 h-12" />
+                          <img src={steps[2].icon} alt={steps[2].title} className="w-6 h-6" />
                         </div>
                       </div>
                   </div>
@@ -842,7 +855,7 @@ export default function SkinAnalysisModal({ isOpen, onClose }: SkinAnalysisModal
           </div>
 
           {/* Content */}
-          <div className="modal-content p-6 max-h-[60vh] overflow-y-auto">
+          <div className="modal-content p-4 max-h-[65vh] overflow-y-auto">
             <AnimatePresence mode="wait">
               {currentStep === 'onboarding' && (
                 <motion.div
@@ -895,6 +908,7 @@ export default function SkinAnalysisModal({ isOpen, onClose }: SkinAnalysisModal
                           <p className="text-xs text-gray-900 mt-1 font-medium">{steps[2].title}</p>
                         </div>
                     </div>
+
                   </div>
 
                   <motion.button
@@ -1057,98 +1071,32 @@ export default function SkinAnalysisModal({ isOpen, onClose }: SkinAnalysisModal
                       Back
                     </motion.button>
                     <motion.button
-                      onClick={handleNext}
+                      onClick={handleStartScan}
                       className="btn-primary"
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
                       disabled={selectedConcerns.length !== 2 || !selectedSkinType || !selectedAgeGroup}
                     >
-                      Continue to Photo
+                      Take Photo
                     </motion.button>
                   </div>
                 </motion.div>
               )}
 
-              {/* Scan Step */}
-              {currentStep === 'scan' && (
+              {/* Loading Step */}
+              {currentStep === 'loading' && (
                 <motion.div
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -20 }}
-                  className="text-center"
+                  className="space-y-6"
                 >
-                  <div className="mb-8">
-                    <div className="w-24 h-24 bg-primary-100 mx-auto mb-4 flex items-center justify-center">
-                      <Camera className="w-12 h-12 text-primary-600" />
-                    </div>
-                    <h2 className="text-2xl font-bold mb-4">Ready to Scan Your Skin</h2>
-                    <p className="text-gray-600 mb-6">
-                      Let's capture a clear photo of your skin for analysis. 
-                      Make sure you're in a well-lit area with your face clearly visible.
+                  <div className="flex flex-col items-center justify-center py-12">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mb-4"></div>
+                    <h2 className="text-xl font-bold text-gray-900 mb-2">Analyzing Your Photo</h2>
+                    <p className="text-gray-600 text-center max-w-md">
+                      Our AI is analyzing your skin and creating personalized recommendations...
                     </p>
-                  </div>
-
-                  <div className="bg-gray-50 p-6 mb-6">
-                    <h3 className="font-semibold mb-4 text-left">Tips for Best Results:</h3>
-                    <ul className="text-left space-y-2 text-sm text-gray-600">
-                      <li className="flex items-start">
-                        <span className="w-2 h-2 bg-primary-600 mt-2 mr-3 flex-shrink-0"></span>
-                        Ensure good lighting - natural light works best
-                      </li>
-                      <li className="flex items-start">
-                        <span className="w-2 h-2 bg-primary-600 mt-2 mr-3 flex-shrink-0"></span>
-                        Remove makeup and skincare products
-                      </li>
-                      <li className="flex items-start">
-                        <span className="w-2 h-2 bg-primary-600 mt-2 mr-3 flex-shrink-0"></span>
-                        Keep your face steady and look directly at the camera
-                      </li>
-                      <li className="flex items-start">
-                        <span className="w-2 h-2 bg-primary-600 mt-2 mr-3 flex-shrink-0"></span>
-                        Avoid shadows and reflections on your face
-                      </li>
-                    </ul>
-                  </div>
-
-                  {capturedImage && (
-                    <div className="mb-6">
-                      <h3 className="font-semibold mb-3">Captured Image:</h3>
-                      <div className="relative inline-block">
-                        <img
-                          src={capturedImage}
-                          alt="Captured skin"
-                          className="w-48 h-48 object-cover border-2 border-gray-200"
-                        />
-                        <button
-                          onClick={() => setCapturedImage(null)}
-                          className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white flex items-center justify-center text-xs hover:bg-red-600"
-                        >
-                          ×
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="flex justify-between pt-6" ref={buttonsRef}>
-                    <motion.button
-                      onClick={handleBack}
-                      className="btn-secondary flex items-center"
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                    >
-                      <ArrowLeft className="w-4 h-4 mr-2" />
-                      Back
-                    </motion.button>
-                    
-                    <motion.button
-                      onClick={handleStartScan}
-                      className="btn-primary flex items-center"
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                    >
-                      <Camera className="w-4 h-4 mr-2" />
-                      {capturedImage ? 'Retake Photo' : 'Start Camera'}
-                    </motion.button>
                   </div>
                 </motion.div>
               )}
@@ -1347,14 +1295,9 @@ export default function SkinAnalysisModal({ isOpen, onClose }: SkinAnalysisModal
           </div>
 
           {/* Footer */}
-          <div className="bg-gray-50 p-4 border-t border-gray-200">
+          <div className="bg-gray-50 p-2 border-t border-gray-200">
             <p className="text-xs text-gray-500 text-center">
-              DermaSelf processes all data locally on your device. No personal information is collected or stored. 
-              See our{' '}
-              <a href="#" className="text-primary-600 hover:underline">
-                Privacy Policy
-              </a>
-              {' '}for details.
+              DermaSelf processes all data locally on your device. No personal information is collected or stored.
             </p>
           </div>
         </motion.div>

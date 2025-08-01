@@ -1,7 +1,7 @@
 'use client';
 import React, { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Camera, X, Upload, RotateCcw, User, Move, CheckCircle, QrCode, Target, MoveHorizontal, Sun, Check } from 'lucide-react';
+import { Camera, X, Upload, RotateCcw, User, Move, CheckCircle, QrCode, Target, MoveHorizontal, Sun, Check, ArrowLeft } from 'lucide-react';
 import QRCode from 'qrcode';
 import * as faceapi from 'face-api.js';
 
@@ -28,7 +28,7 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
   const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string>('');
   const [currentCamera, setCurrentCamera] = useState<'front' | 'back'>('front');
   const [luminosity, setLuminosity] = useState<number>(0);
-  const [showGuidance, setShowGuidance] = useState(false);
+
   const [facePosition, setFacePosition] = useState<FacePosition | null>(null);
   const [detectionInterval, setDetectionInterval] = useState<NodeJS.Timeout | null>(null);
   const [autoCaptureTimer, setAutoCaptureTimer] = useState<NodeJS.Timeout | null>(null);
@@ -844,8 +844,8 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
                   )}
           
           {cameraState === 'qr' && (
-            <div className="flex flex-col items-center justify-center gap-6 liqa-lg:gap-10">
-              <div className="relative mb-10 flex size-[16rem] items-center justify-center overflow-hidden rounded-[2.5rem] bg-[rgb(var(--color))] text-[rgb(var(--background-color))] qr-code">
+            <div className="flex flex-col items-center justify-center gap-6 liqa-lg:gap-10 h-full">
+              <div className="relative flex size-[16rem] items-center justify-center overflow-hidden rounded-[2.5rem] bg-[rgb(var(--color))] text-[rgb(var(--background-color))] qr-code">
                 {isGeneratingQR ? (
                   <div className="text-white text-center">
                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
@@ -865,10 +865,10 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
               </div>
               
               <div className="flex flex-col gap-2 text-center">
-                <h2 className="!text-3xl text-xl tracking-tight">
+                <h2 className="text-lg md:text-xl lg:text-xl tracking-tight text-white">
                   Scan this QR code to take a photo with your smartphone
                 </h2>
-                <p className="!text-2xl mx-auto max-w-[22ch] text-base font-normal -tracking-[0.02rem] text-opacity-60 liqa-md:max-w-[30ch] liqa-lg:max-w-[35ch]">
+                <p className="text-sm md:text-base lg:text-base mx-auto max-w-[22ch] font-normal -tracking-[0.02rem] text-white text-opacity-60 liqa-md:max-w-[30ch] liqa-lg:max-w-[35ch]">
                   The results will be shown here
                 </p>
                     </div>
@@ -952,15 +952,7 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
                   </div>
           )}
           
-          {/* Upload button overlay */}
-          <div className="absolute top-4 right-4">
-            <button
-              onClick={triggerFileUpload}
-              className="p-3 bg-black bg-opacity-50 text-white rounded-full backdrop-blur-sm"
-            >
-              <Upload size={20} />
-            </button>
-                    </div>
+
                   </div>
 
         {/* Controls */}
@@ -1016,10 +1008,10 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
               </button>
                 
                 <button
-                  onClick={() => setShowGuidance(!showGuidance)}
+                  onClick={() => setCameraState('qr')}
                   className="p-3 bg-gray-200 text-gray-800 rounded-full hover:bg-gray-300"
                 >
-                  <User size={20} />
+                  <ArrowLeft size={20} />
                 </button>
               </div>
               
@@ -1035,13 +1027,7 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
                 </p>
               </div>
               
-              <button
-                onClick={triggerFileUpload}
-                className="px-6 py-3 bg-gray-200 text-gray-800 hover:bg-gray-300 transition-all rounded-xl font-semibold flex items-center gap-2"
-              >
-                <Upload size={20} />
-                Upload Photo
-              </button>
+
             </div>
           )}
 

@@ -1,8 +1,7 @@
 'use client';
 import React, { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Camera, X, Upload, RotateCcw, User, Move, CheckCircle, QrCode, Target, MoveHorizontal, Sun, Check, ArrowLeft } from 'lucide-react';
-import QRCode from 'qrcode';
+import { Camera, X, Upload, RotateCcw, User, Move, CheckCircle, Target, MoveHorizontal, Sun, Check, ArrowLeft } from 'lucide-react';
 import * as faceapi from 'face-api.js';
 
 interface CameraCaptureProps {
@@ -18,14 +17,20 @@ interface FacePosition {
   height: number;
 }
 
+// Device detection function
+const isMobileDevice = () => {
+  if (typeof window === 'undefined') return false;
+  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
+         window.innerWidth <= 768;
+};
+
 const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCaptureProps) => {
-  const [cameraState, setCameraState] = useState<'qr' | 'live' | 'preview'>('qr');
+  const [cameraState, setCameraState] = useState<'live' | 'preview'>('live');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [isCameraActive, setIsCameraActive] = useState(false);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
-  const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string>('');
   const [currentCamera, setCurrentCamera] = useState<'front' | 'back'>('front');
   const [luminosity, setLuminosity] = useState<number>(0);
 
@@ -33,7 +38,6 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
   const [detectionInterval, setDetectionInterval] = useState<NodeJS.Timeout | null>(null);
   const [autoCaptureTimer, setAutoCaptureTimer] = useState<NodeJS.Timeout | null>(null);
   const [countdown, setCountdown] = useState<number>(0);
-  const [isGeneratingQR, setIsGeneratingQR] = useState(false);
   const [faceDetected, setFaceDetected] = useState(false);
   const [faceAngle, setFaceAngle] = useState<{x: number, y: number, z: number} | null>(null);
   const [modelsLoaded, setModelsLoaded] = useState(false);
@@ -105,55 +109,7 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
     }
   }, [cameraState]);
 
-  const generateQRCode = async () => {
-    setIsGeneratingQR(true);
-    try {
-      // Generate a unique session URL or data for the QR code
-      const qrData = JSON.stringify({
-        type: 'skin-analysis',
-        sessionId: Date.now().toString(),
-        timestamp: new Date().toISOString(),
-        action: 'start-camera'
-      });
-      
-      // Generate QR code as data URL
-      const qrDataUrl = await QRCode.toDataURL(qrData, {
-        width: 300,
-        margin: 2,
-        color: {
-          dark: '#000000',
-          light: '#FFFFFF'
-        }
-      });
-      
-      setQrCodeDataUrl(qrDataUrl);
-    } catch (error) {
-      console.error('Error generating QR code:', error);
-      // Fallback to a simple pattern if QR generation fails
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      if (!ctx) return;
 
-      canvas.width = 200;
-      canvas.height = 200;
-
-      // Simple fallback pattern
-      ctx.fillStyle = '#000';
-      ctx.fillRect(0, 0, 200, 200);
-      ctx.fillStyle = '#fff';
-      ctx.fillRect(20, 20, 160, 160);
-      ctx.fillStyle = '#000';
-      ctx.fillRect(40, 40, 120, 120);
-      ctx.fillStyle = '#fff';
-      ctx.fillRect(60, 60, 80, 80);
-      ctx.fillStyle = '#000';
-      ctx.fillRect(80, 80, 40, 40);
-
-      setQrCodeDataUrl(canvas.toDataURL());
-    } finally {
-      setIsGeneratingQR(false);
-    }
-  };
 
   const startCamera = async () => {
     if (initializationInProgressRef.current) {
@@ -459,28 +415,10 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
             setFacePosition(facePos);
             setFaceAngle({ x: 0, y: 0, z: 0 }); // face-api.js doesn't provide angle
             
-            // Check if face is in good position
+            // Check if face is in good position (auto-capture disabled)
             if (isFaceInPosition(facePos)) {
-              console.log('Face in good position, starting countdown');
-              if (!autoCaptureTimer) {
-                const timer = setTimeout(() => {
-                  if (isMountedRef.current) {
-                    capturePhoto();
-                  }
-                }, 3000);
-                setAutoCaptureTimer(timer);
-                setCountdown(3);
-                
-                const countdownInterval = setInterval(() => {
-                  setCountdown(prev => {
-                    if (prev <= 1) {
-                      clearInterval(countdownInterval);
-                      return 0;
-                    }
-                    return prev - 1;
-                  });
-                }, 1000);
-              }
+              console.log('Face in good position');
+              // Auto-capture disabled - user must manually take photo
             } else {
               if (autoCaptureTimer) {
                 clearTimeout(autoCaptureTimer);
@@ -688,11 +626,17 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
     fileInputRef.current?.click();
   };
 
-  useEffect(() => {
-    if (cameraState === 'qr') {
-      generateQRCode();
+  const handleTakePhotoClick = () => {
+    if (isMobileDevice()) {
+      // On mobile, start camera directly
+      startCamera();
+    } else {
+      // On desktop, trigger file upload
+      triggerFileUpload();
     }
-  }, [cameraState]);
+  };
+
+
 
   useEffect(() => {
     return () => {
@@ -818,10 +762,10 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
         <div className="flex items-center justify-between p-4 border-b border-gray-200 flex-shrink-0">
           <div>
             <h3 className="text-lg font-bold text-gray-900">
-              {cameraState === 'qr' ? 'QR Code Scanner' : 'Skin Analysis Camera'}
+              Skin Analysis Camera
             </h3>
             <p className="text-sm text-gray-600">
-              {cameraState === 'qr' ? 'Take a photo with your smartphone' : 'Take a photo for analysis'}
+              Take a photo for analysis
             </p>
           </div>
           <button
@@ -843,37 +787,7 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
                     </div>
                   )}
           
-          {cameraState === 'qr' && (
-            <div className="flex flex-col items-center justify-center gap-6 liqa-lg:gap-10 h-full">
-              <div className="relative flex size-[16rem] items-center justify-center overflow-hidden rounded-[2.5rem] bg-[rgb(var(--color))] text-[rgb(var(--background-color))] qr-code">
-                {isGeneratingQR ? (
-                  <div className="text-white text-center">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
-                    <p>Generating QR code...</p>
-                </div>
-                ) : (
-                  qrCodeDataUrl ? (
-                    <img 
-                      src={qrCodeDataUrl} 
-                      alt="Scan this QR code to take a photo with your smartphone" 
-                      className="size-full p-2"
-                    />
-                  ) : (
-                    <QrCode size={120} className="text-gray-600" />
-                  )
-                )}
-              </div>
-              
-              <div className="flex flex-col gap-2 text-center">
-                <h2 className="text-lg md:text-xl lg:text-xl tracking-tight text-white">
-                  Scan this QR code to take a photo with your smartphone
-                </h2>
-                <p className="text-sm md:text-base lg:text-base mx-auto max-w-[22ch] font-normal -tracking-[0.02rem] text-white text-opacity-60 liqa-md:max-w-[30ch] liqa-lg:max-w-[35ch]">
-                  The results will be shown here
-                </p>
-                    </div>
-                  </div>
-                )}
+
 
           {cameraState === 'live' && (
             <div className="relative w-full max-w-xs h-[28rem] rounded-2xl border-2 border-gray-300 bg-black overflow-hidden">
@@ -957,38 +871,19 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
 
         {/* Controls */}
         <div className="p-4 bg-gray-50">
-          {cameraState === 'qr' && (
-            <div className="flex w-full flex-col items-center justify-center gap-2 liqa-lg:flex-row">
+          {!isCameraActive && cameraState === 'live' && (
+            <div className="flex flex-col items-center gap-4">
               <button
-                onClick={() => setCameraState('live')}
-                className="w-full liqa-lg:max-w-[16rem] relative overflow-hidden before:absolute before:inset-0 before:opacity-0 before:transition-opacity enabled:active:before:opacity-15 medium button secondary before:bg-white flex items-center justify-center gap-2 px-6 py-3 bg-gray-200 text-gray-800 hover:bg-gray-300 rounded-lg font-medium"
-                type="button"
-                aria-label="Continue on desktop"
+                onClick={handleTakePhotoClick}
+                className="w-full max-w-xs px-6 py-4 bg-blue-600 text-white hover:bg-blue-700 transition-colors rounded-xl font-semibold flex items-center justify-center gap-2"
               >
-                <Camera size={20} className="shrink-0" />
-                Continue on desktop
+                <Camera size={20} />
+                {isMobileDevice() ? 'Take Photo' : 'Upload Photo'}
               </button>
-              
-              <label
-                className="w-full liqa-lg:max-w-[16rem] relative overflow-hidden before:absolute before:inset-0 before:opacity-0 before:transition-opacity enabled:active:before:opacity-15 medium button secondary before:bg-white flex items-center justify-center gap-2 px-6 py-3 bg-gray-200 text-gray-800 hover:bg-gray-300 rounded-lg font-medium cursor-pointer"
-                aria-label="Upload from device"
-                role="button"
-                tabIndex={0}
-              >
-                <Upload size={20} className="shrink-0" />
-                Upload from device
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  onChange={handleFileUpload}
-                  className="absolute hidden"
-                />
-              </label>
                 </div>
             )}
 
-          {cameraState === 'live' && (
+          {cameraState === 'live' && isCameraActive && (
             <div className="flex flex-col items-center gap-4">
               {/* Camera controls */}
               <div className="flex items-center gap-4">
@@ -996,7 +891,7 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
                   onClick={switchCamera}
                   className="p-3 bg-gray-200 text-gray-800 rounded-full hover:bg-gray-300"
                 >
-                  <RotateCcw size={20} />
+                  <Camera size={20} />
                 </button>
                 
               <button
@@ -1008,10 +903,10 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
               </button>
                 
                 <button
-                  onClick={() => setCameraState('qr')}
+                  onClick={triggerFileUpload}
                   className="p-3 bg-gray-200 text-gray-800 rounded-full hover:bg-gray-300"
                 >
-                  <ArrowLeft size={20} />
+                  <Upload size={20} />
                 </button>
               </div>
               

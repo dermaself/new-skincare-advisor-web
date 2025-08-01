@@ -243,6 +243,19 @@ const steps = [
 ];
 
 export default function SkinAnalysisModal({ isOpen, onClose }: SkinAnalysisModalProps) {
+  // Prevent body scrolling when modal is open
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+
+    // Cleanup function to restore scrolling when component unmounts
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [isOpen]);
   const [currentStep, setCurrentStep] = useState<Step>('onboarding');
   const [selectedConcerns, setSelectedConcerns] = useState<string[]>([]);
   const [selectedSkinType, setSelectedSkinType] = useState<string>('');
@@ -258,6 +271,7 @@ export default function SkinAnalysisModal({ isOpen, onClose }: SkinAnalysisModal
   const [recommendationSource, setRecommendationSource] = useState<'ai' | 'questionnaire'>('ai');
   const [loading, setLoading] = useState(false);
   const [realProducts, setRealProducts] = useState<Product[]>([]);
+  const [activeTab, setActiveTab] = useState<'results' | 'routine'>('results');
   
   // Cart state
   const [cartItems, setCartItems] = useState<{ [productId: string]: number }>({});
@@ -571,12 +585,20 @@ export default function SkinAnalysisModal({ isOpen, onClose }: SkinAnalysisModal
   };
 
   const handleClose = () => {
+    onClose();
+  };
+
+  const handleRestart = () => {
     setCurrentStep('onboarding');
     setSelectedConcerns([]);
     setSelectedSkinType('');
     setSelectedAgeGroup('');
     setOpenInfo(null);
-    onClose();
+    setLoading(false);
+    setRealProducts([]);
+    setActiveTab('results');
+    setRoutineType('essential');
+    setRecommendationSource('ai');
   };
 
   const handleStartScan = () => {
@@ -600,9 +622,9 @@ export default function SkinAnalysisModal({ isOpen, onClose }: SkinAnalysisModal
     }
     
     // Show loading state immediately
-    setLoading(true);
+      setLoading(true);
     setCurrentStep('loading');
-    
+      
     // Trigger analysis immediately with user data and recommendations
     try {
       // Prepare user data from quiz responses
@@ -816,42 +838,59 @@ export default function SkinAnalysisModal({ isOpen, onClose }: SkinAnalysisModal
                 />
               </div>
             )}
-            {/* Progress Steps */}
-            <div>
-              {currentStep !== 'onboarding' && (
-                 <div className="mt-2 flex items-center justify-around space-x-2 pb-2 px-4">
-                  <div key={steps[0].id} className="flex flex-col items-center">
-                    <div className="flex flex-col items-center">
-                        <div
-                          className={`w-10 h-10 flex items-center justify-center text-sm font-semibold transition-all duration text-gray-900 ${currentStep === steps[0].id ? 'bg-white' : 'bg-white/50'}`}
-                        >
-                          <img src={steps[0].icon} alt={steps[0].title} className="w-6 h-6" />
-                        </div>
-                      </div>
+
+          </div>
+
+          {/* Progress Steps */}
+          <div>
+            {currentStep !== 'onboarding' && (
+              <div className="progress flex items-center px-4 py-2 justify-center" style={{ gridTemplateColumns: 'auto' }}>
+                {currentStep === 'results' && (
+                  <button 
+                    onClick={handleRestart}
+                    className="reload-btn absolute left-4"
+                    style={{ width: 'auto' }}
+                  >
+                    <img 
+                      src="https://production-cdn.holitionbeauty.com/cms/client/110/file/96096085-69da-4337-9483-bd44f25fea47-150a0f73-3224-4de7-bde3-7ab1e0808d12-restart.svg" 
+                      alt="Restart" 
+                    />
+                  </button>
+                )}
+                <div className="steps flex items-center">
+                  <div className="steps__wrapper flex items-center">
+                    <img 
+                      className="steps__icon w-8 h-8" 
+                      src="https://production-cdn.holitionbeauty.com/cms/client/110/file/30c8b3b0-3fc0-4185-aa05-9e996dd118f7-steps-1-full.svg"
+                    />
+                    <div style={{ width: '50px' }}>
+                      <div style={{ width: '50px', background: 'rgb(231, 61, 110)', height: '1px' }}></div>
+                    </div>
                   </div>
-                  <div className="w-6 h-0.5 mx-1 transition-all duration-200 bg-gray-900" />
-                  <div key={steps[1].id} className="flex flex-col items-center">
-                    <div className="flex flex-col items-center">
-                        <div
-                          className={`w-10 h-10 flex items-center justify-center text-sm font-semibold transition-all duration text-gray-900 ${currentStep === steps[1].id ? 'bg-white' : 'bg-white/50'}`}
-                        >
-                          <img src={steps[1].icon} alt={steps[1].title} className="w-6 h-6" />
-                        </div>
-                      </div>
+                  <div className="steps__wrapper flex items-center">
+                    <img 
+                      className="steps__icon w-8 h-8" 
+                      src={currentStep === 'quiz' ? 
+                        "https://production-cdn.holitionbeauty.com/cms/client/110/file/53595ac0-e529-44b6-84d3-1f877a444b02-steps-2.svg" : 
+                        "https://production-cdn.holitionbeauty.com/cms/client/110/file/2ee49d0a-c87c-425c-94fb-fb43adec3f34-steps-2-full.svg"
+                      }
+                    />
+                    <div style={{ width: '50px' }}>
+                      <div style={{ width: '50px', background: 'rgb(231, 61, 110)', height: '1px' }}></div>
+                    </div>
                   </div>
-                  <div className="w-6 h-0.5 mx-1 transition-all duration-200 bg-gray-900" />
-                  <div key={steps[2].id} className="flex flex-col items-center">
-                    <div className="flex flex-col items-center">
-                        <div
-                          className={`w-10 h-10 flex items-center justify-center text-sm font-semibold transition-all duration text-gray-900 ${currentStep === steps[2].id ? 'bg-white' : 'bg-white/50'}`}
-                        >
-                          <img src={steps[2].icon} alt={steps[2].title} className="w-6 h-6" />
-                        </div>
-                      </div>
+                  <div className="steps__wrapper flex items-center">
+                    <img 
+                      className="steps__icon w-8 h-8" 
+                      src={currentStep === 'results' ? 
+                        "https://production-cdn.holitionbeauty.com/cms/client/110/file/a972dbee-053c-46c8-b083-9e7979214cbf-steps-4-full.svg" : 
+                        "https://production-cdn.holitionbeauty.com/cms/client/110/file/9a5e16c4-71cf-44c2-acac-8f20e14e643c-steps-4.svg"
+                      }
+                    />
                   </div>
                 </div>
-              )}
-            </div>
+              </div>
+            )}
           </div>
 
           {/* Content */}
@@ -1107,187 +1146,169 @@ export default function SkinAnalysisModal({ isOpen, onClose }: SkinAnalysisModal
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -20 }}
-                  className="space-y-6"
+                  className="h-full flex flex-col"
                 >
-                  {/* AI Photo Analysis Section */}
-                  <div className="bg-gradient-to-br from-primary-600 to-primary-700 rounded-lg p-6 text-white">
-                    <h2 className="text-xl font-bold mb-4 text-center">AI PHOTO ANALYSIS</h2>
-                    
-                    {/* Radar Chart Placeholder */}
-                    <div className="relative w-64 h-64 mx-auto mb-4">
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <div className="w-48 h-48 border-2 border-white/30 rounded-full flex items-center justify-center">
-                          <div className="w-32 h-32 border-2 border-white/50 rounded-full flex items-center justify-center">
-                            <div className="w-16 h-16 border-2 border-white/70 rounded-full flex items-center justify-center">
-                              <div className="w-8 h-8 bg-white/20 rounded-full"></div>
+                    <div className="routine-btns w-full flex">
+                      <button
+                        onClick={() => setActiveTab('results')}
+                        className={activeTab === 'results' ? 'w-full flex flex-col items-center justify-center bg-black text-white' : 'w-full flex flex-col items-center justify-center bg-gray-200 text-black'}
+                      >
+                        <img 
+                          src="https://production-cdn.holitionbeauty.com/cms/client/110/file/47ef97b8-2f41-4e92-920f-a3e05d613a35-ecd99ac8-c52a-45fc-9a01-dc2f136d45b1-shade-finder-2.svg" 
+                          alt=""
+                          width={30}
+                          height={30}
+                          style={{ filter: activeTab === 'results' ? 'invert(1)' : 'invert(0)' }}
+                        />
+                        <p className="heading-4">RESULTS</p>
+                      </button>
+                      <button
+                        onClick={() => setActiveTab('routine')}
+                        className={activeTab === 'routine' ? 'w-full flex flex-col items-center justify-center bg-black text-white' : 'w-full flex flex-col items-center justify-center bg-gray-200 text-black'}
+                      >
+                        <img 
+                          src="https://production-cdn.holitionbeauty.com/cms/client/110/file/5bb0dac2-c844-4a57-9037-ea7d2c4200c3-fda61d2f-8cb2-4723-bd0e-471e8ecef4c2-icon-reccommendations.svg" 
+                          alt="" 
+                          width={30}
+                          height={30}
+                          style={{ filter: activeTab === 'routine' ? 'invert(1)' : 'invert(0)' }}
+                        />
+                        <p className="heading-4">ROUTINE</p>
+                      </button>
+                    </div>
+
+                  {/* Tab Content */}
+                  <div className="flex-1 overflow-y-auto">
+                    {activeTab === 'results' && (
+                      <div className="p-6">
+                        {/* AI Photo Analysis Section */}
+                        <div className="bg-gradient-to-br from-primary-600 to-primary-700 rounded-lg p-6 text-white mb-6">
+                          <h2 className="text-xl font-bold mb-4 text-center">AI PHOTO ANALYSIS</h2>
+                          
+                          {/* Radar Chart Placeholder */}
+                          <div className="relative w-64 h-64 mx-auto mb-4">
+                            <div className="absolute inset-0 flex items-center justify-center">
+                              <div className="w-48 h-48 border-2 border-white/30 rounded-full flex items-center justify-center">
+                                <div className="w-32 h-32 border-2 border-white/50 rounded-full flex items-center justify-center">
+                                  <div className="w-16 h-16 border-2 border-white/70 rounded-full flex items-center justify-center">
+                                    <div className="w-8 h-8 bg-white/20 rounded-full"></div>
+                                  </div>
+                                </div>
+                              </div>
                             </div>
+                            
+                            {/* Priority Indicator */}
+                            <div className="absolute top-0 right-0 bg-yellow-400 text-primary-800 px-2 py-1 rounded-full text-xs font-bold">
+                              {selectedConcerns[0] || 'Dehydration'} - Your Priority
+                            </div>
+                            
+                            {/* Concern Labels */}
+                            <div className="absolute top-1/4 right-0 text-xs font-semibold">Dehydration</div>
+                            <div className="absolute bottom-1/4 right-0 text-xs font-semibold">Acne & Blemishes</div>
+                            <div className="absolute bottom-1/4 left-0 text-xs font-semibold text-right">Dark Spots &<br/>Uneven Tone</div>
+                            <div className="absolute top-1/4 left-0 text-xs font-semibold text-right">Dark Circles</div>
+                            <div className="absolute top-0 left-1/2 transform -translate-x-1/2 text-xs font-semibold text-center">Fine Lines &<br/>Wrinkles</div>
+                            <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 text-xs font-semibold text-center">Eye Bags</div>
                           </div>
                         </div>
-                      </div>
-                      
-                      {/* Priority Indicator */}
-                      <div className="absolute top-0 right-0 bg-yellow-400 text-primary-800 px-2 py-1 rounded-full text-xs font-bold">
-                        {selectedConcerns[0] || 'Dehydration'} - Your Priority
-                      </div>
-                      
-                      {/* Concern Labels */}
-                      <div className="absolute top-1/4 right-0 text-xs font-semibold">Dehydration</div>
-                      <div className="absolute bottom-1/4 right-0 text-xs font-semibold">Acne & Blemishes</div>
-                      <div className="absolute bottom-1/4 left-0 text-xs font-semibold text-right">Dark Spots &<br/>Uneven Tone</div>
-                      <div className="absolute top-1/4 left-0 text-xs font-semibold text-right">Dark Circles</div>
-                      <div className="absolute top-0 left-1/2 transform -translate-x-1/2 text-xs font-semibold text-center">Fine Lines &<br/>Wrinkles</div>
-                      <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 text-xs font-semibold text-center">Eye Bags</div>
-                    </div>
-                  </div>
 
-                  {/* Your Skin Routine Section */}
-                  <div className="bg-white border border-gray-200 rounded-lg p-6">
-                    <div className="flex items-center justify-between mb-4">
-                      <div>
-                        <h2 className="text-xl font-bold text-gray-900">YOUR SKIN ROUTINE</h2>
-                        <p className="text-sm text-gray-600 mt-1">
-                          Based on your selected skin concerns and the AI skin health photo analysis, we have personalized your skin routine.
-                        </p>
-                        {isShopify && (
-                          <p className="text-xs text-blue-600 mt-2">
-                            💡 Products will be added to your Shopify cart automatically
+                        {/* Results Info */}
+                        <div className="bg-white border border-gray-200 rounded-lg p-6">
+                          <p className="text-sm text-gray-600 mb-4">
+                            These results are based on your AI skin health photo analysis. The highest scores represent the skin concerns that are most prominent on your skin.
                           </p>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Routine Type Buttons */}
-                    <div className="routine-btns flex space-x-2 mb-6">
-                      <button 
-                        className={`flex-1 ${routineType === 'essential' ? 'active-btn' : 'inactive-btn'}`}
-                        onClick={() => setRoutineType('essential')}
-                      >
-                        ESSENTIAL ROUTINE
-                      </button>
-                      <button 
-                        className={`flex-1 ${routineType === 'expert' ? 'active-btn' : 'inactive-btn'}`}
-                        onClick={() => setRoutineType('expert')}
-                      >
-                        EXPERT ROUTINE
-                      </button>
-                    </div>
-
-                                         {/* Recommendation Source */}
-                     <div className="mb-6">
-                       <p className="text-sm text-gray-600 mb-2">Your Skin Recommendation By:</p>
-                       <div className="flex space-x-4">
-                         <label className="flex items-center">
-                           <input 
-                             type="radio" 
-                             name="recommendation" 
-                             value="ai" 
-                             checked={recommendationSource === 'ai'}
-                             onChange={() => setRecommendationSource('ai')}
-                             className="mr-2" 
-                           />
-                           <span className="text-sm">AI Photo Analysis</span>
-                         </label>
-                         <label className="flex items-center">
-                           <input 
-                             type="radio" 
-                             name="recommendation" 
-                             value="questionnaire" 
-                             checked={recommendationSource === 'questionnaire'}
-                             onChange={() => setRecommendationSource('questionnaire')}
-                             className="mr-2" 
-                           />
-                           <span className="text-sm">Selected Concerns</span>
-                         </label>
-                       </div>
-                     </div>
-
-                    {/* Detected Concerns */}
-                    <div className="flex space-x-4 mb-6">
-                      <div className="flex items-center space-x-2 bg-orange-100 px-3 py-2 rounded-lg">
-                        <img 
-                          src="https://production-cdn.holitionbeauty.com/cms/client/110/file/eff7f7f1-7c71-475f-926c-85cd3dff0c9b-hydration-3.svg" 
-                          alt="Dehydration" 
-                          className="w-6 h-6"
-                        />
-                        <span className="text-sm font-semibold text-orange-800">Dehydration</span>
-                      </div>
-                      <div className="flex items-center space-x-2 bg-yellow-100 px-3 py-2 rounded-lg">
-                        <img 
-                          src="https://production-cdn.holitionbeauty.com/cms/client/110/file/1dc95b48-dbc7-4fdb-a4be-ef0dca1beec9-spot-3.svg" 
-                          alt="Dark Circles" 
-                          className="w-6 h-6"
-                        />
-                        <span className="text-sm font-semibold text-yellow-800">Dark Circles</span>
-                      </div>
-                    </div>
-
-                    {/* Routine Steps */}
-                    {loading ? (
-                      <div className="flex items-center justify-center py-8">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
-                        <span className="ml-2 text-gray-600">Loading your routine...</span>
-                      </div>
-                    ) : routine ? (
-                      <div className="space-y-4">
-                        {routine[routineType].map((step, index) => (
-                          <RoutineProductCard
-                            key={step.step}
-                            product={{
-                              id: parseInt(step.products[0].id) || 1,
-                              title: step.products[0].name,
-                              vendor: step.products[0].brand,
-                              product_type: 'skincare',
-                              tags: step.products[0].tags.join(', '),
-                              variants: [{
-                                id: step.products[0].shopifyVariantId?.split('/').pop() || '1',
-                                title: 'Default',
-                                price: step.products[0].price.toString(),
-                                inventory_quantity: step.products[0].inStock ? 10 : 0
-                              }],
-                              images: [{
-                                id: 1,
-                                src: step.products[0].image,
-                                alt: step.products[0].name
-                              }],
-                              body_html: step.products[0].description,
-                              created_at: new Date().toISOString(),
-                              updated_at: new Date().toISOString()
-                            }}
-                            stepNumber={index + 1}
-                            stepTitle={step.title.split(': ')[1] || step.title}
-                            isLastStep={index === routine[routineType].length - 1}
-                            showAddAllButton={index === routine[routineType].length - 1}
-                            onAddAllToCart={handleAddRoutineToCart}
-                          />
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="text-center py-8 text-gray-500">
-                        No routine available. Please try again.
+                          <button
+                            onClick={() => setActiveTab('routine')}
+                            className="w-full bg-primary-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-primary-700 transition-colors"
+                          >
+                            DISCOVER YOUR ROUTINE
+                          </button>
+                        </div>
                       </div>
                     )}
-                  </div>
 
-                  <div className="flex justify-between pt-6">
-                    <motion.button
-                      onClick={handleBack}
-                      className="btn-secondary flex items-center"
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                    >
-                      <ArrowLeft className="w-4 h-4 mr-2" />
-                      Back
-                    </motion.button>
-                    
-                    <motion.button
-                      onClick={onClose}
-                      className="btn-primary flex items-center"
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                    >
-                      <CheckCircle className="w-4 h-4 mr-2" />
-                      Complete
-                    </motion.button>
+                    {activeTab === 'routine' && (
+                      <div className="p-6">
+                        {/* Your Skin Routine Section */}
+                        <div className="bg-white border border-gray-200 rounded-lg p-6">
+                          <div className="mb-4">
+                            <h2 className="text-xl font-bold text-gray-900 mb-2">YOUR SKIN ROUTINE</h2>
+                            
+                            {isShopify && (
+                              <p className="text-xs text-blue-600 mt-2">
+                                💡 Products will be added to your Shopify cart automatically
+                              </p>
+                            )}
+                          </div>
+
+                          {/* Detected Concerns */}
+                          <div className="flex space-x-4 mb-6">
+                            <div className="flex items-center bg-orange-100 px-3 py-2 rounded-lg">
+                              <img 
+                                src="https://production-cdn.holitionbeauty.com/cms/client/110/file/eff7f7f1-7c71-475f-926c-85cd3dff0c9b-hydration-3.svg" 
+                                alt="Dehydration" 
+                                className="w-6 h-6"
+                              />
+                              <span className="text-sm font-semibold text-orange-800">Dehydration</span>
+                            </div>
+                            <div className="flex items-center bg-yellow-100 px-3 py-2 rounded-lg">
+                              <img 
+                                src="https://production-cdn.holitionbeauty.com/cms/client/110/file/1dc95b48-dbc7-4fdb-a4be-ef0dca1beec9-spot-3.svg" 
+                                alt="Dark Circles" 
+                                className="w-6 h-6"
+                              />
+                              <span className="text-sm font-semibold text-yellow-800">Dark Circles</span>
+                            </div>
+                          </div>
+
+                          {/* Routine Steps */}
+                          {loading ? (
+                            <div className="flex items-center justify-center py-8">
+                              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+                              <span className="ml-2 text-gray-600">Loading your routine...</span>
+                            </div>
+                          ) : routine ? (
+                            <div className="space-y-4">
+                              {routine[routineType].map((step, index) => (
+                                <RoutineProductCard
+                                  key={step.step}
+                                  product={{
+                                    id: parseInt(step.products[0].id) || 1,
+                                    title: step.products[0].name,
+                                    vendor: step.products[0].brand,
+                                    product_type: 'skincare',
+                                    tags: step.products[0].tags.join(', '),
+                                    variants: [{
+                                      id: step.products[0].shopifyVariantId?.split('/').pop() || '1',
+                                      title: 'Default',
+                                      price: step.products[0].price.toString(),
+                                      inventory_quantity: step.products[0].inStock ? 10 : 0
+                                    }],
+                                    images: [{
+                                      id: 1,
+                                      src: step.products[0].image,
+                                      alt: step.products[0].name
+                                    }],
+                                    body_html: step.products[0].description,
+                                    created_at: new Date().toISOString(),
+                                    updated_at: new Date().toISOString()
+                                  }}
+                                  stepNumber={index + 1}
+                                  stepTitle={step.title.split(': ')[1] || step.title}
+                                  isLastStep={index === routine[routineType].length - 1}
+                                  showAddAllButton={index === routine[routineType].length - 1}
+                                  onAddAllToCart={handleAddRoutineToCart}
+                                />
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="text-center py-8 text-gray-500">
+                              No routine available. Please try again.
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </motion.div>
               )}

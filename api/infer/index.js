@@ -526,7 +526,7 @@ async function callRednessAPI(base64Image) {
 
   try {
     const response = await axios.post(fullUrl, 
-      { base64image: base64Image },
+      { base64image: base64Image, code: apiKey },
       { 
         timeout: config.redness.timeout,
         headers: { 'Content-Type': 'application/json' }

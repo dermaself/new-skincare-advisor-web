@@ -2,13 +2,24 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   async headers() {
+    // Get allowed domains from environment variable
+    const allowedDomains = process.env.ALLOWED_FRAME_DOMAINS || 'https://dermaself-dev.myshopify.com'
+    
     return [
       {
         source: '/(.*)',
         headers: [
           {
+            key: 'X-Content-Type-Options',
+            value: 'nosniff'
+          },
+          {
+            key: 'Referrer-Policy',
+            value: 'same-origin'
+          },
+          {
             key: 'Content-Security-Policy',
-            value: "frame-ancestors 'self' https://*.myshopify.com https://*.shopify.com https://dermaself-dev.myshopify.com https://*"
+            value: `frame-ancestors 'self' ${allowedDomains}`
           }
         ],
       },

@@ -7,10 +7,13 @@ export function middleware(request: NextRequest) {
   // Remove X-Frame-Options header if it exists
   response.headers.delete('X-Frame-Options')
   
+  // Get allowed domains from environment variable
+  const allowedDomains = process.env.ALLOWED_FRAME_DOMAINS || 'https://dermaself-dev.myshopify.com'
+  
   // Set Content-Security-Policy to allow iframe embedding
   response.headers.set(
     'Content-Security-Policy',
-    "frame-ancestors 'self' https://*.myshopify.com https://*.shopify.com https://dermaself-dev.myshopify.com https://*"
+    `frame-ancestors 'self' ${allowedDomains}`
   )
 
   return response

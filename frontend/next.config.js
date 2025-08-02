@@ -1,6 +1,5 @@
-import type { NextConfig } from "next";
-
-const nextConfig: NextConfig = {
+/** @type {import('next').NextConfig} */
+const nextConfig = {
   webpack: (config, { isServer }) => {
     if (!isServer) {
       // Don't resolve 'fs' module on the client to prevent this error on build
@@ -14,7 +13,7 @@ const nextConfig: NextConfig = {
     }
     return config;
   },
-  /* config options here */
+  // Altre opzioni di configurazione, se necessarie
 };
 
-export default nextConfig;
+module.exports = nextConfig;

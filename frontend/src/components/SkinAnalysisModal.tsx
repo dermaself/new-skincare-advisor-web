@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Camera, FileText, Sparkles, Heart, CheckCircle, ArrowLeft, Info } from 'lucide-react';
+import { X, Camera, FileText, Sparkles, Heart, CheckCircle, ArrowLeft, Info, RotateCcw } from 'lucide-react';
 import CameraCapture from './CameraCapture';
 import RoutineProductCard from './RoutineProductCard';
 
@@ -810,33 +810,35 @@ export default function SkinAnalysisModal({ isOpen, onClose }: SkinAnalysisModal
         >
           {/* Header */}
           <div className="relative bg-primary-600">
-            <div className="flex items-center justify-between px-4 py-2">
-              <div className="flex items-center space-x-2">
-                <div className="w-6 h-6 bg-white/20 flex items-center justify-center">
-                  <Camera className="w-4 h-4 text-white" />
+            {currentStep === 'onboarding' && (
+              <>
+                <div className="flex items-center justify-between p-4">
+                  <div className="flex items-center space-x-2">
+                    <div className="w-8 h-8 bg-white/20 flex items-center justify-center">
+                      <Camera className="w-4 h-4 text-white" />
+                    </div>
+                    <div>
+                      <h2 className="text-white font-semibold text-base">DermaSelf</h2>
+                      <p className="text-white/80 text-xs">AI Skin Analysis</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={handleClose}
+                    className="w-6 h-6 bg-white/20 flex items-center justify-center hover:bg-white/30 transition-colors"
+                    aria-label="Close modal"
+                    title="Close modal"
+                  >
+                    <X className="w-3 h-3 text-white" />
+                  </button>
                 </div>
                 <div>
-                  <h2 className="text-white font-semibold text-base">DermaSelf</h2>
-                  <p className="text-white/80 text-xs">AI Skin Analysis</p>
+                  <img
+                    src="https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80"
+                    alt="Skin Analysis"
+                    className="w-full h-64 object-cover"
+                  />
                 </div>
-              </div>
-              <button
-                onClick={handleClose}
-                className="w-6 h-6 bg-white/20 flex items-center justify-center hover:bg-white/30 transition-colors"
-                aria-label="Close modal"
-                title="Close modal"
-              >
-                <X className="w-3 h-3 text-white" />
-              </button>
-            </div>
-            {currentStep === 'onboarding' && (
-              <div>
-                <img
-                  src="https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80"
-                  alt="Skin Analysis"
-                  className="w-full h-32 object-cover"
-                />
-              </div>
+              </>
             )}
 
           </div>
@@ -845,18 +847,22 @@ export default function SkinAnalysisModal({ isOpen, onClose }: SkinAnalysisModal
           <div>
             {currentStep !== 'onboarding' && (
               <div className="progress flex items-center px-4 py-2 justify-center" style={{ gridTemplateColumns: 'auto' }}>
-                {currentStep === 'results' && (
-                  <button 
-                    onClick={handleRestart}
-                    className="reload-btn absolute left-4"
-                    style={{ width: 'auto' }}
-                  >
-                    <img 
-                      src="https://production-cdn.holitionbeauty.com/cms/client/110/file/96096085-69da-4337-9483-bd44f25fea47-150a0f73-3224-4de7-bde3-7ab1e0808d12-restart.svg" 
-                      alt="Restart" 
-                    />
-                  </button>
-                )}
+                <button 
+                  onClick={handleRestart}
+                  className="absolute left-4 p-2 hover:bg-gray-100 rounded-full transition-colors"
+                  aria-label="Restart analysis"
+                  title="Restart analysis"
+                >
+                  <RotateCcw className="w-5 h-5 text-gray-600" />
+                </button>
+                <button 
+                  onClick={handleClose}
+                  className="absolute right-4 p-2 hover:bg-gray-100 rounded-full transition-colors"
+                  aria-label="Close modal"
+                  title="Close modal"
+                >
+                  <X className="w-5 h-5 text-gray-600" />
+                </button>
                 <div className="steps flex items-center">
                   <div className="steps__wrapper flex items-center">
                     <img 

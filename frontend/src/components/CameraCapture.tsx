@@ -33,6 +33,7 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [currentCamera, setCurrentCamera] = useState<'front' | 'back'>('front');
   const [luminosity, setLuminosity] = useState<number>(0);
+  const [videoHeight, setVideoHeight] = useState<number>(0);
 
   const [facePosition, setFacePosition] = useState<FacePosition | null>(null);
   const [detectionInterval, setDetectionInterval] = useState<NodeJS.Timeout | null>(null);
@@ -49,8 +50,10 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const overlayCanvasRef = useRef<HTMLCanvasElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const modalRef = useRef<HTMLDivElement>(null);
+  const headerRef = useRef<HTMLDivElement>(null);
+  const controlsRef = useRef<HTMLDivElement>(null);
   const isMountedRef = useRef(true);
   const initializationInProgressRef = useRef(false);
 
@@ -298,70 +301,8 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
   };
 
   const drawFaceOverlay = () => {
-    if (!overlayCanvasRef.current || !videoRef.current) return;
-    
-    const canvas = overlayCanvasRef.current;
-    const ctx = canvas.getContext('2d');
-    const video = videoRef.current;
-    
-    if (!ctx) return;
-    
-    // Set canvas size to match video element display size (not video dimensions)
-    canvas.width = video.offsetWidth;
-    canvas.height = video.offsetHeight;
-    
-    // Clear previous drawings
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    
-    console.log('Drawing overlay - detectedFaces:', detectedFacesRef.current.length, 'canvas size:', canvas.width, 'x', canvas.height);
-    
-    // Draw face detection rectangles
-    detectedFacesRef.current.forEach((detection, index) => {
-      const { box } = detection;
-      
-      // Scale the detection box to match the display size
-      const scaleX = canvas.width / video.videoWidth;
-      const scaleY = canvas.height / video.videoHeight;
-      
-      const scaledBox = {
-        x: box.x * scaleX,
-        y: box.y * scaleY,
-        width: box.width * scaleX,
-        height: box.height * scaleY
-      };
-      
-      console.log('Drawing face', index + 1, 'at:', scaledBox);
-      
-      // Draw rectangle around face
-      ctx.strokeStyle = faceDetected ? '#00ff00' : '#ff0000'; // Green if face detected, red if not
-      ctx.lineWidth = 3;
-      ctx.strokeRect(scaledBox.x, scaledBox.y, scaledBox.width, scaledBox.height);
-      
-      // Add face label
-      ctx.fillStyle = faceDetected ? '#00ff00' : '#ff0000';
-      ctx.font = '16px Arial';
-      ctx.fillText(`Face ${index + 1}`, scaledBox.x, scaledBox.y - 10);
-      
-      // Draw corner indicators
-      const cornerSize = 10;
-      ctx.fillStyle = faceDetected ? '#00ff00' : '#ff0000';
-      
-      // Top-left corner
-      ctx.fillRect(scaledBox.x - 2, scaledBox.y - 2, cornerSize, 4);
-      ctx.fillRect(scaledBox.x - 2, scaledBox.y - 2, 4, cornerSize);
-      
-      // Top-right corner
-      ctx.fillRect(scaledBox.x + scaledBox.width - cornerSize + 2, scaledBox.y - 2, cornerSize, 4);
-      ctx.fillRect(scaledBox.x + scaledBox.width - 2, scaledBox.y - 2, 4, cornerSize);
-      
-      // Bottom-left corner
-      ctx.fillRect(scaledBox.x - 2, scaledBox.y + scaledBox.height - 2, cornerSize, 4);
-      ctx.fillRect(scaledBox.x - 2, scaledBox.y + scaledBox.height - cornerSize + 2, 4, cornerSize);
-      
-      // Bottom-right corner
-      ctx.fillRect(scaledBox.x + scaledBox.width - cornerSize + 2, scaledBox.y + scaledBox.height - 2, cornerSize, 4);
-      ctx.fillRect(scaledBox.x + scaledBox.width - 2, scaledBox.y + scaledBox.height - cornerSize + 2, 4, cornerSize);
-    });
+    // Face boundary detection rectangle removed
+    // This function is kept for potential future use but no longer draws rectangles
   };
 
   const detectFacePosition = async () => {
@@ -626,6 +567,19 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
     fileInputRef.current?.click();
   };
 
+  const calculateVideoHeight = () => {
+    if (!modalRef.current || !headerRef.current || !controlsRef.current) return;
+    
+    const modalHeight = modalRef.current.offsetHeight;
+    const headerHeight = headerRef.current.offsetHeight;
+    const controlsHeight = controlsRef.current.offsetHeight;
+    
+    const availableHeight = modalHeight - headerHeight - controlsHeight;
+    const calculatedHeight = Math.floor(availableHeight * 0.95);
+    
+    setVideoHeight(calculatedHeight);
+  };
+
   const handleTakePhotoClick = () => {
     if (isMobileDevice()) {
       // On mobile, start camera directly
@@ -639,10 +593,27 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
 
 
   useEffect(() => {
+    // Calculate video height on mount
+    calculateVideoHeight();
+    
+    // Add resize listener
+    const handleResize = () => {
+      calculateVideoHeight();
+    };
+    
+    window.addEventListener('resize', handleResize);
+    
     return () => {
       stopCamera();
+      window.removeEventListener('resize', handleResize);
     };
   }, []);
+
+  // Recalculate video height when camera state changes
+  useEffect(() => {
+    // Small delay to ensure DOM is updated
+    setTimeout(calculateVideoHeight, 100);
+  }, [cameraState]);
 
   if (error) {
     return (
@@ -691,7 +662,7 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
           50% { opacity: 0.5; }
         }
         
-        @keyframes slideIn {
+        @keyframes slideIn { 
           from { transform: translateY(100%); opacity: 0; }
           to { transform: translateY(0); opacity: 1; }
         }
@@ -752,22 +723,34 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
           transform: translate(-50%, -50%);
           pointer-events: none;
         }
+        
+        /* Mobile-specific fixes */
+        
+        @media (max-width: 480px) {
+          .modal-container {
+            max-width: 100vw !important;
+            width: 100vw !important;
+            margin: 0 !important;
+            border-radius: 0 !important;
+          }
+        }
       `}</style>
       
       <div 
-        className={`bg-white w-full ${embedded ? 'h-full' : 'max-w-2xl h-full max-h-[90vh]'} rounded-2xl flex flex-col`}
+        ref={modalRef}
+        className={`modal-container bg-white w-full ${embedded ? 'h-full' : 'max-w-sm h-full max-h-[98vh]'} rounded-2xl flex flex-col overflow-hidden`}
         style={{ height: '100%' }}
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-gray-200 flex-shrink-0">
-          <div>
-            <h3 className="text-lg font-bold text-gray-900">
-              Skin Analysis Camera
-            </h3>
-            <p className="text-sm text-gray-600">
-              Take a photo for analysis
-            </p>
-          </div>
+        <div ref={headerRef} className="flex items-center justify-between px-2 sm:px-4 py-1 sm:py-2 border-b border-gray-200 flex-shrink-0">
+                      <div>
+              <h3 className="text-sm sm:text-lg font-bold text-gray-900">
+                Skin Analysis Camera
+              </h3>
+              <p className="text-xs text-gray-600">
+                Take a photo for analysis
+              </p>
+            </div>
           <button
             onClick={onClose}
             className="p-2 hover:bg-gray-100 rounded-full transition-colors"
@@ -777,7 +760,7 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
         </div>
 
         {/* Content */}
-        <div className="relative bg-black flex-1 flex items-center justify-center p-4">
+        <div className="relative bg-black flex-1 flex items-center justify-center min-h-0 overflow-hidden">
           {isLoading && (
             <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-75 z-10">
               <div className="text-white text-center">
@@ -790,7 +773,7 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
 
 
           {cameraState === 'live' && (
-            <div className="relative w-full max-w-xs h-[28rem] rounded-2xl border-2 border-gray-300 bg-black overflow-hidden">
+            <div className="relative w-full h-full overflow-hidden">
               <video
                 ref={videoRef}
                 autoPlay
@@ -823,15 +806,7 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
                 }}
               />
               
-              {/* Face detection overlay canvas */}
-              <canvas
-                ref={overlayCanvasRef}
-                className="absolute inset-0 w-full h-full pointer-events-none"
-                style={{
-                  width: '100%',
-                  height: '100%'
-                }}
-              />
+
               
 
               
@@ -857,7 +832,10 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
             )}
 
             {cameraState === 'preview' && (
-            <div className="relative w-full max-w-sm h-96 rounded-2xl border-2 border-gray-300">
+            <div 
+              className="relative w-full h-full rounded-2xl border-2 border-gray-300"
+              style={{ height: videoHeight > 0 ? `${videoHeight}px` : '100%' }}
+            >
                     <img
                       src={capturedImage!}
                       alt="Captured photo"
@@ -870,55 +848,55 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
                   </div>
 
         {/* Controls */}
-        <div className="p-4 bg-gray-50">
+        <div ref={controlsRef} className="p-1 sm:p-2 bg-gray-50 flex-shrink-0">
           {!isCameraActive && cameraState === 'live' && (
             <div className="flex flex-col items-center gap-4">
               <button
                 onClick={handleTakePhotoClick}
-                className="w-full max-w-xs px-6 py-4 bg-blue-600 text-white hover:bg-blue-700 transition-colors rounded-xl font-semibold flex items-center justify-center gap-2"
+                className="w-full max-w-xs px-3 py-2 bg-blue-600 text-white hover:bg-blue-700 transition-colors rounded-xl font-semibold flex items-center justify-center gap-2 text-sm"
               >
-                <Camera size={20} />
+                <Camera className="w-4 h-4" />
                 {isMobileDevice() ? 'Take Photo' : 'Upload Photo'}
               </button>
                 </div>
             )}
 
           {cameraState === 'live' && isCameraActive && (
-            <div className="flex flex-col items-center gap-4">
+            <div className="flex flex-col items-center gap-1 sm:gap-2">
               {/* Camera controls */}
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-1 sm:gap-2">
                 <button
                   onClick={switchCamera}
-                  className="p-3 bg-gray-200 text-gray-800 rounded-full hover:bg-gray-300"
+                  className="p-1.5 sm:p-2 bg-gray-200 text-gray-800 rounded-full hover:bg-gray-300"
                 >
-                  <Camera size={20} />
+                  <Camera className="w-3 h-3 sm:w-4 sm:h-4" />
                 </button>
                 
               <button
                 onClick={capturePhoto}
                 disabled={!isCameraActive || isLoading}
-                  className="w-16 h-16 bg-blue-600 text-white hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-all flex items-center justify-center rounded-full shadow-lg"
+                  className="w-10 h-10 sm:w-14 sm:h-14 bg-blue-600 text-white hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-all flex items-center justify-center rounded-full shadow-lg"
               >
-                  <Camera size={24} />
+                  <Camera className="w-4 h-4 sm:w-5 sm:h-5" />
               </button>
                 
                 <button
                   onClick={triggerFileUpload}
-                  className="p-3 bg-gray-200 text-gray-800 rounded-full hover:bg-gray-300"
+                  className="p-1.5 sm:p-2 bg-gray-200 text-gray-800 rounded-full hover:bg-gray-300"
                 >
-                  <Upload size={20} />
+                  <Upload className="w-3 h-3 sm:w-4 sm:h-4" />
                 </button>
               </div>
               
               {/* Tips */}
-              <div className="text-center text-sm text-gray-600">
-                <p className="flex items-center justify-center gap-2 mb-2">
-                  <Move size={16} />
-                  Position your face in the center
+              <div className="text-center text-xs text-gray-600">
+                <p className="flex items-center justify-center gap-1 mb-1">
+                  <Move className="w-3 h-3" />
+                  <span>Position your face in the center</span>
                 </p>
-                <p className="flex items-center justify-center gap-2">
-                  <CheckCircle size={16} />
-                  Good lighting for best results
+                <p className="flex items-center justify-center gap-1">
+                  <CheckCircle className="w-3 h-3" />
+                  <span>Good lighting for best results</span>
                 </p>
               </div>
               
@@ -927,16 +905,16 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
           )}
 
           {cameraState === 'preview' && (
-            <div className="flex gap-4">
+            <div className="flex gap-1 sm:gap-2">
               <button
                 onClick={retakePhoto}
-                className="flex-1 px-6 py-4 bg-gray-200 text-gray-800 hover:bg-gray-300 transition-colors rounded-xl font-semibold"
+                className="flex-1 px-3 py-2 bg-gray-200 text-gray-800 hover:bg-gray-300 transition-colors rounded-xl font-semibold text-sm"
               >
                 Retake
               </button>
               <button
                 onClick={confirmPhoto}
-                className="flex-1 px-6 py-4 bg-blue-600 text-white hover:bg-blue-700 transition-colors rounded-xl font-semibold"
+                className="flex-1 px-3 py-2 bg-blue-600 text-white hover:bg-blue-700 transition-colors rounded-xl font-semibold text-sm"
               >
                 Use Photo
               </button>

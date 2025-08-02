@@ -1,17 +1,13 @@
 {
-  "navigationFallback": {
-    "rewrite": "/index.html",
-    "exclude": ["/images/*.{png,jpg,gif}", "/css/*", "/js/*"]
-  },
-  "responseOverrides": {
-    "404": {
-      "rewrite": "/index.html"
+  "routes": [
+    {
+      "route": "/*",
+      "headers": {
+        "X-Frame-Options": "",
+        "Content-Security-Policy": "frame-ancestors 'self' https://dermaself-dev.myshopify.com https://*.myshopify.com https://admin.shopify.com",
+        "X-Content-Type-Options": "nosniff",
+        "Referrer-Policy": "same-origin"
+      }
     }
-  },
-  "globalHeaders": {
-    "X-Frame-Options": "",
-    "Content-Security-Policy": "frame-ancestors 'self' https://dermaself-dev.myshopify.com https://*.myshopify.com https://admin.shopify.com",
-    "X-Content-Type-Options": "nosniff",
-    "Referrer-Policy": "same-origin"
-  }
+  ]
 }

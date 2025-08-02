@@ -2,6 +2,20 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Embed-specific styles */
+.embed-container {
+  width: 100%;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* Ensure modal fits properly in iframe */
+.embed-container .modal-container {
+  max-height: 100vh !important;
+  height: 100vh !important;
+  border-radius: 0 !important;
+}
+
 /* Custom CSS Variables */
 :root {
   --primary-50: #eff6ff;

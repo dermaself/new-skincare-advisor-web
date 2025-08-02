@@ -12,7 +12,8 @@
     {
       "route": "/*",
       "headers": {
-        "Content-Security-Policy": "frame-ancestors 'self' https://*.myshopify.com https://*.shopify.com https://dermaself-dev.myshopify.com https://*"
+        "X-Content-Type-Options": "nosniff",
+        "Referrer-Policy": "same-origin"
       }
     }
   ]

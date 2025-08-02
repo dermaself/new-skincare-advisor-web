@@ -2,7 +2,14 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Camera, X, Upload, RotateCcw, User, Move, CheckCircle, Target, MoveHorizontal, Sun, Check, ArrowLeft } from 'lucide-react';
-import * as faceapi from 'face-api.js';
+// Dynamic import to avoid SSR issues
+let faceapi: any = null;
+if (typeof window !== 'undefined') {
+  // Only import on client side
+  import('face-api.js').then(module => {
+    faceapi = module;
+  });
+}
 
 interface CameraCaptureProps {
   onCapture: (imageData: string) => void;
@@ -42,6 +49,7 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
   const [faceDetected, setFaceDetected] = useState(false);
   const [faceAngle, setFaceAngle] = useState<{x: number, y: number, z: number} | null>(null);
   const [modelsLoaded, setModelsLoaded] = useState(false);
+  const [faceApiAvailable, setFaceApiAvailable] = useState(false);
   const [faceCenter, setFaceCenter] = useState<{x: number, y: number} | null>(null);
   const [detectedFaces, setDetectedFaces] = useState<any[]>([]);
   const detectedFacesRef = useRef<any[]>([]);
@@ -65,20 +73,30 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
       try {
         console.log('Loading face-api.js models...');
         
-        // Load models from the correct CDN URL
-        const MODEL_URL = 'https://justadudewhohacks.github.io/face-api.js/models';
-        
-        await Promise.all([
-          faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
-          faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
-          faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL)
-        ]);
-        
-        setModelsLoaded(true);
-        console.log('face-api.js models loaded successfully');
+        // Try to load face-api.js dynamically
+        try {
+          const module = await import('face-api.js');
+          faceapi = module;
+          setFaceApiAvailable(true);
+          
+          // Load models from the correct CDN URL
+          const MODEL_URL = 'https://justadudewhohacks.github.io/face-api.js/models';
+          
+          await Promise.all([
+            faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
+            faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
+            faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL)
+          ]);
+          
+          setModelsLoaded(true);
+          console.log('face-api.js models loaded successfully');
+        } catch (faceApiError) {
+          console.warn('face-api.js not available, continuing without face detection:', faceApiError);
+          setModelsLoaded(true); // Mark as loaded so we can continue without face detection
+        }
       } catch (error) {
-        console.error('Error loading face-api.js models:', error);
-        setError('Failed to load face detection models');
+        console.error('Error in loadModels:', error);
+        setModelsLoaded(true); // Mark as loaded so we can continue
       }
     };
 
@@ -320,8 +338,8 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
         return;
       }
       
-      // If models are loaded, use face-api.js
-      if (modelsLoaded) {
+      // If models are loaded and face-api.js is available, use it
+      if (modelsLoaded && faceApiAvailable && faceapi) {
         try {
                                const detections = await faceapi.detectAllFaces(video, new faceapi.TinyFaceDetectorOptions({
             inputSize: 224,
@@ -412,6 +430,13 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
   };
 
   const updateGuidance = (detections: any[], facePosition: any, luminosity: number) => {
+    // If face detection is not available, show default guidance
+    if (!faceApiAvailable) {
+      setGuidanceMessage('Position your face in the center');
+      setGuidanceType('position');
+      return;
+    }
+    
     if (detections.length === 0) {
       setGuidanceMessage('Place face inside frame');
       setGuidanceType('position');

@@ -8,6 +8,7 @@ import RoutineProductCard from './RoutineProductCard';
 interface SkinAnalysisModalProps {
   isOpen: boolean;
   onClose: () => void;
+  embedded?: boolean;
 }
 
 type Step = 'onboarding' | 'quiz' | 'scan' | 'loading' | 'results';
@@ -242,7 +243,7 @@ const steps = [
   { id: 'results', title: 'RESULTS', icon: 'https://production-cdn.holitionbeauty.com/cms/client/110/file/ea856bc1-0ac0-4d32-9796-c588ac0d26bb-ecd99ac8-c52a-45fc-9a01-dc2f136d45b1-shade-finder-2.svg' }
 ];
 
-export default function SkinAnalysisModal({ isOpen, onClose }: SkinAnalysisModalProps) {
+export default function SkinAnalysisModal({ isOpen, onClose, embedded = false }: SkinAnalysisModalProps) {
   // Prevent body scrolling when modal is open
   useEffect(() => {
     if (isOpen) {

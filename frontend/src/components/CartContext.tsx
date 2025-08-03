@@ -165,16 +165,32 @@ export function CartProvider({ children }: CartProviderProps) {
     return () => clearInterval(refreshInterval);
   }, [state.cart]);
 
+  // Helper function to extract numeric ID from GraphQL ID
+  const extractNumericId = (graphqlId: string): string => {
+    if (!graphqlId) return '';
+    // Extract the numeric part from gid://shopify/ProductVariant/123456789
+    const match = graphqlId.match(/\/(\d+)$/);
+    return match ? match[1] : graphqlId;
+  };
+
   // Helper function to check if a product is in cart
   const isProductInCart = (variantId: string): boolean => {
     if (!state.cart) return false;
-    return state.cart.lines.some(line => line.merchandise.id === variantId);
+    const numericId = extractNumericId(variantId);
+    return state.cart.lines.some(line => {
+      const lineNumericId = extractNumericId(line.merchandise.id);
+      return lineNumericId === numericId;
+    });
   };
 
   // Helper function to get cart item line ID
   const getCartItemLineId = (variantId: string): string | null => {
     if (!state.cart) return null;
-    const line = state.cart.lines.find(line => line.merchandise.id === variantId);
+    const numericId = extractNumericId(variantId);
+    const line = state.cart.lines.find(line => {
+      const lineNumericId = extractNumericId(line.merchandise.id);
+      return lineNumericId === numericId;
+    });
     return line ? line.id : null;
   };
 

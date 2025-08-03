@@ -176,28 +176,99 @@
   }
 
   // Update cart display (cart count, mini cart, etc.)
-  function updateCartDisplay() {
-    // Update cart count in header
-    const cartCountElements = document.querySelectorAll('[data-cart-count]');
-    cartCountElements.forEach(element => {
-      if (window.Shopify?.cart?.item_count !== undefined) {
-        element.textContent = window.Shopify.cart.item_count;
-      }
-    });
+  async function updateCartDisplay() {
+    try {
+      // Fetch current cart data
+      const response = await fetch('/cart.js');
+      const cartData = await response.json();
+      
+      // Update cart count in header
+      const cartCountElements = document.querySelectorAll('[data-cart-count]');
+      cartCountElements.forEach(element => {
+        element.textContent = cartData.item_count || 0;
+      });
 
-    // Update cart total
-    const cartTotalElements = document.querySelectorAll('[data-cart-total]');
-    cartTotalElements.forEach(element => {
-      if (window.Shopify?.cart?.total_price !== undefined) {
-        element.textContent = window.Shopify.formatMoney(window.Shopify.cart.total_price);
-      }
-    });
+      // Update cart total
+      const cartTotalElements = document.querySelectorAll('[data-cart-total]');
+      cartTotalElements.forEach(element => {
+        if (cartData.total_price !== undefined) {
+          element.textContent = window.Shopify?.formatMoney ? 
+            window.Shopify.formatMoney(cartData.total_price) : 
+            `$${(cartData.total_price / 100).toFixed(2)}`;
+        }
+      });
 
-    // Trigger cart update events
-    const cartUpdateEvent = new CustomEvent('cart:updated', {
-      detail: { cart: window.Shopify?.cart }
-    });
-    document.dispatchEvent(cartUpdateEvent);
+      // Update cart count in any element with cart-count class
+      const cartCountClassElements = document.querySelectorAll('.cart-count');
+      cartCountClassElements.forEach(element => {
+        element.textContent = cartData.item_count || 0;
+      });
+
+      // Update cart total in any element with cart-total class
+      const cartTotalClassElements = document.querySelectorAll('.cart-total');
+      cartTotalClassElements.forEach(element => {
+        if (cartData.total_price !== undefined) {
+          element.textContent = window.Shopify?.formatMoney ? 
+            window.Shopify.formatMoney(cartData.total_price) : 
+            `$${(cartData.total_price / 100).toFixed(2)}`;
+        }
+      });
+
+      // Update mini cart if it exists
+      updateMiniCart(cartData);
+
+      // Trigger cart update events
+      const cartUpdateEvent = new CustomEvent('cart:updated', {
+        detail: { cart: cartData }
+      });
+      document.dispatchEvent(cartUpdateEvent);
+
+      // Also trigger a custom event that themes might be listening for
+      const customCartEvent = new CustomEvent('cart:refresh', {
+        detail: { cart: cartData }
+      });
+      document.dispatchEvent(customCartEvent);
+
+      console.log('Cart display updated:', cartData);
+    } catch (error) {
+      console.error('Error updating cart display:', error);
+    }
+  }
+
+  // Update mini cart contents
+  function updateMiniCart(cartData) {
+    const miniCartContainer = document.querySelector('[data-cart-container], .mini-cart, .cart-drawer');
+    if (!miniCartContainer) return;
+
+    // If the theme has a cart refresh function, call it
+    if (typeof window.refreshCart === 'function') {
+      window.refreshCart();
+      return;
+    }
+
+    // If the theme uses a cart API, try to refresh it
+    if (typeof window.Shopify !== 'undefined' && window.Shopify.cart) {
+      // Try to trigger a cart refresh
+      if (window.Shopify.cart.refresh) {
+        window.Shopify.cart.refresh();
+      }
+    }
+
+    // Update cart items in mini cart
+    const cartItemsContainer = miniCartContainer.querySelector('.cart-items, [data-cart-items]');
+    if (cartItemsContainer && cartData.items) {
+      // This is a simplified update - themes might need custom implementation
+      cartItemsContainer.innerHTML = cartData.items.map(item => `
+        <div class="cart-item" data-cart-item="${item.key}">
+          <img src="${item.image}" alt="${item.title}" width="50" height="50">
+          <div class="item-details">
+            <h4>${item.title}</h4>
+            <p>${window.Shopify?.formatMoney ? window.Shopify.formatMoney(item.price) : `$${(item.price / 100).toFixed(2)}`}</p>
+            <span>Qty: ${item.quantity}</span>
+          </div>
+        </div>
+      `).join('');
+    }
   }
 
   // Initialize cart display on page load

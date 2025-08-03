@@ -858,8 +858,7 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
 
             {cameraState === 'preview' && (
             <div 
-              className="relative w-full h-full rounded-2xl border-2 border-gray-300"
-              style={{ height: videoHeight > 0 ? `${videoHeight}px` : '100%' }}
+              className="relative w-full h-full"
             >
                     <img
                       src={capturedImage!}

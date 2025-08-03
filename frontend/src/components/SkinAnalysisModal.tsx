@@ -181,13 +181,28 @@ const shopifyCart = {
         window.parent.postMessage({
           type: 'SHOPIFY_ADD_TO_CART',
           payload: { 
-            productId: product.shopifyProductId,
             variantId: product.shopifyVariantId,
             quantity,
             customAttributes
           }
         }, '*');
-        return true;
+        
+        // Wait for response from parent
+        return new Promise((resolve) => {
+          const handleMessage = (event: MessageEvent) => {
+            if (event.data.type === 'CART_UPDATE_SUCCESS' || event.data.type === 'CART_UPDATE_ERROR') {
+              window.removeEventListener('message', handleMessage);
+              resolve(event.data.type === 'CART_UPDATE_SUCCESS');
+            }
+          };
+          window.addEventListener('message', handleMessage);
+          
+          // Timeout after 5 seconds
+          setTimeout(() => {
+            window.removeEventListener('message', handleMessage);
+            resolve(false);
+          }, 5000);
+        });
       } else {
         // Standalone mode - simulate cart addition
         console.log(`Added ${quantity}x ${product.name} to cart with attributes:`, customAttributes);
@@ -208,13 +223,28 @@ const shopifyCart = {
           type: 'SHOPIFY_ADD_ROUTINE_TO_CART',
           payload: { 
             products: products.map(p => ({
-              productId: p.shopifyProductId,
               variantId: p.shopifyVariantId,
               quantity: 1
             }))
           }
         }, '*');
-        return true;
+        
+        // Wait for response from parent
+        return new Promise((resolve) => {
+          const handleMessage = (event: MessageEvent) => {
+            if (event.data.type === 'ROUTINE_ADD_SUCCESS' || event.data.type === 'ROUTINE_ADD_ERROR') {
+              window.removeEventListener('message', handleMessage);
+              resolve(event.data.type === 'ROUTINE_ADD_SUCCESS');
+            }
+          };
+          window.addEventListener('message', handleMessage);
+          
+          // Timeout after 10 seconds
+          setTimeout(() => {
+            window.removeEventListener('message', handleMessage);
+            resolve(false);
+          }, 10000);
+        });
       } else {
         // Standalone mode - simulate cart addition
         console.log(`Added ${products.length} products to cart`);
@@ -231,7 +261,8 @@ const shopifyCart = {
     if (typeof window !== 'undefined') {
       return window.parent !== window || 
              window.location.hostname.includes('myshopify.com') ||
-             window.location.hostname.includes('shopify.com');
+             window.location.hostname.includes('shopify.com') ||
+             document.querySelector('[data-shopify]') !== null;
     }
     return false;
   }

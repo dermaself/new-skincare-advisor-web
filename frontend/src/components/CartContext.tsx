@@ -116,6 +116,17 @@ interface CartProviderProps {
 export function CartProvider({ children }: CartProviderProps) {
   const [state, dispatch] = useReducer(cartReducer, initialState);
 
+  // Check if we're in a Shopify environment
+  const isShopifyEnvironment = () => {
+    if (typeof window !== 'undefined') {
+      return window.parent !== window || 
+             window.location.hostname.includes('myshopify.com') ||
+             window.location.hostname.includes('shopify.com') ||
+             document.querySelector('[data-shopify]') !== null;
+    }
+    return false;
+  };
+
   // Load cart from localStorage on mount
   useEffect(() => {
     const savedCart = localStorage.getItem('shopify-cart');
@@ -183,6 +194,40 @@ export function CartProvider({ children }: CartProviderProps) {
     dispatch({ type: 'SET_ERROR', payload: null });
 
     try {
+      // If in Shopify environment, try to use native cart API first
+      if (isShopifyEnvironment() && typeof window !== 'undefined') {
+        // Try to communicate with parent Shopify page
+        if (window.parent !== window) {
+          window.parent.postMessage({
+            type: 'SHOPIFY_ADD_TO_CART',
+            payload: { 
+              variantId,
+              quantity,
+              customAttributes
+            }
+          }, '*');
+          
+          // Wait a bit for the parent to process
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          
+          // Try to get updated cart from parent
+          window.parent.postMessage({
+            type: 'SHOPIFY_GET_CART'
+          }, '*');
+          
+          dispatch({ type: 'SET_LOADING', payload: false });
+          return;
+        }
+        
+        // If we're on the same domain, try to use Shopify's native cart
+        if (typeof window.Shopify !== 'undefined' && window.Shopify.cart) {
+          window.Shopify.cart.addItem(variantId, quantity);
+          dispatch({ type: 'SET_LOADING', payload: false });
+          return;
+        }
+      }
+
+      // Fallback to our API cart system
       let response;
       
       if (state.cart) {

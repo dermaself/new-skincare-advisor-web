@@ -220,10 +220,14 @@ export function CartProvider({ children }: CartProviderProps) {
         }
         
         // If we're on the same domain, try to use Shopify's native cart
-        if (typeof window.Shopify !== 'undefined' && window.Shopify.cart) {
-          window.Shopify.cart.addItem(variantId, quantity);
-          dispatch({ type: 'SET_LOADING', payload: false });
-          return;
+        if (typeof window !== 'undefined' && window.Shopify?.cart?.addItem) {
+          try {
+            await window.Shopify.cart.addItem(variantId, quantity);
+            dispatch({ type: 'SET_LOADING', payload: false });
+            return;
+          } catch (error) {
+            console.warn('Native Shopify cart failed, falling back to API:', error);
+          }
         }
       }
 

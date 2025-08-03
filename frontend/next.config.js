@@ -8,12 +8,19 @@ const nextConfig = {
         fs: false,
         net: false,
         tls: false,
+        // Handle encoding module gracefully
+        encoding: false,
+      };
+      
+      // Add alias for encoding to prevent build errors
+      config.resolve.alias = {
+        ...config.resolve.alias,
         encoding: false,
       };
     }
     return config;
   },
-  // Altre opzioni di configurazione, se necessarie
+  // Other configuration options if needed
 };
 
 module.exports = nextConfig;

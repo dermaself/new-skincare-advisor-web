@@ -2,6 +2,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Camera, X, Upload, RotateCcw, User, Move, CheckCircle, Target, MoveHorizontal, Sun, Check, ArrowLeft } from 'lucide-react';
+import ImageUpload from './ImageUpload';
 // Dynamic import to avoid SSR issues
 let faceapi: any = null;
 if (typeof window !== 'undefined') {
@@ -647,27 +648,37 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
         animate={{ opacity: 1 }}
         className={`${embedded ? 'absolute' : 'fixed'} inset-0 z-50 flex items-center justify-center bg-transparent bg-opacity-75 py-4`}
       >
-        <div className="bg-white rounded-2xl p-8 max-w-md w-full text-center">
-          <div className="text-red-500 mb-4">
-            <Camera size={48} className="mx-auto" />
+        <div className="bg-white rounded-2xl p-8 max-w-md w-full">
+          <div className="text-center mb-6">
+            <div className="text-blue-500 mb-4">
+              <Upload size={48} className="mx-auto" />
+            </div>
+            <h3 className="text-xl font-semibold mb-2">Camera Not Available</h3>
+            <p className="text-gray-600 mb-6">
+              No worries! You can upload a photo instead to continue with your skin analysis.
+            </p>
           </div>
-          <h3 className="text-xl font-semibold mb-2">Camera Error</h3>
-          <p className="text-gray-600 mb-6">{error}</p>
-          <div className="flex gap-3">
+          
+          <ImageUpload onImageSelect={(imageData: string) => {
+            setError(null);
+            onCapture(imageData);
+          }} />
+          
+          <div className="mt-6 flex gap-3">
             <button
               onClick={onClose}
-              className="flex-1 px-4 py-3 bg-gray-200 text-gray-800 rounded-lg"
+              className="flex-1 px-4 py-3 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors"
             >
-              Close
+              Cancel
             </button>
             <button
               onClick={() => {
                 setError(null);
                 startCamera();
               }}
-              className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-lg"
+              className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
             >
-              Try Again
+              Try Camera Again
             </button>
           </div>
         </div>

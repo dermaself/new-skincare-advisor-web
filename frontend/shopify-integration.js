@@ -28,9 +28,7 @@
         handleAddRoutineToCart(payload);
         break;
         
-      case 'SHOPIFY_GET_CART':
-        handleGetCart();
-        break;
+
         
       case 'REQUEST_SHOPIFY_DATA':
         handleRequestShopifyData();
@@ -55,12 +53,7 @@
         // Add the item to cart
         await window.Shopify.cart.addItem(numericId, quantity);
         
-        // Update cart count and display
-        setTimeout(() => {
-          updateCartDisplay(true);
-        }, 500);
-        
-        // Send success response back to app
+        // Cart will be updated via webhook - no need for manual update
         if (event && event.source) {
           event.source.postMessage({
             type: 'CART_UPDATE_SUCCESS',
@@ -68,7 +61,7 @@
           }, event.origin);
         }
       } else {
-        // Fallback to AJAX cart API
+        // Fallback to AJAX cart API with sections
         const response = await fetch('/cart/add.js', {
           method: 'POST',
           headers: {
@@ -80,16 +73,13 @@
             properties: customAttributes.reduce((acc, attr) => {
               acc[attr.key] = attr.value;
               return acc;
-            }, {})
+            }, {}),
+            sections: 'cart-drawer,cart-icon-bubble'
           })
         });
         
         if (response.ok) {
-          // Force update after adding item
-          setTimeout(() => {
-            updateCartDisplay(true);
-          }, 500);
-          
+          // Cart will be updated via webhook - no need for manual update
           if (event && event.source) {
             event.source.postMessage({
               type: 'CART_UPDATE_SUCCESS',
@@ -126,11 +116,7 @@
           }
         }
         
-        // Update cart count and display
-        setTimeout(() => {
-          updateCartDisplay(true);
-        }, 500);
-        
+        // Cart will be updated via webhook - no need for manual update
         if (event && event.source) {
           event.source.postMessage({
             type: 'ROUTINE_ADD_SUCCESS',
@@ -152,15 +138,14 @@
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ items })
+          body: JSON.stringify({ 
+            items,
+            sections: 'cart-drawer,cart-icon-bubble'
+          })
         });
         
         if (response.ok) {
-          // Force update after adding routine
-          setTimeout(() => {
-            updateCartDisplay(true);
-          }, 500);
-          
+          // Cart will be updated via webhook - no need for manual update
           if (event && event.source) {
             event.source.postMessage({
               type: 'ROUTINE_ADD_SUCCESS',
@@ -183,75 +168,7 @@
     }
   }
 
-  // Handle getting current cart
-  async function handleGetCart() {
-    try {
-      const response = await fetch('/cart.js');
-      const cartData = await response.json();
-      
-      // Convert Shopify cart format to GraphQL format for the app
-      const graphqlCart = {
-        id: `gid://shopify/Cart/${cartData.token}`,
-        checkoutUrl: `/cart/c/${cartData.token}?key=${cartData.key}`,
-        lines: {
-          edges: cartData.items.map(item => ({
-            node: {
-              id: `gid://shopify/CartLine/${item.key}`,
-              quantity: item.quantity,
-              attributes: Object.entries(item.properties || {}).map(([key, value]) => ({
-                key: key,
-                value: value
-              })),
-              merchandise: {
-                id: `gid://shopify/ProductVariant/${item.variant_id}`,
-                title: item.variant_title || 'Default Title',
-                price: {
-                  amount: (item.price / 100).toString(),
-                  currencyCode: cartData.currency
-                },
-                product: {
-                  title: item.product_title,
-                  images: {
-                    edges: [{
-                      node: {
-                        url: item.image,
-                        altText: item.title
-                      }
-                    }]
-                  }
-                }
-              }
-            }
-          }))
-        },
-        cost: {
-          subtotalAmount: {
-            amount: (cartData.items_subtotal_price / 100).toString(),
-            currencyCode: cartData.currency
-          },
-          totalAmount: {
-            amount: (cartData.total_price / 100).toString(),
-            currencyCode: cartData.currency
-          }
-        }
-      };
-      
-      if (event && event.source) {
-        event.source.postMessage({
-          type: 'CART_DATA',
-          payload: graphqlCart
-        }, event.origin);
-      }
-    } catch (error) {
-      console.error('Error getting cart:', error);
-      if (event && event.source) {
-        event.source.postMessage({
-          type: 'CART_DATA_ERROR',
-          payload: { error: error.message }
-        }, event.origin);
-      }
-    }
-  }
+
 
   // Handle request for Shopify data
   function handleRequestShopifyData() {
@@ -384,25 +301,17 @@
 
   // Initialize cart display on page load
   document.addEventListener('DOMContentLoaded', function() {
-    updateCartDisplay();
-    
-    // Set up webhook-based cart monitoring
+    // Only set up webhook-based cart monitoring - no initial cart fetch
     setupWebhookCartMonitoring();
   });
 
-  // Listen for Shopify cart updates
-  if (typeof window.Shopify !== 'undefined') {
-    window.Shopify.onCartUpdate = function(cart) {
-      updateCartDisplay();
-    };
-  }
-
   // Listen for custom cart events (only when explicitly triggered)
   document.addEventListener('cart:refresh', function(event) {
-    updateCartDisplay(true);
+    // Cart will be updated via webhook - no need for manual refresh
+    console.log('Cart refresh requested - webhook will handle this');
   });
 
-  // Webhook-based cart monitoring - NO TIMELY CALLS
+  // Pure webhook-based cart monitoring - NO TIMELY CALLS AT ALL
   function setupWebhookCartMonitoring() {
     const shopDomain = window.location.hostname;
     
@@ -416,7 +325,7 @@
         if (data.type === 'cart-updated') {
           const cartData = data.data;
           updateCartDisplayWithData(cartData);
-          console.log('Cart updated via SSE:', cartData);
+          console.log('Cart updated via webhook + SSE:', cartData);
         } else if (data.type === 'connected') {
           console.log('SSE connected for shop:', data.shop);
         }
@@ -435,14 +344,53 @@
     
     // Listen for manual cart refresh (only when explicitly triggered)
     document.addEventListener('cart:manual-refresh', function(event) {
-      updateCartDisplay(true);
+      // Cart will be updated via webhook - no need for manual refresh
+      console.log('Manual cart refresh requested - webhook will handle this');
     });
     
-    console.log('Webhook-based cart monitoring set up with SSE - no polling');
+    console.log('Pure webhook-based cart monitoring set up - ZERO polling');
   }
 
   // Update cart display with specific data
   function updateCartDisplayWithData(cartData) {
+    // If we have sections data, update the cart sections directly
+    if (cartData.sections) {
+      updateCartSections(cartData.sections);
+    } else {
+      // Fallback to manual updates if no sections data
+      updateCartDisplayManually(cartData);
+    }
+
+    // Trigger cart update events
+    const cartUpdateEvent = new CustomEvent('cart:updated', {
+      detail: { cart: cartData }
+    });
+    document.dispatchEvent(cartUpdateEvent);
+  }
+
+  // Update cart sections using Shopify's sections API
+  function updateCartSections(sections) {
+    // Update cart drawer section
+    if (sections['cart-drawer']) {
+      const cartDrawerSection = document.getElementById('shopify-section-cart-drawer');
+      if (cartDrawerSection) {
+        cartDrawerSection.innerHTML = sections['cart-drawer'];
+      }
+    }
+
+    // Update cart icon bubble section
+    if (sections['cart-icon-bubble']) {
+      const cartIconSection = document.getElementById('shopify-section-cart-icon-bubble');
+      if (cartIconSection) {
+        cartIconSection.innerHTML = sections['cart-icon-bubble'];
+      }
+    }
+
+    console.log('Cart sections updated via webhook');
+  }
+
+  // Manual cart display update (fallback)
+  function updateCartDisplayManually(cartData) {
     // Update cart count in header - try multiple selectors
     const cartCountSelectors = [
       '[data-cart-count]',
@@ -485,17 +433,7 @@
       });
     });
 
-    // Trigger cart update events
-    const cartUpdateEvent = new CustomEvent('cart:updated', {
-      detail: { cart: cartData }
-    });
-    document.dispatchEvent(cartUpdateEvent);
-
-    // Also trigger a custom event that themes might be listening for
-    const customCartEvent = new CustomEvent('cart:refresh', {
-      detail: { cart: cartData }
-    });
-    document.dispatchEvent(customCartEvent);
+    console.log('Cart display updated manually');
   }
 
   // Expose updateCartDisplay globally so themes can call it

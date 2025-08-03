@@ -22,7 +22,6 @@ declare global {
   }
 
   // Global cache types for webhook-based cart updates
-  var cartCache: Map<string, any> | undefined;
   var pendingCartUpdates: Map<string, any> | undefined;
 }
 

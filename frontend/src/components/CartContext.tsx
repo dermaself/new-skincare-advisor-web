@@ -237,15 +237,8 @@ export function CartProvider({ children }: CartProviderProps) {
     if (!state.cart) return;
     
     try {
-      // If we're in a Shopify environment, try to get cart from parent
-      if (typeof window !== 'undefined' && window.parent !== window) {
-        window.parent.postMessage({
-          type: 'SHOPIFY_GET_CART'
-        }, '*');
-      } else {
-        // Fallback to our API
-        await getCart(state.cart.id);
-      }
+      // Cart will be updated via webhook - no need for manual refresh
+      console.log('Cart refresh requested - webhook will handle this');
     } catch (error) {
       console.error('Failed to refresh cart:', error);
     }

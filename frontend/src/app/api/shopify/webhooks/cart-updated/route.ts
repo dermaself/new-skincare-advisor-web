@@ -58,44 +58,26 @@ async function processCartUpdate(shopDomain: string, cartData: any) {
       currency: cartData.currency,
       items: cartData.items,
       timestamp: new Date().toISOString(),
-      token: cartData.token
+      token: cartData.token,
+      sections: cartData.sections // Include sections for cart display updates
     };
 
-    // Store in cache (you can use Redis, database, or in-memory cache)
-    await storeCartUpdate(shopDomain, cartUpdate);
-
-    // Broadcast to connected clients (if using WebSockets)
+    // Broadcast to connected clients via SSE immediately
     await broadcastCartUpdate(shopDomain, cartUpdate);
 
     console.log(`Cart updated for ${shopDomain}:`, {
       itemCount: cartData.item_count,
-      totalPrice: cartData.total_price
+      totalPrice: cartData.total_price,
+      hasSections: !!cartData.sections
     });
   } catch (error) {
     console.error('Error processing cart update:', error);
   }
 }
 
-async function storeCartUpdate(shopDomain: string, cartUpdate: any) {
-  // Implementation depends on your caching strategy
-  // For now, we'll use a simple in-memory cache
-  // In production, use Redis or a database
-  
-  const cacheKey = `cart:${shopDomain}`;
-  
-  // Store in global cache (replace with your preferred caching solution)
-  if (typeof global !== 'undefined') {
-    global.cartCache = global.cartCache || new Map();
-    global.cartCache.set(cacheKey, cartUpdate);
-  }
-}
-
 async function broadcastCartUpdate(shopDomain: string, cartUpdate: any) {
-  // Store the update in cache for immediate access
-  await storeCartUpdate(shopDomain, cartUpdate);
-  
-  // Broadcast to connected clients via Server-Sent Events
-  // This will trigger immediate updates without polling
+  // Broadcast to connected clients via Server-Sent Events immediately
+  // This will trigger immediate updates without any polling
   await broadcastToConnectedClients(shopDomain, cartUpdate);
   
   console.log(`Broadcasting cart update for ${shopDomain}`);

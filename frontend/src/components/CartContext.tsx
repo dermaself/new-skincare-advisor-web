@@ -150,6 +150,44 @@ export function CartProvider({ children }: CartProviderProps) {
     }
   }, [state.cart]);
 
+  // Listen for cart updates from Shopify integration
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data.type === 'CART_DATA') {
+        const cartData = event.data.payload;
+        
+        // Transform the cart data to match our expected format
+        const transformedCart: Cart = {
+          id: cartData.id,
+          checkoutUrl: cartData.checkoutUrl,
+          lines: cartData.lines.edges.map((edge: any) => ({
+            id: edge.node.id,
+            quantity: edge.node.quantity,
+            merchandise: {
+              id: edge.node.merchandise.id,
+              title: edge.node.merchandise.title,
+              price: edge.node.merchandise.price,
+              product: {
+                title: edge.node.merchandise.product.title,
+                images: edge.node.merchandise.product.images.edges.map((imgEdge: any) => ({
+                  url: imgEdge.node.url,
+                  altText: imgEdge.node.altText,
+                })),
+              },
+            },
+            attributes: edge.node.attributes || [],
+          })),
+          cost: cartData.cost,
+        };
+
+        dispatch({ type: 'SET_CART', payload: transformedCart });
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, []);
+
   // Periodic cart refresh to stay synchronized with Shopify
   useEffect(() => {
     if (!state.cart) return;
@@ -199,7 +237,15 @@ export function CartProvider({ children }: CartProviderProps) {
     if (!state.cart) return;
     
     try {
-      await getCart(state.cart.id);
+      // If we're in a Shopify environment, try to get cart from parent
+      if (typeof window !== 'undefined' && window.parent !== window) {
+        window.parent.postMessage({
+          type: 'SHOPIFY_GET_CART'
+        }, '*');
+      } else {
+        // Fallback to our API
+        await getCart(state.cart.id);
+      }
     } catch (error) {
       console.error('Failed to refresh cart:', error);
     }

@@ -863,7 +863,7 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
                     <img
                       src={capturedImage!}
                       alt="Captured photo"
-                className="w-full h-full object-cover rounded-2xl"
+                className="w-full h-full object-cover"
                     />
                   </div>
           )}

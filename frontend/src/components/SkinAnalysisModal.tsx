@@ -178,14 +178,37 @@ const shopifyCart = {
     try {
       if (typeof window !== 'undefined' && window.parent !== window) {
         // If embedded in Shopify, communicate with parent
-        window.parent.postMessage({
+        // Convert GraphQL ID to numeric ID if needed
+        let variantId = product.shopifyVariantId;
+        console.log('Original shopifyVariantId:', product.shopifyVariantId);
+        
+        if (!variantId) {
+          console.error('No shopifyVariantId found for product:', product.name);
+          throw new Error('Product variant ID is missing');
+        }
+        
+        if (typeof product.shopifyVariantId === 'string' && product.shopifyVariantId.includes('gid://shopify/ProductVariant/')) {
+          variantId = product.shopifyVariantId.split('/').pop();
+          console.log('Converted to numeric ID:', variantId);
+        }
+        
+        // Ensure we have a valid numeric ID
+        if (!variantId || isNaN(parseInt(variantId))) {
+          console.error('Invalid variant ID:', variantId, 'for product:', product.name);
+          throw new Error(`Invalid variant ID: ${variantId}`);
+        }
+        
+        const messagePayload = {
           type: 'SHOPIFY_ADD_TO_CART',
           payload: { 
-            variantId: product.shopifyVariantId,
+            variantId: variantId,
             quantity,
             customAttributes
           }
-        }, '*');
+        };
+        
+        console.log('Sending message to parent:', messagePayload);
+        window.parent.postMessage(messagePayload, '*');
         
         // Wait for response from parent
         return new Promise((resolve) => {
@@ -222,10 +245,24 @@ const shopifyCart = {
         window.parent.postMessage({
           type: 'SHOPIFY_ADD_ROUTINE_TO_CART',
           payload: { 
-            products: products.map(p => ({
-              variantId: p.shopifyVariantId,
-              quantity: 1
-            }))
+            products: products.map(p => {
+              // Convert GraphQL ID to numeric ID if needed
+              let variantId = p.shopifyVariantId;
+              if (typeof p.shopifyVariantId === 'string' && p.shopifyVariantId.includes('gid://shopify/ProductVariant/')) {
+                variantId = p.shopifyVariantId.split('/').pop();
+              }
+              
+              return {
+                variantId: variantId,
+                quantity: 1,
+                properties: {
+                  source: 'dermaself_recommendation',
+                  recommendation_type: 'skin_analysis',
+                  product_step: p.step,
+                  added_at: new Date().toISOString()
+                }
+              };
+            })
           }
         }, '*');
         

@@ -489,10 +489,71 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false }:
     }
   };
 
-  // Detect Shopify environment
+  // Detect Shopify environment and listen for cart updates
   useEffect(() => {
     setIsShopify(shopifyCart.isShopify());
-  }, []);
+    
+    // Listen for cart updates from parent Shopify page
+    const handleCartUpdate = (event: MessageEvent) => {
+      console.log('Message received from parent:', event.data);
+      
+      if (event.data.type === 'CART_UPDATE_SUCCESS') {
+        // Update local cart state when products are successfully added
+        const { productId, quantity } = event.data.payload;
+        console.log('Cart update received:', event.data);
+        
+        // Find the product and update its cart count
+        const allProducts = routine ? 
+          routine[routineType].flatMap(step => step.products) : 
+          realProducts;
+        
+        const product = allProducts.find(p => 
+          p.shopifyVariantId === productId || 
+          p.shopifyVariantId?.split('/').pop() === productId
+        );
+        
+        if (product) {
+          setCartItems(prev => ({
+            ...prev,
+            [product.id]: (prev[product.id] || 0) + quantity
+          }));
+        }
+      } else if (event.data.type === 'CART_INITIAL_STATE') {
+        // Handle initial cart state from Shopify
+        const { cart } = event.data.payload;
+        console.log('Initial cart state received:', cart);
+        
+        // Update cart items based on what's already in the cart
+        if (cart.items && cart.items.length > 0) {
+          const newCartItems: { [key: string]: number } = {};
+          
+          cart.items.forEach((item: any) => {
+            // Find product by variant ID
+            const allProducts = routine ? 
+              routine[routineType].flatMap(step => step.products) : 
+              realProducts;
+            
+            const product = allProducts.find(p => 
+              p.shopifyVariantId === item.variant_id?.toString() ||
+              p.shopifyVariantId?.split('/').pop() === item.variant_id?.toString()
+            );
+            
+            if (product) {
+              newCartItems[product.id] = item.quantity;
+            }
+          });
+          
+          setCartItems(newCartItems);
+        }
+      }
+    };
+    
+    window.addEventListener('message', handleCartUpdate);
+    
+    return () => {
+      window.removeEventListener('message', handleCartUpdate);
+    };
+  }, [routine, routineType, realProducts]);
 
   // Auto-scroll to skin type after 2 concerns selected
   useEffect(() => {

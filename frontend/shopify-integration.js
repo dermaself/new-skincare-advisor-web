@@ -385,6 +385,9 @@
   // Initialize cart display on page load
   document.addEventListener('DOMContentLoaded', function() {
     updateCartDisplay();
+    
+    // Set up webhook-based cart monitoring
+    setupWebhookCartMonitoring();
   });
 
   // Listen for Shopify cart updates
@@ -398,6 +401,105 @@
   document.addEventListener('cart:refresh', function(event) {
     updateCartDisplay(true);
   });
+
+  // Webhook-based cart monitoring
+  function setupWebhookCartMonitoring() {
+    const shopDomain = window.location.hostname;
+    let lastCartUpdate = null;
+    
+    // Check for cart updates periodically (lightweight check)
+    const checkCartUpdates = async () => {
+      try {
+        const response = await fetch(`/api/shopify/cart-status?shop=${shopDomain}`);
+        
+        if (response.ok) {
+          const data = await response.json();
+          
+          if (data.success && data.cart) {
+            const cartUpdate = data.cart;
+            
+            // Only update if cart has actually changed
+            if (!lastCartUpdate || 
+                lastCartUpdate.itemCount !== cartUpdate.itemCount ||
+                lastCartUpdate.totalPrice !== cartUpdate.totalPrice) {
+              
+              lastCartUpdate = cartUpdate;
+              
+              // Update cart display with new data
+              updateCartDisplayWithData(cartUpdate);
+              
+              console.log('Cart updated via webhook:', cartUpdate);
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error checking cart updates:', error);
+      }
+    };
+    
+    // Check for updates every 30 seconds (much less frequent than polling)
+    setInterval(checkCartUpdates, 30000);
+    
+    // Initial check
+    checkCartUpdates();
+  }
+
+  // Update cart display with specific data
+  function updateCartDisplayWithData(cartData) {
+    // Update cart count in header - try multiple selectors
+    const cartCountSelectors = [
+      '[data-cart-count]',
+      '.cart-count',
+      '.cart-item-count',
+      '.header__cart-count',
+      '.cart-badge',
+      '.cart-icon .count',
+      '.cart-icon span',
+      '.cart-link .count',
+      '.cart-count-bubble span',
+      '.cart-count-bubble span[aria-hidden="true"]',
+      '.cart-count-bubble .visually-hidden'
+    ];
+    
+    cartCountSelectors.forEach(selector => {
+      const elements = document.querySelectorAll(selector);
+      elements.forEach(element => {
+        element.textContent = cartData.itemCount || 0;
+      });
+    });
+
+    // Update cart total - try multiple selectors
+    const cartTotalSelectors = [
+      '[data-cart-total]',
+      '.cart-total',
+      '.cart-price',
+      '.header__cart-total',
+      '.cart-summary .total'
+    ];
+    
+    cartTotalSelectors.forEach(selector => {
+      const elements = document.querySelectorAll(selector);
+      elements.forEach(element => {
+        if (cartData.totalPrice !== undefined) {
+          element.textContent = window.Shopify?.formatMoney ? 
+            window.Shopify.formatMoney(cartData.totalPrice) : 
+            `$${(cartData.totalPrice / 100).toFixed(2)}`;
+        }
+      });
+    });
+
+    // Trigger cart update events
+    const cartUpdateEvent = new CustomEvent('cart:updated', {
+      detail: { cart: cartData }
+    });
+    document.dispatchEvent(cartUpdateEvent);
+
+    // Also trigger a custom event that themes might be listening for
+    const customCartEvent = new CustomEvent('cart:refresh', {
+      detail: { cart: cartData }
+    });
+    document.dispatchEvent(customCartEvent);
+  }
 
   // Expose updateCartDisplay globally so themes can call it
   window.updateCartDisplay = updateCartDisplay;

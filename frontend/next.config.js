@@ -20,6 +20,10 @@ const nextConfig = {
     }
     return config;
   },
+  // Disable telemetry
+  experimental: {
+    telemetry: false,
+  },
   // Other configuration options if needed
 };
 

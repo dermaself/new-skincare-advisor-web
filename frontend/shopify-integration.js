@@ -402,46 +402,43 @@
     updateCartDisplay(true);
   });
 
-  // Webhook-based cart monitoring
+  // Webhook-based cart monitoring - NO TIMELY CALLS
   function setupWebhookCartMonitoring() {
     const shopDomain = window.location.hostname;
-    let lastCartUpdate = null;
     
-    // Check for cart updates periodically (lightweight check)
-    const checkCartUpdates = async () => {
+    // Set up Server-Sent Events for real-time updates
+    const eventSource = new EventSource(`${APP_URL}/api/shopify/cart-events?shop=${shopDomain}`);
+    
+    eventSource.onmessage = function(event) {
       try {
-        const response = await fetch(`/api/shopify/cart-status?shop=${shopDomain}`);
+        const data = JSON.parse(event.data);
         
-        if (response.ok) {
-          const data = await response.json();
-          
-          if (data.success && data.cart) {
-            const cartUpdate = data.cart;
-            
-            // Only update if cart has actually changed
-            if (!lastCartUpdate || 
-                lastCartUpdate.itemCount !== cartUpdate.itemCount ||
-                lastCartUpdate.totalPrice !== cartUpdate.totalPrice) {
-              
-              lastCartUpdate = cartUpdate;
-              
-              // Update cart display with new data
-              updateCartDisplayWithData(cartUpdate);
-              
-              console.log('Cart updated via webhook:', cartUpdate);
-            }
-          }
+        if (data.type === 'cart-updated') {
+          const cartData = data.data;
+          updateCartDisplayWithData(cartData);
+          console.log('Cart updated via SSE:', cartData);
+        } else if (data.type === 'connected') {
+          console.log('SSE connected for shop:', data.shop);
         }
       } catch (error) {
-        console.error('Error checking cart updates:', error);
+        console.error('Error parsing SSE message:', error);
       }
     };
     
-    // Check for updates every 30 seconds (much less frequent than polling)
-    setInterval(checkCartUpdates, 30000);
+    eventSource.onerror = function(error) {
+      console.error('SSE connection error:', error);
+      // Reconnect after 5 seconds
+      setTimeout(() => {
+        setupWebhookCartMonitoring();
+      }, 5000);
+    };
     
-    // Initial check
-    checkCartUpdates();
+    // Listen for manual cart refresh (only when explicitly triggered)
+    document.addEventListener('cart:manual-refresh', function(event) {
+      updateCartDisplay(true);
+    });
+    
+    console.log('Webhook-based cart monitoring set up with SSE - no polling');
   }
 
   // Update cart display with specific data

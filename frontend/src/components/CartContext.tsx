@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useReducer, useEffect, useRef, ReactNode } from 'react';
+import React, { createContext, useContext, useReducer, useEffect, ReactNode } from 'react';
 
 // Types
 export interface CartItem {
@@ -140,7 +140,6 @@ interface CartProviderProps {
 
 export function CartProvider({ children }: CartProviderProps) {
   const [state, dispatch] = useReducer(cartReducer, initialState);
-  const hasRequestedInitialCart = useRef(false);
 
   // Check if we're in a Shopify environment
   const isShopifyEnvironment = () => {
@@ -310,11 +309,10 @@ export function CartProvider({ children }: CartProviderProps) {
     return () => window.removeEventListener('message', handleMessage);
   }, []);
 
-  // Request initial cart state from Shopify (only once)
+  // Request initial cart state from Shopify
   useEffect(() => {
-    if (isShopifyEnvironment() && typeof window !== 'undefined' && !hasRequestedInitialCart.current) {
+    if (isShopifyEnvironment() && typeof window !== 'undefined') {
       console.log('Requesting initial cart state from Shopify');
-      hasRequestedInitialCart.current = true;
       
       // Send message to parent to get cart state
       if (window.parent !== window) {

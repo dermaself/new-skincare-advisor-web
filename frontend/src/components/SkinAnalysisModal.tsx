@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Camera, FileText, Sparkles, Heart, CheckCircle, ArrowLeft, Info, RotateCcw } from 'lucide-react';
 import CameraCapture from './CameraCapture';
 import RoutineProductCard from './RoutineProductCard';
+import CartSuccessModal from './CartSuccessModal';
 
 interface SkinAnalysisModalProps {
   isOpen: boolean;
@@ -346,6 +347,14 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false }:
   const [cartItems, setCartItems] = useState<{ [productId: string]: number }>({});
   const [cartLoading, setCartLoading] = useState<{ [productId: string]: boolean }>({});
   const [isShopify, setIsShopify] = useState(false);
+  
+  // Cart success modal state
+  const [showCartSuccessModal, setShowCartSuccessModal] = useState(false);
+  const [addedProducts, setAddedProducts] = useState<Array<{
+    name: string;
+    image: string;
+    price: number;
+  }>>([]);
 
   const skinTypeRef = useRef<HTMLDivElement>(null);
   const ageGroupRef = useRef<HTMLDivElement>(null);
@@ -417,12 +426,52 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false }:
   const handleAddToCart = async (product: Product) => {
     setCartLoading(prev => ({ ...prev, [product.id]: true }));
     try {
-      const success = await shopifyCart.addToCart(product, 1);
+      // Add custom attributes for tracking recommended products
+      const customAttributes = [
+        {
+          key: 'source',
+          value: 'dermaself_recommendation'
+        },
+        {
+          key: 'recommendation_type',
+          value: 'skin_analysis'
+        },
+        {
+          key: 'product_step',
+          value: product.step
+        },
+        {
+          key: 'skin_concerns',
+          value: selectedConcerns.join(',')
+        },
+        {
+          key: 'skin_type',
+          value: selectedSkinType
+        },
+        {
+          key: 'age_group',
+          value: selectedAgeGroup
+        },
+        {
+          key: 'added_at',
+          value: new Date().toISOString()
+        }
+      ];
+      
+      const success = await shopifyCart.addToCart(product, 1, customAttributes);
       if (success) {
         setCartItems(prev => ({
           ...prev,
           [product.id]: (prev[product.id] || 0) + 1
         }));
+        
+        // Show cart success modal
+        setAddedProducts([{
+          name: product.name,
+          image: product.image,
+          price: product.price
+        }]);
+        setShowCartSuccessModal(true);
       }
     } catch (error) {
       console.error('Failed to add to cart:', error);
@@ -482,6 +531,15 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false }:
         newCartItems[product.id] = (newCartItems[product.id] || 0) + 1;
       });
       setCartItems(newCartItems);
+      
+      // Show cart success modal with all added products
+      const addedProductsList = allProducts.map(product => ({
+        name: product.name,
+        image: product.image,
+        price: product.price
+      }));
+      setAddedProducts(addedProductsList);
+      setShowCartSuccessModal(true);
     } catch (error) {
       console.error('Failed to add routine to cart:', error);
     } finally {
@@ -729,6 +787,37 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false }:
     setActiveTab('results');
     setRoutineType('essential');
     setRecommendationSource('ai');
+  };
+
+  // Cart success modal handlers
+  const handleCartSuccessClose = () => {
+    setShowCartSuccessModal(false);
+    setAddedProducts([]);
+  };
+
+  const handleContinueShopping = () => {
+    setShowCartSuccessModal(false);
+    setAddedProducts([]);
+    // Keep the modal open to continue shopping
+  };
+
+  const handleProceedToCheckout = () => {
+    setShowCartSuccessModal(false);
+    setAddedProducts([]);
+    
+    // Navigate to checkout
+    if (typeof window !== 'undefined') {
+      // If in Shopify environment, try to navigate to cart/checkout
+      if (window.parent !== window) {
+        window.parent.postMessage({
+          type: 'SHOPIFY_NAVIGATE',
+          payload: { url: '/cart' }
+        }, '*');
+      } else {
+        // Fallback to direct navigation
+        window.location.href = '/cart';
+      }
+    }
   };
 
   const handleStartScan = () => {
@@ -1459,6 +1548,15 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false }:
           </div>
         </motion.div>
       </motion.div>
+
+      {/* Cart Success Modal */}
+      <CartSuccessModal
+        isOpen={showCartSuccessModal}
+        onClose={handleCartSuccessClose}
+        onContinueShopping={handleContinueShopping}
+        onProceedToCheckout={handleProceedToCheckout}
+        addedProducts={addedProducts}
+      />
     </AnimatePresence>
   );
-}   
+}

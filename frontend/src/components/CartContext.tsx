@@ -168,7 +168,7 @@ export function CartProvider({ children }: CartProviderProps) {
         const cartData = event.data.payload.cart;
         console.log('Processing cart data:', cartData);
         
-        if (cartData && cartData.items) {
+        if (cartData && cartData.items && cartData.items.length > 0) {
           // Transform the cart data to match our expected format
           const transformedCart: Cart = {
             id: cartData.id || 'cart',
@@ -210,6 +210,10 @@ export function CartProvider({ children }: CartProviderProps) {
 
           console.log('Transformed cart:', transformedCart);
           dispatch({ type: 'SET_CART', payload: transformedCart });
+        } else {
+          // Handle empty cart
+          console.log('Cart is empty, clearing cart state');
+          dispatch({ type: 'CLEAR_CART' });
         }
       } else if (event.data.type === 'CART_DATA') {
         // Handle the original CART_DATA format as well

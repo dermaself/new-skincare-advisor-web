@@ -18,12 +18,17 @@ const nextConfig = {
         encoding: false,
       };
     }
+    
+    // Handle node-fetch encoding issue
+    config.resolve.fallback = {
+      ...config.resolve.fallback,
+      encoding: false,
+    };
+    
     return config;
   },
   // Disable telemetry
-  experimental: {
-    telemetry: false,
-  },
+  telemetry: false,
   // Other configuration options if needed
 };
 

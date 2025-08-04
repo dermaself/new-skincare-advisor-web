@@ -347,15 +347,8 @@ export function CartProvider({ children }: CartProviderProps) {
         }
         
         // If we're on the same domain, try to use Shopify's native cart
-        if (typeof window !== 'undefined' && window.Shopify?.cart?.addItem) {
-          try {
-            await window.Shopify.cart.addItem(variantId, quantity);
-            dispatch({ type: 'SET_LOADING', payload: false });
-            return;
-          } catch (error) {
-            console.warn('Native Shopify cart failed, falling back to API:', error);
-          }
-        }
+        // Note: Shopify's native cart API is limited, so we use message-based approach
+        console.log('Using message-based approach for Shopify cart integration');
       }
 
       // Fallback to our API cart system
@@ -548,15 +541,8 @@ export function CartProvider({ children }: CartProviderProps) {
           }
           
           // If we're on the same domain, try to use Shopify's native cart
-          if (typeof window !== 'undefined' && window.Shopify?.cart?.removeItem) {
-            try {
-              await window.Shopify.cart.removeItem(lineId);
-              dispatch({ type: 'SET_LOADING', payload: false });
-              return;
-            } catch (error) {
-              console.warn('Native Shopify cart failed, falling back to API:', error);
-            }
-          }
+          // Note: Shopify's native cart API doesn't have removeItem, so we skip this
+          console.log('Native Shopify cart removeItem not available, using message-based approach');
         }
       }
 

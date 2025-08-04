@@ -47,19 +47,29 @@ interface CartState {
   cart: Cart | null;
   loading: boolean;
   error: string | null;
+  showCartSuccessModal: boolean;
+  lastAddedProducts: Array<{
+    name: string;
+    image: string;
+    price: number;
+  }>;
 }
 
 type CartAction =
   | { type: 'SET_CART'; payload: Cart }
   | { type: 'SET_LOADING'; payload: boolean }
   | { type: 'SET_ERROR'; payload: string | null }
-  | { type: 'CLEAR_CART' };
+  | { type: 'CLEAR_CART' }
+  | { type: 'SHOW_CART_SUCCESS_MODAL'; payload: Array<{name: string; image: string; price: number}> }
+  | { type: 'HIDE_CART_SUCCESS_MODAL' };
 
 // Initial state
 const initialState: CartState = {
   cart: null,
   loading: false,
   error: null,
+  showCartSuccessModal: false,
+  lastAddedProducts: [],
 };
 
 // Reducer
@@ -88,6 +98,18 @@ function cartReducer(state: CartState, action: CartAction): CartState {
         cart: null,
         error: null,
       };
+    case 'SHOW_CART_SUCCESS_MODAL':
+      return {
+        ...state,
+        showCartSuccessModal: true,
+        lastAddedProducts: action.payload,
+      };
+    case 'HIDE_CART_SUCCESS_MODAL':
+      return {
+        ...state,
+        showCartSuccessModal: false,
+        lastAddedProducts: [],
+      };
     default:
       return state;
   }
@@ -104,6 +126,9 @@ interface CartContextType {
   isProductInCart: (variantId: string) => boolean;
   getCartItemLineId: (variantId: string) => string | null;
   refreshCart: () => Promise<void>;
+  showCartSuccessModal: (products: Array<{name: string; image: string; price: number}>) => void;
+  hideCartSuccessModal: () => void;
+  proceedToCheckout: () => void;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -172,7 +197,7 @@ export function CartProvider({ children }: CartProviderProps) {
           // Transform the cart data to match our expected format
           const transformedCart: Cart = {
             id: cartData.id || 'cart',
-            checkoutUrl: '/cart',
+            checkoutUrl: cartData.checkout_url || '/cart',
             lines: cartData.items.map((item: any) => ({
               id: item.key || item.id,
               quantity: item.quantity,
@@ -244,6 +269,18 @@ export function CartProvider({ children }: CartProviderProps) {
         };
 
         dispatch({ type: 'SET_CART', payload: transformedCart });
+      } else if (event.data.type === 'CART_ITEM_ADDED') {
+        // Handle individual item added to cart
+        const itemData = event.data.payload;
+        console.log('Item added to cart:', itemData);
+        
+        // Show success modal for the added item
+        const addedProduct = {
+          name: itemData.product_title || itemData.title || 'Product added to cart',
+          image: itemData.image || '/placeholder-product.png',
+          price: (itemData.final_price || 0) * 100
+        };
+        dispatch({ type: 'SHOW_CART_SUCCESS_MODAL', payload: [addedProduct] });
       }
     };
 
@@ -325,6 +362,15 @@ export function CartProvider({ children }: CartProviderProps) {
     dispatch({ type: 'SET_ERROR', payload: null });
 
     try {
+      // Add tracking attribute for recommended products
+      const enhancedAttributes = [
+        ...(customAttributes || []),
+        {
+          key: 'recommended_by_dermaself',
+          value: 'true'
+        }
+      ];
+
       // If in Shopify environment, try to use native cart API first
       if (isShopifyEnvironment() && typeof window !== 'undefined') {
         // Try to communicate with parent Shopify page
@@ -334,7 +380,8 @@ export function CartProvider({ children }: CartProviderProps) {
             payload: { 
               variantId,
               quantity,
-              customAttributes
+              customAttributes: enhancedAttributes,
+              tracking: 'recommended_by_dermaself'
             }
           }, '*');
           
@@ -347,6 +394,15 @@ export function CartProvider({ children }: CartProviderProps) {
           }, '*');
           
           dispatch({ type: 'SET_LOADING', payload: false });
+          
+          // Show success modal with the added product info
+          // We'll need to get product info from the cart update
+          const addedProduct = {
+            name: 'Product added to cart',
+            image: '/placeholder-product.png',
+            price: 0
+          };
+          dispatch({ type: 'SHOW_CART_SUCCESS_MODAL', payload: [addedProduct] });
           return;
         }
         
@@ -370,7 +426,7 @@ export function CartProvider({ children }: CartProviderProps) {
             cartId: state.cart.id,
             variantId,
             quantity,
-            customAttributes,
+            customAttributes: enhancedAttributes,
           }),
         });
       } else {
@@ -384,7 +440,7 @@ export function CartProvider({ children }: CartProviderProps) {
             action: 'create_cart',
             variantId,
             quantity,
-            customAttributes,
+            customAttributes: enhancedAttributes,
           }),
         });
       }
@@ -423,6 +479,14 @@ export function CartProvider({ children }: CartProviderProps) {
         };
 
         dispatch({ type: 'SET_CART', payload: transformedCart });
+        
+        // Show success modal with the added product info
+        const addedProduct = {
+          name: data.cart.lines.edges[data.cart.lines.edges.length - 1]?.node.merchandise.product.title || 'Product added to cart',
+          image: data.cart.lines.edges[data.cart.lines.edges.length - 1]?.node.merchandise.product.images.edges[0]?.node.url || '/placeholder-product.png',
+          price: parseFloat(data.cart.lines.edges[data.cart.lines.edges.length - 1]?.node.merchandise.price.amount || '0') * 100
+        };
+        dispatch({ type: 'SHOW_CART_SUCCESS_MODAL', payload: [addedProduct] });
       } else {
         throw new Error('Failed to add item to cart');
       }
@@ -673,6 +737,28 @@ export function CartProvider({ children }: CartProviderProps) {
     dispatch({ type: 'CLEAR_CART' });
   };
 
+  const showCartSuccessModal = (products: Array<{name: string; image: string; price: number}>) => {
+    dispatch({ type: 'SHOW_CART_SUCCESS_MODAL', payload: products });
+  };
+
+  const hideCartSuccessModal = () => {
+    dispatch({ type: 'HIDE_CART_SUCCESS_MODAL' });
+  };
+
+  const proceedToCheckout = () => {
+    if (state.cart && state.cart.checkoutUrl) {
+      // Hide the modal first
+      dispatch({ type: 'HIDE_CART_SUCCESS_MODAL' });
+      
+      // Navigate to checkout
+      if (typeof window !== 'undefined') {
+        window.location.href = state.cart.checkoutUrl;
+      }
+    } else {
+      console.error('No checkout URL available');
+    }
+  };
+
   const value: CartContextType = {
     state,
     addToCart,
@@ -683,6 +769,9 @@ export function CartProvider({ children }: CartProviderProps) {
     isProductInCart,
     getCartItemLineId,
     refreshCart,
+    showCartSuccessModal,
+    hideCartSuccessModal,
+    proceedToCheckout,
   };
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;

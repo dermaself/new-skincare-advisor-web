@@ -241,34 +241,55 @@ export function CartProvider({ children }: CartProviderProps) {
           dispatch({ type: 'CLEAR_CART' });
         }
       } else if (event.data.type === 'CART_DATA') {
-        // Handle the original CART_DATA format as well
-        const cartData = event.data.payload;
+        // Handle the CART_DATA format from Shopify's /cart.js API
+        const cartData = event.data.payload.cart;
         
-        // Transform the cart data to match our expected format
-        const transformedCart: Cart = {
-          id: cartData.id,
-          checkoutUrl: cartData.checkoutUrl,
-          lines: cartData.lines.edges.map((edge: any) => ({
-            id: edge.node.id,
-            quantity: edge.node.quantity,
-            merchandise: {
-              id: edge.node.merchandise.id,
-              title: edge.node.merchandise.title,
-              price: edge.node.merchandise.price,
-              product: {
-                title: edge.node.merchandise.product.title,
-                images: edge.node.merchandise.product.images.edges.map((imgEdge: any) => ({
-                  url: imgEdge.node.url,
-                  altText: imgEdge.node.altText,
-                })),
+        if (cartData && cartData.items && cartData.items.length > 0) {
+          // Transform the cart data to match our expected format
+          const transformedCart: Cart = {
+            id: cartData.token || 'cart',
+            checkoutUrl: '/cart',
+            lines: cartData.items.map((item: any) => ({
+              id: item.key || item.id,
+              quantity: item.quantity,
+              merchandise: {
+                id: `gid://shopify/ProductVariant/${item.variant_id}`,
+                title: item.product_title || item.title,
+                price: {
+                  amount: (item.final_price / 100).toString(),
+                  currencyCode: cartData.currency || 'EUR'
+                },
+                product: {
+                  title: item.product_title || item.title,
+                  images: item.image ? [{
+                    url: item.image,
+                    altText: item.product_title || item.title,
+                  }] : [],
+                },
+              },
+              attributes: item.properties ? Object.entries(item.properties).map(([key, value]) => ({
+                key,
+                value: value as string
+              })) : [],
+            })),
+            cost: {
+              subtotalAmount: {
+                amount: (cartData.total_price / 100).toString(),
+                currencyCode: cartData.currency || 'EUR'
+              },
+              totalAmount: {
+                amount: (cartData.total_price / 100).toString(),
+                currencyCode: cartData.currency || 'EUR'
               },
             },
-            attributes: edge.node.attributes || [],
-          })),
-          cost: cartData.cost,
-        };
+          };
 
-        dispatch({ type: 'SET_CART', payload: transformedCart });
+          dispatch({ type: 'SET_CART', payload: transformedCart });
+        } else {
+          // Handle empty cart
+          console.log('Cart is empty, clearing cart state');
+          dispatch({ type: 'CLEAR_CART' });
+        }
       } else if (event.data.type === 'CART_ITEM_ADDED') {
         // Handle individual item added to cart
         const itemData = event.data.payload;

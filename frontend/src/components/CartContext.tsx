@@ -119,10 +119,19 @@ export function CartProvider({ children }: CartProviderProps) {
   // Check if we're in a Shopify environment
   const isShopifyEnvironment = () => {
     if (typeof window !== 'undefined') {
-      return window.parent !== window || 
+      const isShopify = window.parent !== window || 
              window.location.hostname.includes('myshopify.com') ||
              window.location.hostname.includes('shopify.com') ||
              document.querySelector('[data-shopify]') !== null;
+      
+      console.log('isShopifyEnvironment check:', {
+        isIframe: window.parent !== window,
+        hostname: window.location.hostname,
+        hasShopifyData: document.querySelector('[data-shopify]') !== null,
+        result: isShopify
+      });
+      
+      return isShopify;
     }
     return false;
   };
@@ -493,12 +502,65 @@ export function CartProvider({ children }: CartProviderProps) {
   };
 
   const removeFromCart = async (lineId: string) => {
-    if (!state.cart) return;
+    console.log('removeFromCart called with lineId:', lineId);
+    if (!state.cart) {
+      console.log('No cart state available');
+      return;
+    }
 
     dispatch({ type: 'SET_LOADING', payload: true });
     dispatch({ type: 'SET_ERROR', payload: null });
 
     try {
+      // If in Shopify environment, try to use native cart API first
+      if (isShopifyEnvironment() && typeof window !== 'undefined') {
+        console.log('In Shopify environment, attempting to remove via Shopify cart sync');
+        
+        // Find the variant ID from the line ID
+        const line = state.cart.lines.find(l => l.id === lineId);
+        console.log('Found line:', line);
+        
+        if (line) {
+          const variantId = line.merchandise.id;
+          console.log('Extracted variantId:', variantId);
+          
+          // Try to communicate with parent Shopify page
+          if (window.parent !== window) {
+            console.log('Sending SHOPIFY_REMOVE_FROM_CART message to parent');
+            window.parent.postMessage({
+              type: 'SHOPIFY_REMOVE_FROM_CART',
+              payload: { 
+                variantId
+              }
+            }, '*');
+            
+            // Wait a bit for the parent to process
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            // Try to get updated cart from parent
+            console.log('Requesting updated cart from parent');
+            window.parent.postMessage({
+              type: 'SHOPIFY_GET_CART'
+            }, '*');
+            
+            dispatch({ type: 'SET_LOADING', payload: false });
+            return;
+          }
+          
+          // If we're on the same domain, try to use Shopify's native cart
+          if (typeof window !== 'undefined' && window.Shopify?.cart?.removeItem) {
+            try {
+              await window.Shopify.cart.removeItem(lineId);
+              dispatch({ type: 'SET_LOADING', payload: false });
+              return;
+            } catch (error) {
+              console.warn('Native Shopify cart failed, falling back to API:', error);
+            }
+          }
+        }
+      }
+
+      // Fallback to our API cart system
       const response = await fetch('/api/shopify/cart', {
         method: 'POST',
         headers: {
@@ -552,6 +614,8 @@ export function CartProvider({ children }: CartProviderProps) {
         type: 'SET_ERROR', 
         payload: error instanceof Error ? error.message : 'Failed to remove item from cart' 
       });
+    } finally {
+      dispatch({ type: 'SET_LOADING', payload: false });
     }
   };
 

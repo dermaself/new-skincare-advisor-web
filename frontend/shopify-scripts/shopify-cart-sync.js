@@ -188,11 +188,80 @@
     }
   }, 1000);
 
+  // Set up real-time cart monitoring
+  setupRealTimeCartMonitoring();
+
   // Expose functions for manual use
   window.shopifyCartBridge = {
     addToCart: callShopifyAddToCart,
     removeFromCart: callShopifyRemoveFromCart,
     getCart: callShopifyGetCart
   };
+
+  // Set up real-time cart monitoring
+  function setupRealTimeCartMonitoring() {
+    console.log('Setting up real-time cart monitoring');
+
+    // Listen for Shopify's native cart events
+    document.addEventListener('cart:updated', function(event) {
+      console.log('Native cart updated event received');
+      refreshAndNotifyCart();
+    });
+
+    document.addEventListener('cart:refresh', function(event) {
+      console.log('Native cart refresh event received');
+      refreshAndNotifyCart();
+    });
+
+    // Listen for cart changes from theme
+    const observer = new MutationObserver(function(mutations) {
+      mutations.forEach(function(mutation) {
+        if (mutation.type === 'childList' || mutation.type === 'attributes') {
+          // Check if cart-related elements changed
+          const cartElements = document.querySelectorAll('.cart-count, .cart-count-bubble, [data-cart-count]');
+          if (cartElements.length > 0) {
+            console.log('Cart elements changed, refreshing cart state');
+            refreshAndNotifyCart();
+          }
+        }
+      });
+    });
+
+    // Observe cart-related elements for changes
+    const cartElements = document.querySelectorAll('.cart-count, .cart-count-bubble, [data-cart-count], .cart-drawer');
+    cartElements.forEach(element => {
+      observer.observe(element, { 
+        childList: true, 
+        subtree: true, 
+        attributes: true 
+      });
+    });
+
+    // Also listen for URL changes (in case user navigates to cart page)
+    let currentUrl = window.location.href;
+    setInterval(() => {
+      if (window.location.href !== currentUrl) {
+        currentUrl = window.location.href;
+        if (currentUrl.includes('/cart')) {
+          console.log('Navigated to cart page, refreshing cart state');
+          refreshAndNotifyCart();
+        }
+      }
+    }, 1000);
+  }
+
+  // Refresh cart and notify embedded app
+  async function refreshAndNotifyCart() {
+    try {
+      const response = await fetch('/cart.js');
+      const cart = await response.json();
+      console.log('Refreshed cart state:', cart);
+      
+      // Notify embedded app with current cart state
+      notifyApp('CART_UPDATE_SUCCESS', { cart });
+    } catch (error) {
+      console.log('Error refreshing cart state:', error);
+    }
+  }
 
 })(); 

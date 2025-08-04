@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useReducer, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useReducer, useEffect, useRef, ReactNode } from 'react';
 
 // Types
 export interface CartItem {
@@ -140,6 +140,7 @@ interface CartProviderProps {
 
 export function CartProvider({ children }: CartProviderProps) {
   const [state, dispatch] = useReducer(cartReducer, initialState);
+  const hasRequestedInitialCart = useRef(false);
 
   // Check if we're in a Shopify environment
   const isShopifyEnvironment = () => {
@@ -309,11 +310,11 @@ export function CartProvider({ children }: CartProviderProps) {
     return () => window.removeEventListener('message', handleMessage);
   }, []);
 
-  // Request initial cart state and set up periodic refresh
+  // Request initial cart state from Shopify (only once)
   useEffect(() => {
-    // Request initial cart state from Shopify
-    if (isShopifyEnvironment() && typeof window !== 'undefined') {
+    if (isShopifyEnvironment() && typeof window !== 'undefined' && !hasRequestedInitialCart.current) {
       console.log('Requesting initial cart state from Shopify');
+      hasRequestedInitialCart.current = true;
       
       // Send message to parent to get cart state
       if (window.parent !== window) {
@@ -322,20 +323,7 @@ export function CartProvider({ children }: CartProviderProps) {
         }, '*');
       }
     }
-
-    // Periodic cart refresh to stay synchronized with Shopify
-    if (!state.cart) return;
-
-    const refreshInterval = setInterval(async () => {
-      try {
-        await refreshCart();
-      } catch (error) {
-        console.error('Failed to refresh cart:', error);
-      }
-    }, 30000); // Refresh every 30 seconds
-
-    return () => clearInterval(refreshInterval);
-  }, [state.cart]);
+  }, []); // Empty dependency array - only runs once on mount
 
   // Helper function to extract numeric ID from GraphQL ID
   const extractNumericId = (graphqlId: string): string => {

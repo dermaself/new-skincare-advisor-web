@@ -153,7 +153,57 @@ export function CartProvider({ children }: CartProviderProps) {
   // Listen for cart updates from Shopify integration
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
-      if (event.data.type === 'CART_DATA') {
+      console.log('CartContext received message:', event.data);
+      
+      if (event.data.type === 'CART_UPDATE_SUCCESS' || event.data.type === 'CART_INITIAL_STATE') {
+        const cartData = event.data.payload.cart;
+        console.log('Processing cart data:', cartData);
+        
+        if (cartData && cartData.items) {
+          // Transform the cart data to match our expected format
+          const transformedCart: Cart = {
+            id: cartData.id || 'cart',
+            checkoutUrl: '/cart',
+            lines: cartData.items.map((item: any) => ({
+              id: item.key || item.id,
+              quantity: item.quantity,
+              merchandise: {
+                id: `gid://shopify/ProductVariant/${item.variant_id}`,
+                title: item.product_title || item.title,
+                price: {
+                  amount: (item.final_price / 100).toString(),
+                  currencyCode: 'EUR'
+                },
+                product: {
+                  title: item.product_title || item.title,
+                  images: item.image ? [{
+                    url: item.image,
+                    altText: item.product_title || item.title,
+                  }] : [],
+                },
+              },
+              attributes: item.properties ? Object.entries(item.properties).map(([key, value]) => ({
+                key,
+                value: value as string
+              })) : [],
+            })),
+            cost: {
+              subtotalAmount: {
+                amount: (cartData.total_price / 100).toString(),
+                currencyCode: 'EUR'
+              },
+              totalAmount: {
+                amount: (cartData.total_price / 100).toString(),
+                currencyCode: 'EUR'
+              },
+            },
+          };
+
+          console.log('Transformed cart:', transformedCart);
+          dispatch({ type: 'SET_CART', payload: transformedCart });
+        }
+      } else if (event.data.type === 'CART_DATA') {
+        // Handle the original CART_DATA format as well
         const cartData = event.data.payload;
         
         // Transform the cart data to match our expected format
@@ -188,8 +238,21 @@ export function CartProvider({ children }: CartProviderProps) {
     return () => window.removeEventListener('message', handleMessage);
   }, []);
 
-  // Periodic cart refresh to stay synchronized with Shopify
+  // Request initial cart state and set up periodic refresh
   useEffect(() => {
+    // Request initial cart state from Shopify
+    if (isShopifyEnvironment() && typeof window !== 'undefined') {
+      console.log('Requesting initial cart state from Shopify');
+      
+      // Send message to parent to get cart state
+      if (window.parent !== window) {
+        window.parent.postMessage({
+          type: 'SHOPIFY_GET_CART'
+        }, '*');
+      }
+    }
+
+    // Periodic cart refresh to stay synchronized with Shopify
     if (!state.cart) return;
 
     const refreshInterval = setInterval(async () => {

@@ -96,7 +96,7 @@ export default function SkinAnalysis() {
 
   return (
     <div className="w-full">
-      <AnimatePresence mode="wait">
+      <AnimatePresence key="skin-analysis-steps" mode="wait">
         {step === 'upload' && (
           <motion.div
             key="upload"

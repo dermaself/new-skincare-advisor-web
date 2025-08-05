@@ -967,7 +967,7 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false }:
   // If camera is shown, render it embedded within the modal
   if (showCamera) {
     return (
-      <AnimatePresence>
+      <AnimatePresence key="camera-modal">
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -1003,7 +1003,7 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false }:
   }
 
   return (
-    <AnimatePresence>
+    <AnimatePresence key="main-modal">
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -1030,7 +1030,7 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false }:
           {/* Header */}
           <div className="relative bg-primary-600">
             {currentStep === 'onboarding' && (
-              <>
+              <React.Fragment key="onboarding-header">
                 <div className="flex items-center justify-between p-4">
                   <div className="flex items-center space-x-2">
                     <div className="w-8 h-8 bg-white/20 flex items-center justify-center">
@@ -1057,7 +1057,7 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false }:
                     className="w-full h-64 object-cover"
                   />
                 </div>
-              </>
+              </React.Fragment>
             )}
 
           </div>
@@ -1120,7 +1120,7 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false }:
 
           {/* Content */}
           <div className="modal-content p-4 max-h-[65vh] overflow-y-auto">
-            <AnimatePresence mode="wait">
+            <AnimatePresence key="content-steps" mode="wait">
               {currentStep === 'onboarding' && (
                 <motion.div
                   key="onboarding"
@@ -1350,6 +1350,7 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false }:
               {/* Loading Step */}
               {currentStep === 'loading' && (
                 <motion.div
+                  key="loading"
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -20 }}
@@ -1368,6 +1369,7 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false }:
               {/* Results Step */}
               {currentStep === 'results' && (
                 <motion.div
+                  key="results"
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -20 }}
@@ -1551,6 +1553,7 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false }:
 
       {/* Cart Success Modal */}
       <CartSuccessModal
+        key="cart-success-modal"
         isOpen={showCartSuccessModal}
         onClose={handleCartSuccessClose}
         onContinueShopping={handleContinueShopping}

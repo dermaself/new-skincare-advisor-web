@@ -35,7 +35,7 @@ export default function CartIcon() {
       </button>
 
       {/* Cart Dropdown */}
-      <AnimatePresence>
+      <AnimatePresence key="cart-dropdown">
         {isCartOpen && (
           <motion.div
             initial={{ opacity: 0, y: 10, scale: 0.95 }}
@@ -63,7 +63,7 @@ export default function CartIcon() {
       </AnimatePresence>
 
       {/* Backdrop */}
-      <AnimatePresence>
+      <AnimatePresence key="cart-backdrop">
         {isCartOpen && (
           <motion.div
             initial={{ opacity: 0 }}

@@ -26,7 +26,7 @@ export default function CartSuccessModal({
   if (!isOpen) return null;
 
   return (
-    <AnimatePresence>
+    <AnimatePresence key="cart-success-modal">
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}

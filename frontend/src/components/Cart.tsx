@@ -74,7 +74,7 @@ export default function Cart() {
         </div>
       )}
 
-      <AnimatePresence>
+      <AnimatePresence key="cart-items">
         {cart.lines.map((item) => (
           <motion.div
             key={item.id}

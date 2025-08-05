@@ -236,17 +236,8 @@ export function CartProvider({ children }: CartProviderProps) {
           console.log('Transformed cart:', transformedCart);
           dispatch({ type: 'SET_CART', payload: transformedCart });
           
-          // Show cart success modal with the actual product information
-          if (event.data.type === 'CART_UPDATE_SUCCESS' && cartData.items && cartData.items.length > 0) {
-            // Get the most recently added product (assuming it's the last one)
-            const latestItem = cartData.items[cartData.items.length - 1];
-            const addedProduct = {
-              name: latestItem.product_title || latestItem.title || 'Product',
-              image: latestItem.image || '/placeholder-product.png',
-              price: parseFloat((latestItem.final_price / 100).toString())
-            };
-            dispatch({ type: 'SHOW_CART_SUCCESS_MODAL', payload: [addedProduct] });
-          }
+          // Don't show cart success modal here - let the individual components handle it
+          // The SkinAnalysisModal will handle showing the success modal with the correct product info
         } else {
           // Handle empty cart
           console.log('Cart is empty, clearing cart state');
@@ -307,13 +298,8 @@ export function CartProvider({ children }: CartProviderProps) {
         const itemData = event.data.payload;
         console.log('Item added to cart:', itemData);
         
-        // Show success modal for the added item
-        const addedProduct = {
-          name: itemData.product_title || itemData.title || 'Product added to cart',
-          image: itemData.image || '/placeholder-product.png',
-          price: parseFloat((itemData.final_price / 100).toString())
-        };
-        dispatch({ type: 'SHOW_CART_SUCCESS_MODAL', payload: [addedProduct] });
+        // Don't show success modal here - let the individual components handle it
+        // The SkinAnalysisModal will handle showing the success modal with the correct product info
       }
     };
 

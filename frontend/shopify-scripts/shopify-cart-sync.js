@@ -101,11 +101,15 @@
           updateCartUIElements(result.sections);
         }
         
-        // Notify embedded app of success with sections data
+        // Notify embedded app of success with sections data and product info
         notifyApp('CART_UPDATE_SUCCESS', { 
           cart,
-          sections: result.sections || {}
+          sections: result.sections || {},
+          productInfo: productInfo // Pass the product info to the app
         });
+        
+        // Don't send CART_ITEM_ADDED message to prevent duplicate popups
+        // The CART_UPDATE_SUCCESS message contains all the necessary information
       } else {
         const errorData = await response.json();
         throw new Error(errorData.description || 'Failed to add to cart');

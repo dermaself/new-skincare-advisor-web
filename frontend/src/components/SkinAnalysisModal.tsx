@@ -472,7 +472,7 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false }:
           [product.id]: (prev[product.id] || 0) + 1
         }));
         
-        // Show cart success modal
+        // Show cart success modal with the actual product information
         setAddedProducts([{
           name: product.name,
           image: product.image,
@@ -564,24 +564,30 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false }:
       
       if (event.data.type === 'CART_UPDATE_SUCCESS') {
         // Update local cart state when products are successfully added
-        const { productId, quantity } = event.data.payload;
+        const { cart } = event.data.payload;
         console.log('Cart update received:', event.data);
         
-        // Find the product and update its cart count
-        const allProducts = routine ? 
-          routine[routineType].flatMap(step => step.products) : 
-          realProducts;
-        
-        const product = allProducts.find(p => 
-          p.shopifyVariantId === productId || 
-          p.shopifyVariantId?.split('/').pop() === productId
-        );
-        
-        if (product) {
-          setCartItems(prev => ({
-            ...prev,
-            [product.id]: (prev[product.id] || 0) + quantity
-          }));
+        // Update cart items based on what's in the cart
+        if (cart && cart.items && cart.items.length > 0) {
+          const newCartItems: { [key: string]: number } = {};
+          
+          cart.items.forEach((item: any) => {
+            // Find product by variant ID
+            const allProducts = routine ? 
+              routine[routineType].flatMap(step => step.products) : 
+              realProducts;
+            
+            const product = allProducts.find(p => 
+              p.shopifyVariantId === item.variant_id?.toString() ||
+              p.shopifyVariantId?.split('/').pop() === item.variant_id?.toString()
+            );
+            
+            if (product) {
+              newCartItems[product.id] = item.quantity;
+            }
+          });
+          
+          setCartItems(newCartItems);
         }
       } else if (event.data.type === 'CART_INITIAL_STATE') {
         // Handle initial cart state from Shopify

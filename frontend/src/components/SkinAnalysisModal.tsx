@@ -204,7 +204,14 @@ const shopifyCart = {
           payload: { 
             variantId: variantId,
             quantity,
-            customAttributes
+            customAttributes,
+            productInfo: {
+              name: product.name,
+              image: product.image,
+              price: product.price,
+              title: product.name,
+              product_title: product.name
+            }
           }
         };
         
@@ -805,14 +812,22 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false }:
     setShowCartSuccessModal(false);
     setAddedProducts([]);
     
-    // Navigate to checkout
+    // Use Shopify's native checkout process
     if (typeof window !== 'undefined') {
-      // If in Shopify environment, try to navigate to cart/checkout
+      // If in Shopify environment, trigger native checkout
       if (window.parent !== window) {
+        // First try to trigger the checkout process
         window.parent.postMessage({
-          type: 'SHOPIFY_NAVIGATE',
-          payload: { url: '/cart' }
+          type: 'SHOPIFY_TRIGGER_CHECKOUT'
         }, '*');
+        
+        // Also try to navigate to cart as fallback
+        setTimeout(() => {
+          window.parent.postMessage({
+            type: 'SHOPIFY_NAVIGATE',
+            payload: { url: '/cart' }
+          }, '*');
+        }, 100);
       } else {
         // Fallback to direct navigation
         window.location.href = '/cart';

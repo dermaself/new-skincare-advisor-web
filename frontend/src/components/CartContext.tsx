@@ -235,6 +235,18 @@ export function CartProvider({ children }: CartProviderProps) {
 
           console.log('Transformed cart:', transformedCart);
           dispatch({ type: 'SET_CART', payload: transformedCart });
+          
+          // Show cart success modal with the actual product information
+          if (event.data.type === 'CART_UPDATE_SUCCESS' && cartData.items && cartData.items.length > 0) {
+            // Get the most recently added product (assuming it's the last one)
+            const latestItem = cartData.items[cartData.items.length - 1];
+            const addedProduct = {
+              name: latestItem.product_title || latestItem.title || 'Product',
+              image: latestItem.image || '/placeholder-product.png',
+              price: parseFloat((latestItem.final_price / 100).toString())
+            };
+            dispatch({ type: 'SHOW_CART_SUCCESS_MODAL', payload: [addedProduct] });
+          }
         } else {
           // Handle empty cart
           console.log('Cart is empty, clearing cart state');
@@ -299,7 +311,7 @@ export function CartProvider({ children }: CartProviderProps) {
         const addedProduct = {
           name: itemData.product_title || itemData.title || 'Product added to cart',
           image: itemData.image || '/placeholder-product.png',
-          price: (itemData.final_price || 0) * 100
+          price: parseFloat((itemData.final_price / 100).toString())
         };
         dispatch({ type: 'SHOW_CART_SUCCESS_MODAL', payload: [addedProduct] });
       }
@@ -402,14 +414,8 @@ export function CartProvider({ children }: CartProviderProps) {
           
           dispatch({ type: 'SET_LOADING', payload: false });
           
-          // Show success modal with the added product info
-          // We'll need to get product info from the cart update
-          const addedProduct = {
-            name: 'Product added to cart',
-            image: '/placeholder-product.png',
-            price: 0
-          };
-          dispatch({ type: 'SHOW_CART_SUCCESS_MODAL', payload: [addedProduct] });
+          // Don't show success modal here - it will be shown when we receive the cart update
+          // The cart update will contain the actual product information
           return;
         }
         

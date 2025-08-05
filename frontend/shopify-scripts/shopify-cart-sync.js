@@ -6,29 +6,45 @@
 
   console.log('Shopify Cart Bridge initialized');
 
-  // Listen for messages from embedded apps
+  // Listen for messages from embedded app
   window.addEventListener('message', function(event) {
-    const { type, payload } = event.data;
-    console.log('Cart bridge received message:', type, payload);
-
-    switch (type) {
-      case 'SHOPIFY_ADD_TO_CART':
-        callShopifyAddToCart(payload);
-        break;
-      
-      case 'SHOPIFY_REMOVE_FROM_CART':
-        callShopifyRemoveFromCart(payload);
-        break;
-      
-      case 'SHOPIFY_GET_CART':
-        callShopifyGetCart();
-        break;
-        
-      default:
-        // Ignore unknown message types
-        break;
+    console.log('Shopify cart bridge received message:', event.data);
+    
+    if (event.data.type === 'SHOPIFY_ADD_TO_CART') {
+      callShopifyAddToCart(event.data.payload);
+    } else if (event.data.type === 'SHOPIFY_REMOVE_FROM_CART') {
+      callShopifyRemoveFromCart(event.data.payload);
+    } else if (event.data.type === 'SHOPIFY_GET_CART') {
+      callShopifyGetCart();
+    } else if (event.data.type === 'SHOPIFY_NAVIGATE') {
+      handleShopifyNavigation(event.data.payload);
+    } else if (event.data.type === 'SHOPIFY_TRIGGER_CHECKOUT') {
+      triggerShopifyCheckout();
     }
   });
+
+  // Function to handle navigation requests from embedded app
+  function handleShopifyNavigation(payload) {
+    const { url } = payload;
+    console.log('Handling Shopify navigation to:', url);
+    
+    if (url === '/cart' || url === '/checkout') {
+      // For cart/checkout navigation, try to open the cart drawer first
+      const cartDrawer = document.querySelector('cart-drawer, [data-cart-drawer], .cart-drawer, #cart-drawer');
+      if (cartDrawer && typeof cartDrawer.open === 'function') {
+        console.log('Opening cart drawer');
+        cartDrawer.open();
+      } else {
+        // Fallback: navigate to cart page
+        console.log('Navigating to cart page');
+        window.location.href = '/cart';
+      }
+    } else {
+      // For other URLs, navigate directly
+      console.log('Navigating to:', url);
+      window.location.href = url;
+    }
+  }
 
   // Call Shopify's original /cart/add.js API
   async function callShopifyAddToCart(payload) {
@@ -231,6 +247,41 @@
   // Set up real-time cart monitoring
   setupRealTimeCartMonitoring();
 
+  // Function to trigger Shopify's native checkout process
+  function triggerShopifyCheckout() {
+    console.log('Triggering Shopify checkout process');
+    
+    try {
+      // First, try to find and click the checkout button in the cart drawer
+      const cartDrawer = document.querySelector('cart-drawer, [data-cart-drawer], .cart-drawer, #cart-drawer');
+      if (cartDrawer) {
+        const checkoutButton = cartDrawer.querySelector('[data-checkout-button], .checkout-button, #CartDrawer-Checkout, [name="checkout"]');
+        if (checkoutButton && !checkoutButton.disabled) {
+          console.log('Found checkout button in cart drawer, clicking it');
+          checkoutButton.click();
+          return;
+        }
+      }
+      
+      // If no checkout button in cart drawer, try to find it elsewhere
+      const globalCheckoutButton = document.querySelector('[data-checkout-button], .checkout-button, [name="checkout"]');
+      if (globalCheckoutButton && !globalCheckoutButton.disabled) {
+        console.log('Found global checkout button, clicking it');
+        globalCheckoutButton.click();
+        return;
+      }
+      
+      // Fallback: navigate to checkout page
+      console.log('No checkout button found, navigating to checkout page');
+      window.location.href = '/checkout';
+      
+    } catch (error) {
+      console.error('Error triggering checkout:', error);
+      // Fallback to direct navigation
+      window.location.href = '/checkout';
+    }
+  }
+
   // Expose functions for manual use
   window.shopifyCartBridge = {
     addToCart: callShopifyAddToCart,
@@ -245,7 +296,34 @@
     rebindCartDrawerFunctionality: rebindCartDrawerFunctionality,
     syncCartWithShopify: syncCartWithShopify,
     updateCartCountElements: updateCartCountElements,
-    debugCartElements: debugCartElements
+    debugCartElements: debugCartElements,
+    // Function to manually refresh cart drawer with product info
+    refreshCartDrawerWithProducts: async function() {
+      console.log('Manually refreshing cart drawer with product information...');
+      try {
+        // Fetch cart with sections that include product information
+        const response = await fetch('/cart.js?sections=cart-drawer,cart-icon-bubble');
+        const data = await response.json();
+        
+        console.log('Fetched cart data with sections:', data);
+        
+        if (data.sections && data.sections['cart-drawer']) {
+          console.log('Updating cart drawer with fresh sections data');
+          updateCartUIElements(data.sections);
+          
+          // Also trigger Shopify's native cart events
+          triggerShopifyCartEvents();
+          
+          console.log('Cart drawer refresh with products completed');
+        } else {
+          console.log('No cart-drawer section found in response');
+        }
+      } catch (error) {
+        console.error('Error refreshing cart drawer with products:', error);
+      }
+    },
+    // Function to trigger checkout process
+    triggerCheckout: triggerShopifyCheckout
   };
 
   // Function to update cart sections

@@ -946,7 +946,7 @@
           // Show the element and update count
           element.style.display = '';
           element.style.visibility = '';
-          element.classList.remove('hidden', 'is-hidden', 'cart-count--empty');
+          element.classList.remove('hidden', 'is-hidden', 'cart-count--empty', 'is-empty');
           element.classList.add('cart-count--has-items');
           
           // Update the text content
@@ -960,10 +960,10 @@
           // Hide the element when cart is empty
           element.style.display = 'none';
           element.style.visibility = 'hidden';
-          element.classList.add('hidden', 'is-hidden', 'cart-count--empty');
+          element.classList.add('hidden', 'is-hidden', 'cart-count--empty', 'is-empty');
           element.classList.remove('cart-count--has-items');
           
-          // Clear the text content
+          // Clear the text content (don't show "0")
           element.textContent = '';
           
           // Update data attributes

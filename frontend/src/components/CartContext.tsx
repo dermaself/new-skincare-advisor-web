@@ -53,6 +53,7 @@ interface CartState {
     image: string;
     price: number;
   }>;
+  showGlobalLoading: boolean;
 }
 
 type CartAction =
@@ -61,7 +62,9 @@ type CartAction =
   | { type: 'SET_ERROR'; payload: string | null }
   | { type: 'CLEAR_CART' }
   | { type: 'SHOW_CART_SUCCESS_MODAL'; payload: Array<{name: string; image: string; price: number}> }
-  | { type: 'HIDE_CART_SUCCESS_MODAL' };
+  | { type: 'HIDE_CART_SUCCESS_MODAL' }
+  | { type: 'SHOW_GLOBAL_LOADING' }
+  | { type: 'HIDE_GLOBAL_LOADING' };
 
 // Initial state
 const initialState: CartState = {
@@ -70,6 +73,7 @@ const initialState: CartState = {
   error: null,
   showCartSuccessModal: false,
   lastAddedProducts: [],
+  showGlobalLoading: false,
 };
 
 // Reducer
@@ -110,6 +114,16 @@ function cartReducer(state: CartState, action: CartAction): CartState {
         showCartSuccessModal: false,
         lastAddedProducts: [],
       };
+    case 'SHOW_GLOBAL_LOADING':
+      return {
+        ...state,
+        showGlobalLoading: true,
+      };
+    case 'HIDE_GLOBAL_LOADING':
+      return {
+        ...state,
+        showGlobalLoading: false,
+      };
     default:
       return state;
   }
@@ -129,6 +143,8 @@ interface CartContextType {
   showCartSuccessModal: (products: Array<{name: string; image: string; price: number}>) => void;
   hideCartSuccessModal: () => void;
   proceedToCheckout: () => void;
+  showGlobalLoading: () => void;
+  hideGlobalLoading: () => void;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -397,6 +413,7 @@ export function CartProvider({ children }: CartProviderProps) {
   const addToCart = async (variantId: string, quantity: number = 1, customAttributes?: Array<{key: string, value: string}>, productInfo?: {name: string; image: string; price: number}) => {
     dispatch({ type: 'SET_LOADING', payload: true });
     dispatch({ type: 'SET_ERROR', payload: null });
+    dispatch({ type: 'SHOW_GLOBAL_LOADING' });
 
     try {
       // Add tracking attribute for recommended products
@@ -424,6 +441,9 @@ export function CartProvider({ children }: CartProviderProps) {
           
           // Wait a bit for the parent to process
           await new Promise(resolve => setTimeout(resolve, 1000));
+          
+          // Wait for cart update and icon refresh
+          await waitForCartIconUpdate();
           
           // Try to get updated cart from parent
           window.parent.postMessage({
@@ -540,7 +560,11 @@ export function CartProvider({ children }: CartProviderProps) {
         payload: error instanceof Error ? error.message : 'Failed to add item to cart' 
       });
     } finally {
-      dispatch({ type: 'SET_LOADING', payload: false });
+      // Wait a bit longer to ensure cart icon updates are complete
+      setTimeout(() => {
+        dispatch({ type: 'SET_LOADING', payload: false });
+        dispatch({ type: 'HIDE_GLOBAL_LOADING' });
+      }, 1500);
     }
   };
 
@@ -549,6 +573,7 @@ export function CartProvider({ children }: CartProviderProps) {
 
     dispatch({ type: 'SET_LOADING', payload: true });
     dispatch({ type: 'SET_ERROR', payload: null });
+    dispatch({ type: 'SHOW_GLOBAL_LOADING' });
 
     try {
       const response = await fetch('/api/shopify/cart', {
@@ -605,6 +630,12 @@ export function CartProvider({ children }: CartProviderProps) {
         type: 'SET_ERROR', 
         payload: error instanceof Error ? error.message : 'Failed to update cart item' 
       });
+    } finally {
+      // Wait a bit longer to ensure cart icon updates are complete
+      setTimeout(() => {
+        dispatch({ type: 'SET_LOADING', payload: false });
+        dispatch({ type: 'HIDE_GLOBAL_LOADING' });
+      }, 1500);
     }
   };
 
@@ -617,6 +648,7 @@ export function CartProvider({ children }: CartProviderProps) {
 
     dispatch({ type: 'SET_LOADING', payload: true });
     dispatch({ type: 'SET_ERROR', payload: null });
+    dispatch({ type: 'SHOW_GLOBAL_LOADING' });
 
     try {
       // If in Shopify environment, try to use native cart API first
@@ -641,8 +673,8 @@ export function CartProvider({ children }: CartProviderProps) {
               }
             }, '*');
             
-            // Wait a bit for the parent to process
-            await new Promise(resolve => setTimeout(resolve, 1000));
+            // Wait for cart update and icon refresh
+            await waitForCartIconUpdate();
             
             // Try to get updated cart from parent
             console.log('Requesting updated cart from parent');
@@ -650,12 +682,10 @@ export function CartProvider({ children }: CartProviderProps) {
               type: 'SHOPIFY_GET_CART'
             }, '*');
             
-            dispatch({ type: 'SET_LOADING', payload: false });
             return;
           }
           
           // If we're on the same domain, try to use Shopify's native cart
-          // Note: Shopify's native cart API doesn't have removeItem, so we skip this
           console.log('Native Shopify cart removeItem not available, using message-based approach');
         }
       }
@@ -715,8 +745,39 @@ export function CartProvider({ children }: CartProviderProps) {
         payload: error instanceof Error ? error.message : 'Failed to remove item from cart' 
       });
     } finally {
-      dispatch({ type: 'SET_LOADING', payload: false });
+      // Wait a bit longer to ensure cart icon updates are complete
+      setTimeout(() => {
+        dispatch({ type: 'SET_LOADING', payload: false });
+        dispatch({ type: 'HIDE_GLOBAL_LOADING' });
+      }, 1500);
     }
+  };
+
+  // Helper function to wait for cart icon updates
+  const waitForCartIconUpdate = async (): Promise<void> => {
+    return new Promise((resolve) => {
+      // Wait for cart icon to update (usually takes 1-2 seconds)
+      setTimeout(resolve, 2000);
+      
+      // Also listen for cart update events
+      const handleCartUpdate = () => {
+        console.log('Cart update detected, resolving wait');
+        resolve();
+      };
+      
+      // Listen for various cart update events
+      document.addEventListener('cart:updated', handleCartUpdate, { once: true });
+      document.addEventListener('cart:refresh', handleCartUpdate, { once: true });
+      document.addEventListener('cart-ui-updated', handleCartUpdate, { once: true });
+      
+      // Cleanup after 3 seconds
+      setTimeout(() => {
+        document.removeEventListener('cart:updated', handleCartUpdate);
+        document.removeEventListener('cart:refresh', handleCartUpdate);
+        document.removeEventListener('cart-ui-updated', handleCartUpdate);
+        resolve();
+      }, 3000);
+    });
   };
 
   const getCart = async (cartId: string) => {
@@ -902,6 +963,14 @@ export function CartProvider({ children }: CartProviderProps) {
     }
   };
 
+  const showGlobalLoading = () => {
+    dispatch({ type: 'SHOW_GLOBAL_LOADING' });
+  };
+
+  const hideGlobalLoading = () => {
+    dispatch({ type: 'HIDE_GLOBAL_LOADING' });
+  };
+
   const value: CartContextType = {
     state,
     addToCart,
@@ -915,9 +984,30 @@ export function CartProvider({ children }: CartProviderProps) {
     showCartSuccessModal,
     hideCartSuccessModal,
     proceedToCheckout,
+    showGlobalLoading,
+    hideGlobalLoading,
   };
 
-  return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
+  return (
+    <CartContext.Provider value={value}>
+      {children}
+      
+      {/* Global Loading Overlay */}
+      {state.showGlobalLoading && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-lg p-6 shadow-xl">
+            <div className="flex items-center space-x-3">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+              <div>
+                <p className="text-lg font-semibold text-gray-900">Updating Cart...</p>
+                <p className="text-sm text-gray-600">Please wait while we update your cart</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </CartContext.Provider>
+  );
 }
 
 // Hook to use cart context

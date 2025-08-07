@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useReducer, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useReducer, useEffect, useState, ReactNode } from 'react';
 
 // Types
 export interface CartItem {
@@ -140,6 +140,7 @@ interface CartProviderProps {
 
 export function CartProvider({ children }: CartProviderProps) {
   const [state, dispatch] = useReducer(cartReducer, initialState);
+  const [lastSuccessModalTime, setLastSuccessModalTime] = useState<number>(0);
 
   // Check if we're in a Shopify environment
   const isShopifyEnvironment = () => {
@@ -236,24 +237,25 @@ export function CartProvider({ children }: CartProviderProps) {
           console.log('Transformed cart:', transformedCart);
           dispatch({ type: 'SET_CART', payload: transformedCart });
           
-          // Show cart success modal for newly added products
+          // Only show cart success modal for CART_UPDATE_SUCCESS (not CART_INITIAL_STATE)
+          // and only if we have specific added products info
           if (event.data.type === 'CART_UPDATE_SUCCESS' && event.data.payload.addedProducts) {
-            // Use the product info from the message if available
-            const addedProducts = event.data.payload.addedProducts.map((product: any) => ({
-              name: product.name || product.title || product.product_title || 'Product',
-              image: product.image || '/placeholder-product.png',
-              price: product.price || product.final_price || 0
-            }));
-            dispatch({ type: 'SHOW_CART_SUCCESS_MODAL', payload: addedProducts });
-          } else if (event.data.type === 'CART_UPDATE_SUCCESS') {
-            // Fallback: extract product info from cart items
-            const addedProducts = cartData.items.map((item: any) => ({
-              name: item.product_title || item.title || 'Product',
-              image: item.image || '/placeholder-product.png',
-              price: item.final_price || 0
-            }));
-            dispatch({ type: 'SHOW_CART_SUCCESS_MODAL', payload: addedProducts });
+            // Prevent multiple popups by checking if we've shown a modal recently
+            const now = Date.now();
+            if (now - lastSuccessModalTime > 2000) { // 2 second cooldown
+              // Use the product info from the message if available
+              const addedProducts = event.data.payload.addedProducts.map((product: any) => ({
+                name: product.name || product.title || product.product_title || 'Product',
+                image: product.image || '/placeholder-product.png',
+                price: product.price || product.final_price || 0
+              }));
+              dispatch({ type: 'SHOW_CART_SUCCESS_MODAL', payload: addedProducts });
+              setLastSuccessModalTime(now);
+            } else {
+              console.log('Skipping success modal - too soon since last one');
+            }
           }
+          // Remove the fallback that shows all cart items - we only want to show newly added products
         } else {
           // Handle empty cart
           console.log('Cart is empty, clearing cart state');
@@ -309,20 +311,6 @@ export function CartProvider({ children }: CartProviderProps) {
           console.log('Cart is empty, clearing cart state');
           dispatch({ type: 'CLEAR_CART' });
         }
-      } else if (event.data.type === 'CART_ITEM_ADDED') {
-        // Handle individual item added to cart
-        const itemData = event.data.payload;
-        console.log('Item added to cart:', itemData);
-        
-        // Show cart success modal for the added item
-        if (itemData) {
-          const addedProduct = {
-            name: itemData.name || itemData.title || itemData.product_title || 'Product',
-            image: itemData.image || '/placeholder-product.png',
-            price: itemData.price || itemData.final_price || 0
-          };
-          dispatch({ type: 'SHOW_CART_SUCCESS_MODAL', payload: [addedProduct] });
-        }
       } else if (event.data.type === 'ROUTINE_ADD_SUCCESS') {
         // Handle routine added to cart
         const routineData = event.data.payload;
@@ -330,12 +318,19 @@ export function CartProvider({ children }: CartProviderProps) {
         
         // Show cart success modal for the added routine products
         if (routineData && routineData.products) {
-          const addedProducts = routineData.products.map((product: any) => ({
-            name: product.name || product.title || product.product_title || 'Product',
-            image: product.image || '/placeholder-product.png',
-            price: product.price || product.final_price || 0
-          }));
-          dispatch({ type: 'SHOW_CART_SUCCESS_MODAL', payload: addedProducts });
+          // Prevent multiple popups by checking if we've shown a modal recently
+          const now = Date.now();
+          if (now - lastSuccessModalTime > 2000) { // 2 second cooldown
+            const addedProducts = routineData.products.map((product: any) => ({
+              name: product.name || product.title || product.product_title || 'Product',
+              image: product.image || '/placeholder-product.png',
+              price: product.price || product.final_price || 0
+            }));
+            dispatch({ type: 'SHOW_CART_SUCCESS_MODAL', payload: addedProducts });
+            setLastSuccessModalTime(now);
+          } else {
+            console.log('Skipping routine success modal - too soon since last one');
+          }
         }
       }
     };
@@ -516,13 +511,17 @@ export function CartProvider({ children }: CartProviderProps) {
 
         dispatch({ type: 'SET_CART', payload: transformedCart });
         
-        // Show success modal with the added product info
-        const addedProduct = {
-          name: data.cart.lines.edges[data.cart.lines.edges.length - 1]?.node.merchandise.product.title || 'Product added to cart',
-          image: data.cart.lines.edges[data.cart.lines.edges.length - 1]?.node.merchandise.product.images.edges[0]?.node.url || '/placeholder-product.png',
-          price: parseFloat(data.cart.lines.edges[data.cart.lines.edges.length - 1]?.node.merchandise.price.amount || '0') * 100
-        };
-        dispatch({ type: 'SHOW_CART_SUCCESS_MODAL', payload: [addedProduct] });
+        // Show success modal with the added product info (only for non-Shopify environments)
+        const now = Date.now();
+        if (now - lastSuccessModalTime > 2000) { // 2 second cooldown
+          const addedProduct = {
+            name: data.cart.lines.edges[data.cart.lines.edges.length - 1]?.node.merchandise.product.title || 'Product added to cart',
+            image: data.cart.lines.edges[data.cart.lines.edges.length - 1]?.node.merchandise.product.images.edges[0]?.node.url || '/placeholder-product.png',
+            price: parseFloat(data.cart.lines.edges[data.cart.lines.edges.length - 1]?.node.merchandise.price.amount || '0') * 100
+          };
+          dispatch({ type: 'SHOW_CART_SUCCESS_MODAL', payload: [addedProduct] });
+          setLastSuccessModalTime(now);
+        }
       } else {
         throw new Error('Failed to add item to cart');
       }

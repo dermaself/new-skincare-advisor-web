@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Camera, FileText, Sparkles, Heart, CheckCircle, ArrowLeft, Info, RotateCcw } from 'lucide-react';
 import CameraCapture from './CameraCapture';
 import RoutineProductCard from './RoutineProductCard';
-import CartSuccessModal from './CartSuccessModal';
+
 
 interface SkinAnalysisModalProps {
   isOpen: boolean;
@@ -355,13 +355,7 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false }:
   const [cartLoading, setCartLoading] = useState<{ [productId: string]: boolean }>({});
   const [isShopify, setIsShopify] = useState(false);
   
-  // Cart success modal state
-  const [showCartSuccessModal, setShowCartSuccessModal] = useState(false);
-  const [addedProducts, setAddedProducts] = useState<Array<{
-    name: string;
-    image: string;
-    price: number;
-  }>>([]);
+
 
   const skinTypeRef = useRef<HTMLDivElement>(null);
   const ageGroupRef = useRef<HTMLDivElement>(null);
@@ -472,13 +466,8 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false }:
           [product.id]: (prev[product.id] || 0) + 1
         }));
         
-        // Show cart success modal with the actual product information
-        setAddedProducts([{
-          name: product.name,
-          image: product.image,
-          price: product.price
-        }]);
-        setShowCartSuccessModal(true);
+        // Success modal will be handled by CartContext
+        console.log('Product added to cart successfully');
       }
     } catch (error) {
       console.error('Failed to add to cart:', error);
@@ -539,14 +528,8 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false }:
       });
       setCartItems(newCartItems);
       
-      // Show cart success modal with all added products
-      const addedProductsList = allProducts.map(product => ({
-        name: product.name,
-        image: product.image,
-        price: product.price
-      }));
-      setAddedProducts(addedProductsList);
-      setShowCartSuccessModal(true);
+      // Success modal will be handled by CartContext
+      console.log('Routine added to cart successfully');
     } catch (error) {
       console.error('Failed to add routine to cart:', error);
     } finally {
@@ -803,43 +786,7 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false }:
   };
 
   // Cart success modal handlers
-  const handleCartSuccessClose = () => {
-    setShowCartSuccessModal(false);
-    setAddedProducts([]);
-  };
 
-  const handleContinueShopping = () => {
-    setShowCartSuccessModal(false);
-    setAddedProducts([]);
-    // Keep the modal open to continue shopping
-  };
-
-  const handleProceedToCheckout = () => {
-    setShowCartSuccessModal(false);
-    setAddedProducts([]);
-    
-    // Use Shopify's native checkout process
-    if (typeof window !== 'undefined') {
-      // If in Shopify environment, trigger native checkout
-      if (window.parent !== window) {
-        // First try to trigger the checkout process
-        window.parent.postMessage({
-          type: 'SHOPIFY_TRIGGER_CHECKOUT'
-        }, '*');
-        
-        // Also try to navigate to cart as fallback
-        setTimeout(() => {
-          window.parent.postMessage({
-            type: 'SHOPIFY_NAVIGATE',
-            payload: { url: '/cart' }
-          }, '*');
-        }, 100);
-      } else {
-        // Fallback to direct navigation
-        window.location.href = '/cart';
-      }
-    }
-  };
 
   const handleStartScan = () => {
     setShowCamera(true);
@@ -1572,15 +1519,7 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false }:
         </motion.div>
       </motion.div>
 
-      {/* Cart Success Modal */}
-      <CartSuccessModal
-        key="cart-success-modal"
-        isOpen={showCartSuccessModal}
-        onClose={handleCartSuccessClose}
-        onContinueShopping={handleContinueShopping}
-        onProceedToCheckout={handleProceedToCheckout}
-        addedProducts={addedProducts}
-      />
+
     </AnimatePresence>
   );
 }

@@ -141,10 +141,19 @@
           }
         }, 1000);
         
-        // Notify embedded app of success with sections data
+        // Extract the newly added product information
+        const addedProduct = {
+          name: result.product_title || result.title || 'Product',
+          image: result.image || '/placeholder-product.png',
+          price: result.final_price || 0,
+          variant_id: result.variant_id
+        };
+
+        // Notify embedded app of success with sections data and added product info
         notifyApp('CART_UPDATE_SUCCESS', { 
           cart,
-          sections: result.sections || {}
+          sections: result.sections || {},
+          addedProducts: [addedProduct] // Send only the newly added product
         });
       } else {
         const errorData = await response.json();

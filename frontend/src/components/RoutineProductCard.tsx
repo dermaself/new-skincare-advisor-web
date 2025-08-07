@@ -97,7 +97,14 @@ export default function RoutineProductCard({
         }
       ];
       
-      await addToCart(variantId, quantity, customAttributes);
+      // Prepare product info for the modal
+      const productInfo = {
+        name: product.title,
+        image: product.images[0]?.src || '/placeholder-product.png',
+        price: parseFloat(selectedVariant.price) * 100 // Convert to cents
+      };
+      
+      await addToCart(variantId, quantity, customAttributes, productInfo);
       
       // Show success overlay briefly
       setShowSuccess('added');

@@ -118,7 +118,7 @@ function cartReducer(state: CartState, action: CartAction): CartState {
 // Context
 interface CartContextType {
   state: CartState;
-  addToCart: (variantId: string, quantity?: number, customAttributes?: Array<{key: string, value: string}>) => Promise<void>;
+  addToCart: (variantId: string, quantity?: number, customAttributes?: Array<{key: string, value: string}>, productInfo?: {name: string; image: string; price: number}) => Promise<void>;
   updateCartItem: (lineId: string, quantity: number) => Promise<void>;
   removeFromCart: (lineId: string) => Promise<void>;
   getCart: (cartId: string) => Promise<void>;
@@ -394,7 +394,7 @@ export function CartProvider({ children }: CartProviderProps) {
     }
   };
 
-  const addToCart = async (variantId: string, quantity: number = 1, customAttributes?: Array<{key: string, value: string}>) => {
+  const addToCart = async (variantId: string, quantity: number = 1, customAttributes?: Array<{key: string, value: string}>, productInfo?: {name: string; image: string; price: number}) => {
     dispatch({ type: 'SET_LOADING', payload: true });
     dispatch({ type: 'SET_ERROR', payload: null });
 
@@ -430,10 +430,18 @@ export function CartProvider({ children }: CartProviderProps) {
             type: 'SHOPIFY_GET_CART'
           }, '*');
           
-          dispatch({ type: 'SET_LOADING', payload: false });
-          
-          // Don't show success modal here - it will be shown when we receive the cart update
-          // The cart update will contain the actual product information
+          // Show success modal immediately for Shopify environments
+          // Use provided product info if available, otherwise show generic message
+          const now = Date.now();
+          if (now - lastSuccessModalTime > 2000) { // 2 second cooldown
+            const addedProduct = productInfo || {
+              name: 'Product added to cart',
+              image: '/placeholder-product.png',
+              price: 0
+            };
+            dispatch({ type: 'SHOW_CART_SUCCESS_MODAL', payload: [addedProduct] });
+            setLastSuccessModalTime(now);
+          }
           return;
         }
         
@@ -511,10 +519,11 @@ export function CartProvider({ children }: CartProviderProps) {
 
         dispatch({ type: 'SET_CART', payload: transformedCart });
         
-        // Show success modal with the added product info (only for non-Shopify environments)
+        // Show success modal with the added product info (for all environments)
+        // Use provided product info if available, otherwise extract from cart data
         const now = Date.now();
         if (now - lastSuccessModalTime > 2000) { // 2 second cooldown
-          const addedProduct = {
+          const addedProduct = productInfo || {
             name: data.cart.lines.edges[data.cart.lines.edges.length - 1]?.node.merchandise.product.title || 'Product added to cart',
             image: data.cart.lines.edges[data.cart.lines.edges.length - 1]?.node.merchandise.product.images.edges[0]?.node.url || '/placeholder-product.png',
             price: parseFloat(data.cart.lines.edges[data.cart.lines.edges.length - 1]?.node.merchandise.price.amount || '0') * 100
@@ -530,6 +539,8 @@ export function CartProvider({ children }: CartProviderProps) {
         type: 'SET_ERROR', 
         payload: error instanceof Error ? error.message : 'Failed to add item to cart' 
       });
+    } finally {
+      dispatch({ type: 'SET_LOADING', payload: false });
     }
   };
 

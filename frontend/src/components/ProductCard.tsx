@@ -54,7 +54,14 @@ export default function ProductCard({ product }: ProductCardProps) {
       // Convert the variant ID to the format expected by Shopify Storefront API
       const variantId = `gid://shopify/ProductVariant/${selectedVariant.id}`;
       
-      await addToCart(variantId, quantity);
+      // Prepare product info for the modal
+      const productInfo = {
+        name: product.title,
+        image: product.images[0]?.src || '/placeholder-product.png',
+        price: parseFloat(selectedVariant.price) * 100 // Convert to cents
+      };
+      
+      await addToCart(variantId, quantity, undefined, productInfo);
       setShowSuccess(true);
       
       // Hide success message after 2 seconds

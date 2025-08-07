@@ -209,6 +209,7 @@ export function CartProvider({ children }: CartProviderProps) {
       if (event.data.type === 'CART_UPDATE_SUCCESS' || event.data.type === 'CART_INITIAL_STATE') {
         const cartData = event.data.payload.cart;
         console.log('Processing cart data:', cartData);
+        console.log('Cart has items:', cartData?.items?.length || 0);
         
         if (cartData && cartData.items && cartData.items.length > 0) {
           // Transform the cart data to match our expected format
@@ -251,11 +252,13 @@ export function CartProvider({ children }: CartProviderProps) {
           };
 
           console.log('Transformed cart:', transformedCart);
+          console.log('Cart lines count:', transformedCart.lines.length);
           dispatch({ type: 'SET_CART', payload: transformedCart });
           
           // Only show cart success modal for CART_UPDATE_SUCCESS (not CART_INITIAL_STATE)
           // and only if we have specific added products info
           if (event.data.type === 'CART_UPDATE_SUCCESS' && event.data.payload.addedProducts) {
+            console.log('Showing cart success modal for added products:', event.data.payload.addedProducts);
             // Prevent multiple popups by checking if we've shown a modal recently
             const now = Date.now();
             if (now - lastSuccessModalTime > 2000) { // 2 second cooldown
@@ -270,6 +273,8 @@ export function CartProvider({ children }: CartProviderProps) {
             } else {
               console.log('Skipping success modal - too soon since last one');
             }
+          } else {
+            console.log('Not showing success modal - type:', event.data.type, 'has addedProducts:', !!event.data.payload.addedProducts);
           }
           // Remove the fallback that shows all cart items - we only want to show newly added products
         } else {
@@ -278,6 +283,7 @@ export function CartProvider({ children }: CartProviderProps) {
           dispatch({ type: 'CLEAR_CART' });
         }
       } else if (event.data.type === 'CART_DATA') {
+        console.log('Processing CART_DATA message');
         // Handle the CART_DATA format from Shopify's /cart.js API
         const cartData = event.data.payload.cart;
         
@@ -321,13 +327,15 @@ export function CartProvider({ children }: CartProviderProps) {
             },
           };
 
+          console.log('Transformed cart from CART_DATA:', transformedCart);
           dispatch({ type: 'SET_CART', payload: transformedCart });
         } else {
           // Handle empty cart
-          console.log('Cart is empty, clearing cart state');
+          console.log('Cart is empty from CART_DATA, clearing cart state');
           dispatch({ type: 'CLEAR_CART' });
         }
       } else if (event.data.type === 'ROUTINE_ADD_SUCCESS') {
+        console.log('Processing ROUTINE_ADD_SUCCESS message');
         // Handle routine added to cart
         const routineData = event.data.payload;
         console.log('Routine added to cart:', routineData);
@@ -348,6 +356,8 @@ export function CartProvider({ children }: CartProviderProps) {
             console.log('Skipping routine success modal - too soon since last one');
           }
         }
+      } else {
+        console.log('Unhandled message type:', event.data.type);
       }
     };
 
@@ -429,6 +439,7 @@ export function CartProvider({ children }: CartProviderProps) {
       if (isShopifyEnvironment() && typeof window !== 'undefined') {
         // Try to communicate with parent Shopify page
         if (window.parent !== window) {
+          console.log('Adding to cart via parent Shopify page');
           window.parent.postMessage({
             type: 'SHOPIFY_ADD_TO_CART',
             payload: { 
@@ -440,10 +451,17 @@ export function CartProvider({ children }: CartProviderProps) {
           }, '*');
           
           // Wait a bit for the parent to process
-          await new Promise(resolve => setTimeout(resolve, 1000));
+          await new Promise(resolve => setTimeout(resolve, 500));
           
-          // Wait for cart update and icon refresh
-          await waitForCartIconUpdate();
+          // Wait for cart update and icon refresh (shorter timeout)
+          try {
+            await Promise.race([
+              waitForCartIconUpdate(),
+              new Promise(resolve => setTimeout(resolve, 1500)) // 1.5 second timeout
+            ]);
+          } catch (error) {
+            console.log('Cart icon update timeout, continuing anyway');
+          }
           
           // Try to get updated cart from parent
           window.parent.postMessage({
@@ -466,7 +484,6 @@ export function CartProvider({ children }: CartProviderProps) {
         }
         
         // If we're on the same domain, try to use Shopify's native cart
-        // Note: Shopify's native cart API is limited, so we use message-based approach
         console.log('Using message-based approach for Shopify cart integration');
       }
 
@@ -475,6 +492,7 @@ export function CartProvider({ children }: CartProviderProps) {
       
       if (state.cart) {
         // Add to existing cart
+        console.log('Adding to existing cart via API');
         response = await fetch('/api/shopify/cart', {
           method: 'POST',
           headers: {
@@ -490,6 +508,7 @@ export function CartProvider({ children }: CartProviderProps) {
         });
       } else {
         // Create new cart
+        console.log('Creating new cart via API');
         response = await fetch('/api/shopify/cart', {
           method: 'POST',
           headers: {
@@ -513,7 +532,6 @@ export function CartProvider({ children }: CartProviderProps) {
       const data = await response.json();
       
       if (data.success && data.cart) {
-        // Transform the cart data to match our expected format
         const transformedCart: Cart = {
           id: data.cart.id,
           checkoutUrl: data.cart.checkoutUrl,
@@ -555,6 +573,7 @@ export function CartProvider({ children }: CartProviderProps) {
         throw new Error('Failed to add item to cart');
       }
     } catch (error) {
+      console.error('Error adding to cart:', error);
       dispatch({ 
         type: 'SET_ERROR', 
         payload: error instanceof Error ? error.message : 'Failed to add item to cart' 
@@ -564,7 +583,7 @@ export function CartProvider({ children }: CartProviderProps) {
       setTimeout(() => {
         dispatch({ type: 'SET_LOADING', payload: false });
         dispatch({ type: 'HIDE_GLOBAL_LOADING' });
-      }, 1500);
+      }, 1000); // Reduced from 1500ms to 1000ms
     }
   };
 
@@ -756,8 +775,8 @@ export function CartProvider({ children }: CartProviderProps) {
   // Helper function to wait for cart icon updates
   const waitForCartIconUpdate = async (): Promise<void> => {
     return new Promise((resolve) => {
-      // Wait for cart icon to update (usually takes 1-2 seconds)
-      setTimeout(resolve, 2000);
+      // Wait for cart icon to update (reduced from 2 seconds to 1 second)
+      setTimeout(resolve, 1000);
       
       // Also listen for cart update events
       const handleCartUpdate = () => {
@@ -770,13 +789,13 @@ export function CartProvider({ children }: CartProviderProps) {
       document.addEventListener('cart:refresh', handleCartUpdate, { once: true });
       document.addEventListener('cart-ui-updated', handleCartUpdate, { once: true });
       
-      // Cleanup after 3 seconds
+      // Cleanup after 2 seconds (reduced from 3 seconds)
       setTimeout(() => {
         document.removeEventListener('cart:updated', handleCartUpdate);
         document.removeEventListener('cart:refresh', handleCartUpdate);
         document.removeEventListener('cart-ui-updated', handleCartUpdate);
         resolve();
-      }, 3000);
+      }, 2000);
     });
   };
 

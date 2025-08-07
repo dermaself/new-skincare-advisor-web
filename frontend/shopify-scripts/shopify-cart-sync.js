@@ -25,7 +25,7 @@
         break;
       
       case 'SHOPIFY_PROCEED_TO_CHECKOUT':
-        callShopifyProceedToCheckout(payload);
+        callShopifyProceedToCheckout();
         break;
         
       default:
@@ -262,68 +262,45 @@
     }
   }
 
-  // Handle checkout requests from embedded apps
-  async function callShopifyProceedToCheckout(payload) {
+  // Call Shopify's checkout functionality
+  async function callShopifyProceedToCheckout() {
     try {
-      const { checkoutUrl, cartId } = payload;
-      console.log('Proceeding to checkout with URL:', checkoutUrl);
+      console.log('Proceeding to Shopify checkout');
       
-      // First, try to find and click Shopify's native checkout button
-      const checkoutButton = document.querySelector('[name="checkout"], .cart__checkout-button, #CartDrawer-Checkout, .checkout-button, button[type="submit"][name="checkout"]');
-      
-      if (checkoutButton) {
-        console.log('Found native checkout button, clicking it');
-        checkoutButton.click();
-      } else {
-        console.log('No native checkout button found, using URL navigation');
-        
-        // Try to submit the cart form if it exists
-        const cartForm = document.querySelector('form[action="/cart"], #CartDrawer-Form, .cart__form');
-        if (cartForm) {
-          console.log('Found cart form, submitting it');
-          
-          // Create a hidden input for checkout action
-          const checkoutInput = document.createElement('input');
-          checkoutInput.type = 'hidden';
-          checkoutInput.name = 'checkout';
-          checkoutInput.value = '';
-          cartForm.appendChild(checkoutInput);
-          
-          // Submit the form
-          cartForm.submit();
-        } else {
-          console.log('No cart form found, using direct URL navigation');
-          
-          // Fallback: navigate to checkout URL
-          if (checkoutUrl) {
-            window.location.href = checkoutUrl;
-          } else {
-            // If no checkout URL provided, try to construct one
-            window.location.href = '/checkout';
-          }
-        }
+      // Method 1: Try to use Shopify's native checkout if available
+      if (window.Shopify && window.Shopify.checkout) {
+        console.log('Using Shopify.checkout()');
+        window.Shopify.checkout();
+        return;
       }
       
-      // Notify the embedded app that checkout was initiated
-      notifyApp('CHECKOUT_INITIATED', { 
-        checkoutUrl: checkoutUrl || '/checkout',
-        cartId: cartId 
-      });
+      // Method 2: Try to find and click a checkout button
+      const checkoutButtons = document.querySelectorAll('[data-checkout], .checkout-button, #checkout, [href*="checkout"], .btn--checkout, .checkout-btn');
+      if (checkoutButtons.length > 0) {
+        console.log('Clicking checkout button');
+        checkoutButtons[0].click();
+        return;
+      }
+      
+      // Method 3: Get cart token and navigate to checkout
+      const cartResponse = await fetch('/cart.js');
+      const cart = await cartResponse.json();
+      
+      if (cart.token) {
+        const checkoutUrl = `/checkout?token=${cart.token}`;
+        console.log('Navigating to checkout URL:', checkoutUrl);
+        window.location.href = checkoutUrl;
+        return;
+      }
+      
+      // Method 4: Navigate to /checkout directly
+      console.log('Navigating to /checkout directly');
+      window.location.href = '/checkout';
       
     } catch (error) {
       console.error('Shopify checkout error:', error);
-      notifyApp('CHECKOUT_ERROR', { error: error.message });
-      
-      // Fallback: try direct navigation
-      try {
-        if (payload.checkoutUrl) {
-          window.location.href = payload.checkoutUrl;
-        } else {
-          window.location.href = '/checkout';
-        }
-      } catch (fallbackError) {
-        console.error('Fallback checkout navigation failed:', fallbackError);
-      }
+      // Final fallback
+      window.location.href = '/checkout';
     }
   }
 

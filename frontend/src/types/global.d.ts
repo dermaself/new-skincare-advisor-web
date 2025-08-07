@@ -8,6 +8,7 @@ declare global {
         item_count?: number;
         total_price?: number;
       };
+      checkout?: () => void;
       shop?: string;
       currency?: {
         active?: string;

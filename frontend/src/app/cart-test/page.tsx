@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useCart } from '../../components/CartContext';
 
 export default function CartTestPage() {
-  const { state, addToCart, removeFromCart, updateCartItem, getCart } = useCart();
+  const { state, addToCart, removeFromCart, updateCartItem, getCart, proceedToCheckout } = useCart();
   const [testVariantId, setTestVariantId] = useState('gid://shopify/ProductVariant/123456789');
   const [quantity, setQuantity] = useState(1);
   const [message, setMessage] = useState('');
@@ -176,14 +176,12 @@ export default function CartTestPage() {
 
             {state.cart.lines.length > 0 && (
               <div className="mt-6">
-                <a
-                  href={state.cart.checkoutUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <button
+                  onClick={proceedToCheckout}
                   className="bg-green-500 text-white py-2 px-4 rounded hover:bg-green-600 inline-block"
                 >
                   Proceed to Checkout
-                </a>
+                </button>
               </div>
             )}
           </div>

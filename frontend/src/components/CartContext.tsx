@@ -332,17 +332,6 @@ export function CartProvider({ children }: CartProviderProps) {
             console.log('Skipping routine success modal - too soon since last one');
           }
         }
-      } else if (event.data.type === 'CHECKOUT_INITIATED') {
-        // Handle checkout initiated successfully
-        console.log('Checkout initiated successfully:', event.data.payload);
-        // The modal is already hidden by proceedToCheckout function
-      } else if (event.data.type === 'CHECKOUT_ERROR') {
-        // Handle checkout error
-        console.error('Checkout error:', event.data.payload.error);
-        dispatch({ 
-          type: 'SET_ERROR', 
-          payload: `Checkout failed: ${event.data.payload.error}` 
-        });
       }
     };
 
@@ -802,76 +791,114 @@ export function CartProvider({ children }: CartProviderProps) {
     dispatch({ type: 'HIDE_CART_SUCCESS_MODAL' });
   };
 
-  const proceedToCheckout = () => {
-    if (!state.cart) {
-      console.error('No cart available for checkout');
-      return;
-    }
-
+  const proceedToCheckout = async () => {
     // Hide the modal first
     dispatch({ type: 'HIDE_CART_SUCCESS_MODAL' });
-
-    // Check if we're in a Shopify environment
-    if (isShopifyEnvironment() && typeof window !== 'undefined') {
-      // If we're in an iframe (embedded app), send message to parent
-      if (window.parent !== window) {
-        console.log('Sending checkout request to parent window');
-        window.parent.postMessage({
-          type: 'SHOPIFY_PROCEED_TO_CHECKOUT',
-          payload: {
-            checkoutUrl: state.cart.checkoutUrl,
-            cartId: state.cart.id
-          }
-        }, '*');
+    
+    // Set loading state for checkout
+    dispatch({ type: 'SET_LOADING', payload: true });
+    
+    try {
+      // If in Shopify environment, try to use native checkout
+      if (isShopifyEnvironment() && typeof window !== 'undefined') {
+        // Try to communicate with parent Shopify page first
+        if (window.parent !== window) {
+          console.log('Sending checkout request to parent Shopify page');
+          window.parent.postMessage({
+            type: 'SHOPIFY_PROCEED_TO_CHECKOUT'
+          }, '*');
+          
+          // Wait a bit for the parent to process
+          await new Promise(resolve => setTimeout(resolve, 500));
+          
+          // Fallback: try to navigate directly if parent doesn't respond
+          setTimeout(() => {
+            console.log('Fallback: navigating to checkout directly');
+            navigateToCheckout();
+          }, 1000);
+          
+          return;
+        }
         
-        // Also try to trigger Shopify's native checkout if available
-        setTimeout(() => {
-          try {
-            // Try to find and click Shopify's native checkout button
-            const checkoutButton = document.querySelector('[name="checkout"], .cart__checkout-button, #CartDrawer-Checkout, .checkout-button');
-            if (checkoutButton) {
-              console.log('Found native checkout button, clicking it');
-              (checkoutButton as HTMLElement).click();
-            } else {
-              console.log('No native checkout button found, using fallback');
-              // Fallback: open checkout URL in new tab
-              window.open(state.cart.checkoutUrl, '_blank');
-            }
-          } catch (error) {
-            console.error('Error with native checkout:', error);
-            // Fallback: open checkout URL in new tab
-            window.open(state.cart.checkoutUrl, '_blank');
-          }
-        }, 100);
-      } else {
-        // We're on the same domain as Shopify, try native checkout first
-        console.log('On same domain as Shopify, trying native checkout');
-        try {
-          // Try to find and click Shopify's native checkout button
-          const checkoutButton = document.querySelector('[name="checkout"], .cart__checkout-button, #CartDrawer-Checkout, .checkout-button');
-          if (checkoutButton) {
-            console.log('Found native checkout button, clicking it');
-            (checkoutButton as HTMLElement).click();
-          } else {
-            console.log('No native checkout button found, using URL navigation');
-            // Fallback: navigate to checkout URL
-            window.location.href = state.cart.checkoutUrl;
-          }
-        } catch (error) {
-          console.error('Error with native checkout:', error);
-          // Fallback: navigate to checkout URL
+        // If we're on the same domain, try to use Shopify's native checkout
+        console.log('Using native Shopify checkout');
+        navigateToCheckout();
+        return;
+      }
+      
+      // For non-Shopify environments, use the checkout URL from cart
+      if (state.cart && state.cart.checkoutUrl) {
+        console.log('Navigating to checkout URL:', state.cart.checkoutUrl);
+        if (typeof window !== 'undefined') {
           window.location.href = state.cart.checkoutUrl;
         }
-      }
-    } else {
-      // Non-Shopify environment, use standard approach
-      console.log('Non-Shopify environment, using standard checkout');
-      if (state.cart.checkoutUrl) {
-        // Open in new tab for better UX
-        window.open(state.cart.checkoutUrl, '_blank');
       } else {
         console.error('No checkout URL available');
+        // Try to get checkout URL from Shopify's cart API
+        await getCheckoutUrlFromShopify();
       }
+    } catch (error) {
+      console.error('Error proceeding to checkout:', error);
+      dispatch({ 
+        type: 'SET_ERROR', 
+        payload: error instanceof Error ? error.message : 'Failed to proceed to checkout' 
+      });
+      // Fallback to basic navigation
+      navigateToCheckout();
+    } finally {
+      // Reset loading state after a short delay to allow navigation to complete
+      setTimeout(() => {
+        dispatch({ type: 'SET_LOADING', payload: false });
+      }, 1000);
+    }
+  };
+
+  // Helper function to navigate to checkout using various methods
+  const navigateToCheckout = () => {
+    if (typeof window === 'undefined') return;
+    
+    // Method 1: Try to use Shopify's native checkout if available
+    if (window.Shopify && window.Shopify.checkout) {
+      console.log('Using Shopify.checkout');
+      window.Shopify.checkout();
+      return;
+    }
+    
+    // Method 2: Try to find and click a checkout button
+    const checkoutButtons = document.querySelectorAll('[data-checkout], .checkout-button, #checkout, [href*="checkout"]');
+    if (checkoutButtons.length > 0) {
+      console.log('Clicking checkout button');
+      (checkoutButtons[0] as HTMLElement).click();
+      return;
+    }
+    
+    // Method 3: Navigate to /checkout directly
+    console.log('Navigating to /checkout directly');
+    window.location.href = '/checkout';
+  };
+
+  // Helper function to get checkout URL from Shopify's cart API
+  const getCheckoutUrlFromShopify = async () => {
+    try {
+      console.log('Getting checkout URL from Shopify cart API');
+      const response = await fetch('/cart.js');
+      const cart = await response.json();
+      
+      if (cart.token) {
+        const checkoutUrl = `/checkout?token=${cart.token}`;
+        console.log('Generated checkout URL:', checkoutUrl);
+        if (typeof window !== 'undefined') {
+          window.location.href = checkoutUrl;
+        }
+      } else {
+        console.error('No cart token available');
+        // Final fallback
+        navigateToCheckout();
+      }
+    } catch (error) {
+      console.error('Error getting checkout URL from Shopify:', error);
+      // Final fallback
+      navigateToCheckout();
     }
   };
 

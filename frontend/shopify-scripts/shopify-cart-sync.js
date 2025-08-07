@@ -289,18 +289,28 @@
       if (cart.token) {
         const checkoutUrl = `/checkout?token=${cart.token}`;
         console.log('Navigating to checkout URL:', checkoutUrl);
-        window.location.href = checkoutUrl;
+        
+        // Ensure we're navigating to the main domain, not the embedded app
+        const currentOrigin = window.location.origin;
+        const fullCheckoutUrl = `${currentOrigin}${checkoutUrl}`;
+        console.log('Full checkout URL:', fullCheckoutUrl);
+        
+        window.location.href = fullCheckoutUrl;
         return;
       }
       
       // Method 4: Navigate to /checkout directly
       console.log('Navigating to /checkout directly');
-      window.location.href = '/checkout';
+      const currentOrigin = window.location.origin;
+      const checkoutUrl = `${currentOrigin}/checkout`;
+      console.log('Full checkout URL:', checkoutUrl);
+      window.location.href = checkoutUrl;
       
     } catch (error) {
       console.error('Shopify checkout error:', error);
-      // Final fallback
-      window.location.href = '/checkout';
+      // Final fallback - navigate to checkout on current domain
+      const currentOrigin = window.location.origin;
+      window.location.href = `${currentOrigin}/checkout`;
     }
   }
 

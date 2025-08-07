@@ -891,7 +891,19 @@ export function CartProvider({ children }: CartProviderProps) {
       if (state.cart && state.cart.checkoutUrl) {
         console.log('Navigating to checkout URL:', state.cart.checkoutUrl);
         if (typeof window !== 'undefined') {
-          window.location.href = state.cart.checkoutUrl;
+          // For embedded apps, we need to navigate to the parent domain
+          if (window.parent !== window) {
+            // Get the parent domain and construct the checkout URL
+            const parentOrigin = window.parent.location.origin;
+            const checkoutUrl = state.cart.checkoutUrl.startsWith('http') 
+              ? state.cart.checkoutUrl 
+              : `${parentOrigin}${state.cart.checkoutUrl}`;
+            
+            console.log('Redirecting to parent domain checkout:', checkoutUrl);
+            window.parent.location.href = checkoutUrl;
+          } else {
+            window.location.href = state.cart.checkoutUrl;
+          }
         }
       } else {
         console.error('No checkout URL available');
@@ -935,7 +947,16 @@ export function CartProvider({ children }: CartProviderProps) {
     
     // Method 3: Navigate to /checkout directly
     console.log('Navigating to /checkout directly');
-    window.location.href = '/checkout';
+    
+    // For embedded apps, navigate to parent domain
+    if (window.parent !== window) {
+      const parentOrigin = window.parent.location.origin;
+      const checkoutUrl = `${parentOrigin}/checkout`;
+      console.log('Redirecting to parent domain checkout:', checkoutUrl);
+      window.parent.location.href = checkoutUrl;
+    } else {
+      window.location.href = '/checkout';
+    }
   };
 
   // Helper function to get checkout URL from Shopify's cart API
@@ -949,7 +970,15 @@ export function CartProvider({ children }: CartProviderProps) {
         const checkoutUrl = `/checkout?token=${cart.token}`;
         console.log('Generated checkout URL:', checkoutUrl);
         if (typeof window !== 'undefined') {
-          window.location.href = checkoutUrl;
+          // For embedded apps, navigate to parent domain
+          if (window.parent !== window) {
+            const parentOrigin = window.parent.location.origin;
+            const fullCheckoutUrl = `${parentOrigin}${checkoutUrl}`;
+            console.log('Redirecting to parent domain checkout:', fullCheckoutUrl);
+            window.parent.location.href = fullCheckoutUrl;
+          } else {
+            window.location.href = checkoutUrl;
+          }
         }
       } else {
         console.error('No cart token available');
@@ -995,15 +1024,7 @@ export function CartProvider({ children }: CartProviderProps) {
       {/* Global Loading Overlay */}
       {state.showGlobalLoading && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-          <div className="bg-white rounded-lg p-6 shadow-xl">
-            <div className="flex items-center space-x-3">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-              <div>
-                <p className="text-lg font-semibold text-gray-900">Updating Cart...</p>
-                <p className="text-sm text-gray-600">Please wait while we update your cart</p>
-              </div>
-            </div>
-          </div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white"></div>
         </div>
       )}
     </CartContext.Provider>

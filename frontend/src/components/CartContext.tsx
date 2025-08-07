@@ -332,6 +332,17 @@ export function CartProvider({ children }: CartProviderProps) {
             console.log('Skipping routine success modal - too soon since last one');
           }
         }
+      } else if (event.data.type === 'CHECKOUT_INITIATED') {
+        // Handle checkout initiated successfully
+        console.log('Checkout initiated successfully:', event.data.payload);
+        // The modal is already hidden by proceedToCheckout function
+      } else if (event.data.type === 'CHECKOUT_ERROR') {
+        // Handle checkout error
+        console.error('Checkout error:', event.data.payload.error);
+        dispatch({ 
+          type: 'SET_ERROR', 
+          payload: `Checkout failed: ${event.data.payload.error}` 
+        });
       }
     };
 
@@ -792,16 +803,75 @@ export function CartProvider({ children }: CartProviderProps) {
   };
 
   const proceedToCheckout = () => {
-    if (state.cart && state.cart.checkoutUrl) {
-      // Hide the modal first
-      dispatch({ type: 'HIDE_CART_SUCCESS_MODAL' });
-      
-      // Navigate to checkout
-      if (typeof window !== 'undefined') {
-        window.location.href = state.cart.checkoutUrl;
+    if (!state.cart) {
+      console.error('No cart available for checkout');
+      return;
+    }
+
+    // Hide the modal first
+    dispatch({ type: 'HIDE_CART_SUCCESS_MODAL' });
+
+    // Check if we're in a Shopify environment
+    if (isShopifyEnvironment() && typeof window !== 'undefined') {
+      // If we're in an iframe (embedded app), send message to parent
+      if (window.parent !== window) {
+        console.log('Sending checkout request to parent window');
+        window.parent.postMessage({
+          type: 'SHOPIFY_PROCEED_TO_CHECKOUT',
+          payload: {
+            checkoutUrl: state.cart.checkoutUrl,
+            cartId: state.cart.id
+          }
+        }, '*');
+        
+        // Also try to trigger Shopify's native checkout if available
+        setTimeout(() => {
+          try {
+            // Try to find and click Shopify's native checkout button
+            const checkoutButton = document.querySelector('[name="checkout"], .cart__checkout-button, #CartDrawer-Checkout, .checkout-button');
+            if (checkoutButton) {
+              console.log('Found native checkout button, clicking it');
+              (checkoutButton as HTMLElement).click();
+            } else {
+              console.log('No native checkout button found, using fallback');
+              // Fallback: open checkout URL in new tab
+              window.open(state.cart.checkoutUrl, '_blank');
+            }
+          } catch (error) {
+            console.error('Error with native checkout:', error);
+            // Fallback: open checkout URL in new tab
+            window.open(state.cart.checkoutUrl, '_blank');
+          }
+        }, 100);
+      } else {
+        // We're on the same domain as Shopify, try native checkout first
+        console.log('On same domain as Shopify, trying native checkout');
+        try {
+          // Try to find and click Shopify's native checkout button
+          const checkoutButton = document.querySelector('[name="checkout"], .cart__checkout-button, #CartDrawer-Checkout, .checkout-button');
+          if (checkoutButton) {
+            console.log('Found native checkout button, clicking it');
+            (checkoutButton as HTMLElement).click();
+          } else {
+            console.log('No native checkout button found, using URL navigation');
+            // Fallback: navigate to checkout URL
+            window.location.href = state.cart.checkoutUrl;
+          }
+        } catch (error) {
+          console.error('Error with native checkout:', error);
+          // Fallback: navigate to checkout URL
+          window.location.href = state.cart.checkoutUrl;
+        }
       }
     } else {
-      console.error('No checkout URL available');
+      // Non-Shopify environment, use standard approach
+      console.log('Non-Shopify environment, using standard checkout');
+      if (state.cart.checkoutUrl) {
+        // Open in new tab for better UX
+        window.open(state.cart.checkoutUrl, '_blank');
+      } else {
+        console.error('No checkout URL available');
+      }
     }
   };
 

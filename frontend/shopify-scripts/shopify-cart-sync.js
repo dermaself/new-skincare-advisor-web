@@ -23,6 +23,10 @@
       case 'SHOPIFY_GET_CART':
         callShopifyGetCart();
         break;
+      
+      case 'SHOPIFY_PROCEED_TO_CHECKOUT':
+        callShopifyProceedToCheckout(payload);
+        break;
         
       default:
         // Ignore unknown message types
@@ -258,6 +262,71 @@
     }
   }
 
+  // Handle checkout requests from embedded apps
+  async function callShopifyProceedToCheckout(payload) {
+    try {
+      const { checkoutUrl, cartId } = payload;
+      console.log('Proceeding to checkout with URL:', checkoutUrl);
+      
+      // First, try to find and click Shopify's native checkout button
+      const checkoutButton = document.querySelector('[name="checkout"], .cart__checkout-button, #CartDrawer-Checkout, .checkout-button, button[type="submit"][name="checkout"]');
+      
+      if (checkoutButton) {
+        console.log('Found native checkout button, clicking it');
+        checkoutButton.click();
+      } else {
+        console.log('No native checkout button found, using URL navigation');
+        
+        // Try to submit the cart form if it exists
+        const cartForm = document.querySelector('form[action="/cart"], #CartDrawer-Form, .cart__form');
+        if (cartForm) {
+          console.log('Found cart form, submitting it');
+          
+          // Create a hidden input for checkout action
+          const checkoutInput = document.createElement('input');
+          checkoutInput.type = 'hidden';
+          checkoutInput.name = 'checkout';
+          checkoutInput.value = '';
+          cartForm.appendChild(checkoutInput);
+          
+          // Submit the form
+          cartForm.submit();
+        } else {
+          console.log('No cart form found, using direct URL navigation');
+          
+          // Fallback: navigate to checkout URL
+          if (checkoutUrl) {
+            window.location.href = checkoutUrl;
+          } else {
+            // If no checkout URL provided, try to construct one
+            window.location.href = '/checkout';
+          }
+        }
+      }
+      
+      // Notify the embedded app that checkout was initiated
+      notifyApp('CHECKOUT_INITIATED', { 
+        checkoutUrl: checkoutUrl || '/checkout',
+        cartId: cartId 
+      });
+      
+    } catch (error) {
+      console.error('Shopify checkout error:', error);
+      notifyApp('CHECKOUT_ERROR', { error: error.message });
+      
+      // Fallback: try direct navigation
+      try {
+        if (payload.checkoutUrl) {
+          window.location.href = payload.checkoutUrl;
+        } else {
+          window.location.href = '/checkout';
+        }
+      } catch (fallbackError) {
+        console.error('Fallback checkout navigation failed:', fallbackError);
+      }
+    }
+  }
+
   // Notify embedded app
   function notifyApp(type, data) {
     console.log('Notifying embedded app:', type, data);
@@ -301,6 +370,7 @@
     addToCart: callShopifyAddToCart,
     removeFromCart: callShopifyRemoveFromCart,
     getCart: callShopifyGetCart,
+    proceedToCheckout: callShopifyProceedToCheckout,
     updateCartSections: updateCartSections,
     refreshCartDrawer: refreshCartDrawer,
     forceRefreshCartDrawer: forceRefreshCartDrawer,

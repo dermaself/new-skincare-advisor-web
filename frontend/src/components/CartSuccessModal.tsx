@@ -1,8 +1,8 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle, ShoppingBag, X } from 'lucide-react';
+import { CheckCircle, ShoppingBag, X, Loader2 } from 'lucide-react';
 
 interface CartSuccessModalProps {
   isOpen: boolean;
@@ -23,6 +23,19 @@ export default function CartSuccessModal({
   onProceedToCheckout,
   addedProducts
 }: CartSuccessModalProps) {
+  const [isCheckingOut, setIsCheckingOut] = useState(false);
+
+  const handleProceedToCheckout = async () => {
+    setIsCheckingOut(true);
+    try {
+      await onProceedToCheckout();
+    } catch (error) {
+      console.error('Checkout error:', error);
+      // Reset loading state on error
+      setIsCheckingOut(false);
+    }
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -103,11 +116,18 @@ export default function CartSuccessModal({
             {/* Action Buttons */}
             <div className="space-y-3">
               <button
-                onClick={onProceedToCheckout}
+                onClick={handleProceedToCheckout}
                 className="w-full bg-primary-600 text-white py-3 px-4 rounded-lg font-semibold hover:bg-primary-700 transition-colors flex items-center justify-center space-x-2"
+                disabled={isCheckingOut}
               >
-                <ShoppingBag className="w-5 h-5" />
-                <span>Proceed to Checkout</span>
+                {isCheckingOut ? (
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                ) : (
+                  <>
+                    <ShoppingBag className="w-5 h-5" />
+                    <span>Proceed to Checkout</span>
+                  </>
+                )}
               </button>
               
               <button

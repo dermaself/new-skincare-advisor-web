@@ -236,8 +236,24 @@ export function CartProvider({ children }: CartProviderProps) {
           console.log('Transformed cart:', transformedCart);
           dispatch({ type: 'SET_CART', payload: transformedCart });
           
-          // Don't show cart success modal here - let the individual components handle it
-          // The SkinAnalysisModal will handle showing the success modal with the correct product info
+          // Show cart success modal for newly added products
+          if (event.data.type === 'CART_UPDATE_SUCCESS' && event.data.payload.addedProducts) {
+            // Use the product info from the message if available
+            const addedProducts = event.data.payload.addedProducts.map((product: any) => ({
+              name: product.name || product.title || product.product_title || 'Product',
+              image: product.image || '/placeholder-product.png',
+              price: product.price || product.final_price || 0
+            }));
+            dispatch({ type: 'SHOW_CART_SUCCESS_MODAL', payload: addedProducts });
+          } else if (event.data.type === 'CART_UPDATE_SUCCESS') {
+            // Fallback: extract product info from cart items
+            const addedProducts = cartData.items.map((item: any) => ({
+              name: item.product_title || item.title || 'Product',
+              image: item.image || '/placeholder-product.png',
+              price: item.final_price || 0
+            }));
+            dispatch({ type: 'SHOW_CART_SUCCESS_MODAL', payload: addedProducts });
+          }
         } else {
           // Handle empty cart
           console.log('Cart is empty, clearing cart state');
@@ -298,8 +314,29 @@ export function CartProvider({ children }: CartProviderProps) {
         const itemData = event.data.payload;
         console.log('Item added to cart:', itemData);
         
-        // Don't show success modal here - let the individual components handle it
-        // The SkinAnalysisModal will handle showing the success modal with the correct product info
+        // Show cart success modal for the added item
+        if (itemData) {
+          const addedProduct = {
+            name: itemData.name || itemData.title || itemData.product_title || 'Product',
+            image: itemData.image || '/placeholder-product.png',
+            price: itemData.price || itemData.final_price || 0
+          };
+          dispatch({ type: 'SHOW_CART_SUCCESS_MODAL', payload: [addedProduct] });
+        }
+      } else if (event.data.type === 'ROUTINE_ADD_SUCCESS') {
+        // Handle routine added to cart
+        const routineData = event.data.payload;
+        console.log('Routine added to cart:', routineData);
+        
+        // Show cart success modal for the added routine products
+        if (routineData && routineData.products) {
+          const addedProducts = routineData.products.map((product: any) => ({
+            name: product.name || product.title || product.product_title || 'Product',
+            image: product.image || '/placeholder-product.png',
+            price: product.price || product.final_price || 0
+          }));
+          dispatch({ type: 'SHOW_CART_SUCCESS_MODAL', payload: addedProducts });
+        }
       }
     };
 

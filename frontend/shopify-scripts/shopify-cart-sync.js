@@ -12,6 +12,8 @@
     
     if (event.data.type === 'SHOPIFY_ADD_TO_CART') {
       callShopifyAddToCart(event.data.payload);
+    } else if (event.data.type === 'SHOPIFY_ADD_ROUTINE_TO_CART') {
+      callShopifyAddRoutineToCart(event.data.payload);
     } else if (event.data.type === 'SHOPIFY_REMOVE_FROM_CART') {
       callShopifyRemoveFromCart(event.data.payload);
     } else if (event.data.type === 'SHOPIFY_GET_CART') {
@@ -101,11 +103,32 @@
           updateCartUIElements(result.sections);
         }
         
+        // Extract product info from the cart items that were just added
+        let addedProducts = cart.items.filter(item => {
+          // Check if this item has the recommended_by_dermaself attribute
+          return item.properties && item.properties.recommended_by_dermaself === 'true';
+        }).map(item => ({
+          name: item.product_title || item.title,
+          image: item.image,
+          price: item.final_price,
+          variant_id: item.variant_id
+        }));
+
+        // If no products with the specific attribute found, include all items as fallback
+        if (addedProducts.length === 0 && cart.items.length > 0) {
+          addedProducts = cart.items.map(item => ({
+            name: item.product_title || item.title,
+            image: item.image,
+            price: item.final_price,
+            variant_id: item.variant_id
+          }));
+        }
+
         // Notify embedded app of success with sections data and product info
         notifyApp('CART_UPDATE_SUCCESS', { 
           cart,
           sections: result.sections || {},
-          productInfo: productInfo // Pass the product info to the app
+          addedProducts: addedProducts // Pass the added products info to the app
         });
         
         // Don't send CART_ITEM_ADDED message to prevent duplicate popups
@@ -117,6 +140,85 @@
     } catch (error) {
       console.error('Shopify cart add error:', error);
       notifyApp('CART_UPDATE_ERROR', { error: error.message });
+    }
+  }
+
+  // Call Shopify's original /cart/add.js API for multiple products (routine)
+  async function callShopifyAddRoutineToCart(payload) {
+    try {
+      const { products } = payload;
+      
+      console.log('Adding routine to cart:', products);
+      
+      // Add each product to cart sequentially
+      const addedProducts = [];
+      
+      for (const product of products) {
+        const { variantId, quantity = 1, customAttributes = [] } = product;
+        
+        // Convert GraphQL ID to numeric ID if needed
+        let numericId = variantId;
+        if (typeof variantId === 'string' && variantId.includes('gid://shopify/ProductVariant/')) {
+          numericId = variantId.split('/').pop();
+        }
+        
+        // Prepare cart item exactly as Shopify expects
+        const cartItem = {
+          id: parseInt(numericId),
+          quantity: quantity,
+          properties: {},
+          sections: 'cart-drawer,cart-icon-bubble'
+        };
+
+        // Add custom attributes
+        customAttributes.forEach(attr => {
+          cartItem.properties[attr.key] = attr.value;
+        });
+
+        console.log('Calling Shopify /cart/add.js for product:', cartItem);
+
+        // Call Shopify's original cart API
+        const response = await fetch('/cart/add.js', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(cartItem)
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          console.log('Product added successfully:', result);
+          
+          // Add to our list of added products
+          addedProducts.push({
+            name: result.product_title || result.title || 'Product',
+            image: result.image || '/placeholder-product.png',
+            price: result.final_price || 0,
+            variant_id: result.variant_id
+          });
+        } else {
+          const errorData = await response.json();
+          console.error('Failed to add product to cart:', errorData);
+          throw new Error(errorData.description || 'Failed to add product to cart');
+        }
+      }
+      
+      // Get updated cart data
+      const cartResponse = await fetch('/cart.js');
+      const cart = await cartResponse.json();
+      
+      // Use Shopify's native cart sync system
+      console.log('Using Shopify native cart sync system for routine');
+      await syncCartWithShopify();
+      
+      // Notify embedded app of success with all added products
+      notifyApp('ROUTINE_ADD_SUCCESS', { 
+        cart,
+        products: addedProducts
+      });
+      
+    } catch (error) {
+      console.error('Shopify routine add error:', error);
+      notifyApp('ROUTINE_ADD_ERROR', { error: error.message });
     }
   }
 

@@ -379,6 +379,31 @@ export function CartProvider({ children }: CartProviderProps) {
     }
   }, []); // Empty dependency array - only runs once on mount
 
+  // Helper function to get Shopify domain dynamically
+  const getShopifyDomain = (): string => {
+    if (window.parent !== window) {
+      // For embedded apps, get domain from parent
+      try {
+        return window.parent.location.origin;
+      } catch (e) {
+        // If cross-origin, try to get from environment or fallback
+        return process.env.NEXT_PUBLIC_SHOPIFY_DOMAIN 
+          ? `https://${process.env.NEXT_PUBLIC_SHOPIFY_DOMAIN}`
+          : 'https://dermaself-dev.myshopify.com'; // fallback only
+      }
+    } else {
+      // For standalone apps, use current domain if it's Shopify
+      if (window.location.hostname.includes('myshopify.com')) {
+        return window.location.origin;
+      } else {
+        // Try to get from environment
+        return process.env.NEXT_PUBLIC_SHOPIFY_DOMAIN 
+          ? `https://${process.env.NEXT_PUBLIC_SHOPIFY_DOMAIN}`
+          : 'https://dermaself-dev.myshopify.com'; // fallback only
+      }
+    }
+  };
+
   // Helper function to extract numeric ID from GraphQL ID
   const extractNumericId = (graphqlId: string): string => {
     if (!graphqlId) return '';
@@ -903,39 +928,39 @@ export function CartProvider({ children }: CartProviderProps) {
           return;
         }
         
-        // Method 3: Get cart token and navigate to checkout
+        // Method 3: Get cart token from Shopify and navigate to checkout
         try {
-          const cartResponse = await fetch('/cart.js');
+          const shopifyDomain = getShopifyDomain();
+          const cartResponse = await fetch(`${shopifyDomain}/cart.js`);
           const cart = await cartResponse.json();
           
           if (cart.token) {
-            const checkoutUrl = `/checkout?token=${cart.token}`;
+            const checkoutUrl = `${shopifyDomain}/checkout?token=${cart.token}`;
             console.log('Navigating to checkout with cart token:', checkoutUrl);
             
             if (window.parent !== window) {
               // For embedded apps, navigate parent window
-              const parentOrigin = window.parent.location.origin;
-              const fullCheckoutUrl = `${parentOrigin}${checkoutUrl}`;
-              console.log('Redirecting parent to checkout:', fullCheckoutUrl);
-              window.parent.location.href = fullCheckoutUrl;
+              console.log('Redirecting parent to checkout:', checkoutUrl);
+              window.parent.location.href = checkoutUrl;
             } else {
               window.location.href = checkoutUrl;
             }
             return;
           }
         } catch (cartError) {
-          console.log('Could not get cart token, trying alternative methods');
+          console.log('Could not get cart token from Shopify, trying alternative methods');
         }
         
-        // Method 4: Navigate to /checkout directly
-        console.log('Navigating to /checkout directly');
+        // Method 4: Navigate to Shopify checkout directly
+        console.log('Navigating to Shopify checkout directly');
+        const shopifyDomain = getShopifyDomain();
+        const shopifyCheckoutUrl = `${shopifyDomain}/checkout`;
+        
         if (window.parent !== window) {
-          const parentOrigin = window.parent.location.origin;
-          const checkoutUrl = `${parentOrigin}/checkout`;
-          console.log('Redirecting parent to checkout:', checkoutUrl);
-          window.parent.location.href = checkoutUrl;
+          console.log('Redirecting parent to Shopify checkout:', shopifyCheckoutUrl);
+          window.parent.location.href = shopifyCheckoutUrl;
         } else {
-          window.location.href = '/checkout';
+          window.location.href = shopifyCheckoutUrl;
         }
         return;
       }

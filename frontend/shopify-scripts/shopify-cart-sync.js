@@ -291,12 +291,8 @@
           const checkoutUrl = `/checkout?token=${cart.token}`;
           console.log('Navigating to checkout URL:', checkoutUrl);
           
-          // Ensure we're navigating to the main domain, not the embedded app
-          const currentOrigin = window.location.origin;
-          const fullCheckoutUrl = `${currentOrigin}${checkoutUrl}`;
-          console.log('Full checkout URL:', fullCheckoutUrl);
-          
-          window.location.href = fullCheckoutUrl;
+          // Navigate to the checkout URL on the current domain
+          window.location.href = checkoutUrl;
           return;
         }
       } catch (cartError) {

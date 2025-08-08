@@ -275,7 +275,7 @@
       }
       
       // Method 2: Try to find and click a checkout button
-      const checkoutButtons = document.querySelectorAll('[data-checkout], .checkout-button, #checkout, [href*="checkout"], .btn--checkout, .checkout-btn');
+      const checkoutButtons = document.querySelectorAll('[data-checkout], .checkout-button, #checkout, [href*="checkout"], .btn--checkout, .checkout-btn, [data-action="checkout"]');
       if (checkoutButtons.length > 0) {
         console.log('Clicking checkout button');
         checkoutButtons[0].click();
@@ -283,20 +283,24 @@
       }
       
       // Method 3: Get cart token and navigate to checkout
-      const cartResponse = await fetch('/cart.js');
-      const cart = await cartResponse.json();
-      
-      if (cart.token) {
-        const checkoutUrl = `/checkout?token=${cart.token}`;
-        console.log('Navigating to checkout URL:', checkoutUrl);
+      try {
+        const cartResponse = await fetch('/cart.js');
+        const cart = await cartResponse.json();
         
-        // Ensure we're navigating to the main domain, not the embedded app
-        const currentOrigin = window.location.origin;
-        const fullCheckoutUrl = `${currentOrigin}${checkoutUrl}`;
-        console.log('Full checkout URL:', fullCheckoutUrl);
-        
-        window.location.href = fullCheckoutUrl;
-        return;
+        if (cart.token) {
+          const checkoutUrl = `/checkout?token=${cart.token}`;
+          console.log('Navigating to checkout URL:', checkoutUrl);
+          
+          // Ensure we're navigating to the main domain, not the embedded app
+          const currentOrigin = window.location.origin;
+          const fullCheckoutUrl = `${currentOrigin}${checkoutUrl}`;
+          console.log('Full checkout URL:', fullCheckoutUrl);
+          
+          window.location.href = fullCheckoutUrl;
+          return;
+        }
+      } catch (cartError) {
+        console.log('Could not get cart token, trying alternative methods');
       }
       
       // Method 4: Navigate to /checkout directly

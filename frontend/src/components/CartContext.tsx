@@ -879,55 +879,84 @@ export function CartProvider({ children }: CartProviderProps) {
     dispatch({ type: 'SET_LOADING', payload: true });
     
     try {
-      // If in Shopify environment, try to use native checkout
-      if (isShopifyEnvironment() && typeof window !== 'undefined') {
-        // Try to communicate with parent Shopify page first
-        if (window.parent !== window) {
-          console.log('Sending checkout request to parent Shopify page');
-          window.parent.postMessage({
-            type: 'SHOPIFY_PROCEED_TO_CHECKOUT'
-          }, '*');
-          
-          // Wait a bit for the parent to process
-          await new Promise(resolve => setTimeout(resolve, 500));
-          
-          // Fallback: try to navigate directly if parent doesn't respond
-          setTimeout(() => {
-            console.log('Fallback: navigating to checkout directly');
-            navigateToCheckout();
-          }, 1000);
-          
+      if (typeof window === 'undefined') return;
+      
+      // If in Shopify environment, use native Shopify checkout
+      if (isShopifyEnvironment()) {
+        console.log('Using Shopify native checkout');
+        
+        // Method 1: Try to use Shopify's native checkout API if available
+        if (window.Shopify && window.Shopify.checkout) {
+          console.log('Using Shopify.checkout()');
+          window.Shopify.checkout();
           return;
         }
         
-        // If we're on the same domain, try to use Shopify's native checkout
-        console.log('Using native Shopify checkout');
-        navigateToCheckout();
+        // Method 2: Try to find and click a native checkout button
+        const checkoutButtons = document.querySelectorAll(
+          '[data-checkout], .checkout-button, #checkout, [href*="checkout"], .btn--checkout, .checkout-btn, [data-action="checkout"]'
+        );
+        
+        if (checkoutButtons.length > 0) {
+          console.log('Clicking native checkout button');
+          (checkoutButtons[0] as HTMLElement).click();
+          return;
+        }
+        
+        // Method 3: Get cart token and navigate to checkout
+        try {
+          const cartResponse = await fetch('/cart.js');
+          const cart = await cartResponse.json();
+          
+          if (cart.token) {
+            const checkoutUrl = `/checkout?token=${cart.token}`;
+            console.log('Navigating to checkout with cart token:', checkoutUrl);
+            
+            if (window.parent !== window) {
+              // For embedded apps, navigate parent window
+              const parentOrigin = window.parent.location.origin;
+              const fullCheckoutUrl = `${parentOrigin}${checkoutUrl}`;
+              console.log('Redirecting parent to checkout:', fullCheckoutUrl);
+              window.parent.location.href = fullCheckoutUrl;
+            } else {
+              window.location.href = checkoutUrl;
+            }
+            return;
+          }
+        } catch (cartError) {
+          console.log('Could not get cart token, trying alternative methods');
+        }
+        
+        // Method 4: Navigate to /checkout directly
+        console.log('Navigating to /checkout directly');
+        if (window.parent !== window) {
+          const parentOrigin = window.parent.location.origin;
+          const checkoutUrl = `${parentOrigin}/checkout`;
+          console.log('Redirecting parent to checkout:', checkoutUrl);
+          window.parent.location.href = checkoutUrl;
+        } else {
+          window.location.href = '/checkout';
+        }
         return;
       }
       
       // For non-Shopify environments, use the checkout URL from cart
       if (state.cart && state.cart.checkoutUrl) {
-        console.log('Navigating to checkout URL:', state.cart.checkoutUrl);
-        if (typeof window !== 'undefined') {
-          // For embedded apps, we need to navigate to the parent domain
-          if (window.parent !== window) {
-            // Get the parent domain and construct the checkout URL
-            const parentOrigin = window.parent.location.origin;
-            const checkoutUrl = state.cart.checkoutUrl.startsWith('http') 
-              ? state.cart.checkoutUrl 
-              : `${parentOrigin}${state.cart.checkoutUrl}`;
-            
-            console.log('Redirecting to parent domain checkout:', checkoutUrl);
-            window.parent.location.href = checkoutUrl;
-          } else {
-            window.location.href = state.cart.checkoutUrl;
-          }
+        console.log('Using cart checkout URL:', state.cart.checkoutUrl);
+        if (window.parent !== window) {
+          const parentOrigin = window.parent.location.origin;
+          const checkoutUrl = state.cart.checkoutUrl.startsWith('http') 
+            ? state.cart.checkoutUrl 
+            : `${parentOrigin}${state.cart.checkoutUrl}`;
+          
+          console.log('Redirecting parent to checkout:', checkoutUrl);
+          window.parent.location.href = checkoutUrl;
+        } else {
+          window.location.href = state.cart.checkoutUrl;
         }
       } else {
         console.error('No checkout URL available');
-        // Try to get checkout URL from Shopify's cart API
-        await getCheckoutUrlFromShopify();
+        throw new Error('No checkout URL available');
       }
     } catch (error) {
       console.error('Error proceeding to checkout:', error);
@@ -935,8 +964,6 @@ export function CartProvider({ children }: CartProviderProps) {
         type: 'SET_ERROR', 
         payload: error instanceof Error ? error.message : 'Failed to proceed to checkout' 
       });
-      // Fallback to basic navigation
-      navigateToCheckout();
     } finally {
       // Reset loading state after a short delay to allow navigation to complete
       setTimeout(() => {
@@ -945,71 +972,7 @@ export function CartProvider({ children }: CartProviderProps) {
     }
   };
 
-  // Helper function to navigate to checkout using various methods
-  const navigateToCheckout = () => {
-    if (typeof window === 'undefined') return;
-    
-    // Method 1: Try to use Shopify's native checkout if available
-    if (window.Shopify && window.Shopify.checkout) {
-      console.log('Using Shopify.checkout');
-      window.Shopify.checkout();
-      return;
-    }
-    
-    // Method 2: Try to find and click a checkout button
-    const checkoutButtons = document.querySelectorAll('[data-checkout], .checkout-button, #checkout, [href*="checkout"]');
-    if (checkoutButtons.length > 0) {
-      console.log('Clicking checkout button');
-      (checkoutButtons[0] as HTMLElement).click();
-      return;
-    }
-    
-    // Method 3: Navigate to /checkout directly
-    console.log('Navigating to /checkout directly');
-    
-    // For embedded apps, navigate to parent domain
-    if (window.parent !== window) {
-      const parentOrigin = window.parent.location.origin;
-      const checkoutUrl = `${parentOrigin}/checkout`;
-      console.log('Redirecting to parent domain checkout:', checkoutUrl);
-      window.parent.location.href = checkoutUrl;
-    } else {
-      window.location.href = '/checkout';
-    }
-  };
 
-  // Helper function to get checkout URL from Shopify's cart API
-  const getCheckoutUrlFromShopify = async () => {
-    try {
-      console.log('Getting checkout URL from Shopify cart API');
-      const response = await fetch('/cart.js');
-      const cart = await response.json();
-      
-      if (cart.token) {
-        const checkoutUrl = `/checkout?token=${cart.token}`;
-        console.log('Generated checkout URL:', checkoutUrl);
-        if (typeof window !== 'undefined') {
-          // For embedded apps, navigate to parent domain
-          if (window.parent !== window) {
-            const parentOrigin = window.parent.location.origin;
-            const fullCheckoutUrl = `${parentOrigin}${checkoutUrl}`;
-            console.log('Redirecting to parent domain checkout:', fullCheckoutUrl);
-            window.parent.location.href = fullCheckoutUrl;
-          } else {
-            window.location.href = checkoutUrl;
-          }
-        }
-      } else {
-        console.error('No cart token available');
-        // Final fallback
-        navigateToCheckout();
-      }
-    } catch (error) {
-      console.error('Error getting checkout URL from Shopify:', error);
-      // Final fallback
-      navigateToCheckout();
-    }
-  };
 
   const showGlobalLoading = () => {
     dispatch({ type: 'SHOW_GLOBAL_LOADING' });

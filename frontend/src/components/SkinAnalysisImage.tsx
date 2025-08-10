@@ -143,7 +143,7 @@ export default function SkinAnalysisImage({
         <div className="flex items-center space-x-4 text-sm text-gray-600">
           <div className="flex items-center space-x-2">
             <div className="w-3 h-3 rounded-full bg-red-500 opacity-30"></div>
-            <span>Redness ({Math.round(analysisData.redness.redness_perc * 100)}%)</span>
+            <span>Redness ({Math.round(analysisData.redness.redness_perc * 100)}% - {analysisData.redness.polygons?.length || 0} areas)</span>
           </div>
           <div className="flex items-center space-x-2">
             <div className="w-3 h-3 rounded-full bg-orange-500"></div>
@@ -171,24 +171,70 @@ export default function SkinAnalysisImage({
             {/* Redness Polygons */}
             {showRedness && analysisData.redness.polygons && 
               analysisData.redness.polygons.map((polygon, index) => {
-                if (polygon.length < 3) return null; // Need at least 3 points for a polygon
+                // Handle different polygon types
+                if (polygon.length === 1) {
+                  // Single point - render as a small circle
+                  const [x, y] = polygon[0];
+                  const scaled = scaleCoordinates(x, y, 4, 4); // 4x4 pixel circle
+                  
+                  return (
+                    <motion.circle
+                      key={`redness-point-${index}`}
+                      cx={scaled.x + scaled.width / 2}
+                      cy={scaled.y + scaled.height / 2}
+                      r="2"
+                      fill={REDNESS_COLOR}
+                      fillOpacity={REDNESS_OPACITY}
+                      stroke={REDNESS_COLOR}
+                      strokeWidth="1"
+                      initial={{ opacity: 0, scale: 0 }}
+                      animate={{ opacity: REDNESS_OPACITY, scale: 1 }}
+                      transition={{ duration: 0.5, delay: index * 0.1 }}
+                    />
+                  );
+                } else if (polygon.length === 2) {
+                  // Two points - render as a line
+                  const [x1, y1] = polygon[0];
+                  const [x2, y2] = polygon[1];
+                  const scaled1 = scaleCoordinates(x1, y1, 0, 0);
+                  const scaled2 = scaleCoordinates(x2, y2, 0, 0);
+                  
+                  return (
+                    <motion.line
+                      key={`redness-line-${index}`}
+                      x1={scaled1.x}
+                      y1={scaled1.y}
+                      x2={scaled2.x}
+                      y2={scaled2.y}
+                      stroke={REDNESS_COLOR}
+                      strokeWidth="2"
+                      strokeOpacity={REDNESS_OPACITY}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: REDNESS_OPACITY }}
+                      transition={{ duration: 0.5, delay: index * 0.1 }}
+                    />
+                  );
+                } else if (polygon.length >= 3) {
+                  // Valid polygon - render as polygon
+                  const scaledPolygon = scalePolygon(polygon);
+                  const points = scaledPolygon.map(([x, y]) => `${x},${y}`).join(' ');
+                  
+                  return (
+                    <motion.polygon
+                      key={`redness-polygon-${index}`}
+                      points={points}
+                      fill={REDNESS_COLOR}
+                      fillOpacity={REDNESS_OPACITY}
+                      stroke={REDNESS_COLOR}
+                      strokeWidth="1"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: REDNESS_OPACITY }}
+                      transition={{ duration: 0.5, delay: index * 0.1 }}
+                    />
+                  );
+                }
                 
-                const scaledPolygon = scalePolygon(polygon);
-                const points = scaledPolygon.map(([x, y]) => `${x},${y}`).join(' ');
-                
-                return (
-                  <motion.polygon
-                    key={`redness-${index}`}
-                    points={points}
-                    fill={REDNESS_COLOR}
-                    fillOpacity={REDNESS_OPACITY}
-                    stroke={REDNESS_COLOR}
-                    strokeWidth="1"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: REDNESS_OPACITY }}
-                    transition={{ duration: 0.5, delay: index * 0.1 }}
-                  />
-                );
+                return null;
               })
             }
 
@@ -331,6 +377,17 @@ export default function SkinAnalysisImage({
           <div className="text-sm text-blue-700">
             <div>Dimensions: {analysisData.image.width} × {analysisData.image.height}</div>
             <div>Analysis Time: {analysisData.predictions.length > 0 ? 'Completed' : 'Processing'}</div>
+            <div>Redness Areas: {analysisData.redness.polygons?.length || 0}</div>
+            {analysisData.redness.polygons && analysisData.redness.polygons.length > 0 && (
+              <div className="mt-1 text-xs">
+                <div>Polygon types:</div>
+                {analysisData.redness.polygons.map((polygon, i) => (
+                  <div key={i} className="text-gray-600">
+                    Area {i + 1}: {polygon.length} point{polygon.length !== 1 ? 's' : ''}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>

@@ -75,6 +75,16 @@ export interface AnalysisResponse {
     classification: string;
   };
   
+  // Redness analysis
+  redness?: {
+    num_polygons: number;
+    polygons: Array<Array<[number, number]>>;
+    analysis_width: number;
+    analysis_height: number;
+    erythema: boolean;
+    redness_perc: number;
+  };
+  
   // Product recommendations
   recommendations?: {
     user: {

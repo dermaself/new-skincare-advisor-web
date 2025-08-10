@@ -3,6 +3,7 @@
 import { motion } from 'framer-motion';
 import { CheckCircle, AlertTriangle, Info, ArrowLeft, Share2, Download, Heart } from 'lucide-react';
 import { AnalysisResult, SkinConcern } from './SkinAnalysis';
+import SkinAnalysisImage from './SkinAnalysisImage';
 
 interface AnalysisResultsProps {
   result: AnalysisResult;
@@ -59,7 +60,7 @@ export default function AnalysisResults({ result, onReset }: AnalysisResultsProp
       </motion.div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Image and Health Score */}
+        {/* Enhanced Image Analysis */}
         <motion.div
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
@@ -67,17 +68,39 @@ export default function AnalysisResults({ result, onReset }: AnalysisResultsProp
           className="lg:col-span-1"
         >
           <div className="card">
-            <div className="relative mb-4">
-              <img
-                src={result.imageUrl}
-                alt="Analyzed skin"
-                className="w-full h-48 object-cover rounded-lg"
+            {/* Enhanced Skin Analysis Image */}
+            {result.rawAnalysisData ? (
+              <SkinAnalysisImage
+                imageUrl={result.imageUrl}
+                analysisData={{
+                  predictions: result.rawAnalysisData.predictions || [],
+                  redness: result.rawAnalysisData.redness || {
+                    num_polygons: 0,
+                    polygons: [],
+                    analysis_width: 0,
+                    analysis_height: 0,
+                    erythema: false,
+                    redness_perc: 0
+                  },
+                  image: result.rawAnalysisData.image || { width: 0, height: 0 }
+                }}
+                className="mb-4"
               />
-              <div className="absolute top-2 right-2 bg-white bg-opacity-90 rounded-full p-2">
-                <Heart className="w-5 h-5 text-red-500" />
+            ) : (
+              // Fallback to simple image display
+              <div className="relative mb-4">
+                <img
+                  src={result.imageUrl}
+                  alt="Analyzed skin"
+                  className="w-full h-48 object-cover rounded-lg"
+                />
+                <div className="absolute top-2 right-2 bg-white bg-opacity-90 rounded-full p-2">
+                  <Heart className="w-5 h-5 text-red-500" />
+                </div>
               </div>
-            </div>
+            )}
 
+            {/* Health Score */}
             <div className="text-center">
               <h3 className="text-lg font-semibold text-gray-900 mb-2">
                 Overall Skin Health

@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Camera, FileText, Sparkles, Heart, CheckCircle, ArrowLeft, Info, RotateCcw } from 'lucide-react';
 import CameraCapture from './CameraCapture';
 import RoutineProductCard from './RoutineProductCard';
+import SkinAnalysisImage from './SkinAnalysisImage';
 
 
 interface SkinAnalysisModalProps {
@@ -339,6 +340,7 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false }:
   const [selectedAgeGroup, setSelectedAgeGroup] = useState<string>('');
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [imageMetadata, setImageMetadata] = useState<any>(null);
+  const [analysisData, setAnalysisData] = useState<any>(null);
   const [showCamera, setShowCamera] = useState(false);
   const [openInfo, setOpenInfo] = useState<string | null>(null);
   
@@ -369,6 +371,8 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false }:
       setSelectedSkinType('');
       setSelectedAgeGroup('');
       setCapturedImage(null);
+      setImageMetadata(null);
+      setAnalysisData(null);
       setShowCamera(false);
       setOpenInfo(null);
       setRoutine(null);
@@ -831,6 +835,9 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false }:
         userData,
         metadata
       );
+      
+      // Store the raw analysis data for the image visualization
+      setAnalysisData(analysisResult);
       
       // Transform result to match expected format
       const transformedResult = transformAnalysisResult(analysisResult);
@@ -1380,31 +1387,53 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false }:
                         <div className="bg-gradient-to-br from-primary-600 to-primary-700 rounded-lg p-6 text-white mb-6">
                           <h2 className="text-xl font-bold mb-4 text-center">AI PHOTO ANALYSIS</h2>
                           
-                          {/* Radar Chart Placeholder */}
-                          <div className="relative w-64 h-64 mx-auto mb-4">
-                            <div className="absolute inset-0 flex items-center justify-center">
-                              <div className="w-48 h-48 border-2 border-white/30 rounded-full flex items-center justify-center">
-                                <div className="w-32 h-32 border-2 border-white/50 rounded-full flex items-center justify-center">
-                                  <div className="w-16 h-16 border-2 border-white/70 rounded-full flex items-center justify-center">
-                                    <div className="w-8 h-8 bg-white/20 rounded-full"></div>
+                          {/* Enhanced Image Analysis */}
+                          {capturedImage && analysisData ? (
+                            <div className="bg-white rounded-lg p-4">
+                              <SkinAnalysisImage
+                                imageUrl={capturedImage}
+                                analysisData={{
+                                  predictions: analysisData.predictions || [],
+                                  redness: analysisData.redness || {
+                                    num_polygons: 0,
+                                    polygons: [],
+                                    analysis_width: 0,
+                                    analysis_height: 0,
+                                    erythema: false,
+                                    redness_perc: 0
+                                  },
+                                  image: analysisData.image || { width: 0, height: 0 }
+                                }}
+                                className="text-black"
+                              />
+                            </div>
+                          ) : (
+                            /* Fallback Radar Chart Placeholder */
+                            <div className="relative w-64 h-64 mx-auto mb-4">
+                              <div className="absolute inset-0 flex items-center justify-center">
+                                <div className="w-48 h-48 border-2 border-white/30 rounded-full flex items-center justify-center">
+                                  <div className="w-32 h-32 border-2 border-white/50 rounded-full flex items-center justify-center">
+                                    <div className="w-16 h-16 border-2 border-white/70 rounded-full flex items-center justify-center">
+                                      <div className="w-8 h-8 bg-white/20 rounded-full"></div>
+                                    </div>
                                   </div>
                                 </div>
                               </div>
+                              
+                              {/* Priority Indicator */}
+                              <div className="absolute top-0 right-0 bg-yellow-400 text-primary-800 px-2 py-1 rounded-full text-xs font-bold">
+                                {selectedConcerns[0] || 'Dehydration'} - Your Priority
+                              </div>
+                              
+                              {/* Concern Labels */}
+                              <div className="absolute top-1/4 right-0 text-xs font-semibold">Dehydration</div>
+                              <div className="absolute bottom-1/4 right-0 text-xs font-semibold">Acne & Blemishes</div>
+                              <div className="absolute bottom-1/4 left-0 text-xs font-semibold text-right">Dark Spots &<br/>Uneven Tone</div>
+                              <div className="absolute top-1/4 left-0 text-xs font-semibold text-right">Dark Circles</div>
+                              <div className="absolute top-0 left-1/2 transform -translate-x-1/2 text-xs font-semibold text-center">Fine Lines &<br/>Wrinkles</div>
+                              <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 text-xs font-semibold text-center">Eye Bags</div>
                             </div>
-                            
-                            {/* Priority Indicator */}
-                            <div className="absolute top-0 right-0 bg-yellow-400 text-primary-800 px-2 py-1 rounded-full text-xs font-bold">
-                              {selectedConcerns[0] || 'Dehydration'} - Your Priority
-                            </div>
-                            
-                            {/* Concern Labels */}
-                            <div className="absolute top-1/4 right-0 text-xs font-semibold">Dehydration</div>
-                            <div className="absolute bottom-1/4 right-0 text-xs font-semibold">Acne & Blemishes</div>
-                            <div className="absolute bottom-1/4 left-0 text-xs font-semibold text-right">Dark Spots &<br/>Uneven Tone</div>
-                            <div className="absolute top-1/4 left-0 text-xs font-semibold text-right">Dark Circles</div>
-                            <div className="absolute top-0 left-1/2 transform -translate-x-1/2 text-xs font-semibold text-center">Fine Lines &<br/>Wrinkles</div>
-                            <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 text-xs font-semibold text-center">Eye Bags</div>
-                          </div>
+                          )}
                         </div>
 
                         {/* Results Info */}

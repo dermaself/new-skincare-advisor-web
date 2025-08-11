@@ -173,64 +173,157 @@ export default function SkinAnalysisImage({
               analysisData.redness.polygons.map((polygon, index) => {
                 // Handle different polygon types
                 if (polygon.length === 1) {
-                  // Single point - render as a small circle
+                  // Single point - render as a small circle with label
                   const [x, y] = polygon[0];
                   const scaled = scaleCoordinates(x, y, 4, 4); // 4x4 pixel circle
                   
                   return (
-                    <motion.circle
-                      key={`redness-point-${index}`}
-                      cx={scaled.x + scaled.width / 2}
-                      cy={scaled.y + scaled.height / 2}
-                      r="2"
-                      fill={REDNESS_COLOR}
-                      fillOpacity={REDNESS_OPACITY}
-                      stroke={REDNESS_COLOR}
-                      strokeWidth="1"
-                      initial={{ opacity: 0, scale: 0 }}
-                      animate={{ opacity: REDNESS_OPACITY, scale: 1 }}
-                      transition={{ duration: 0.5, delay: index * 0.1 }}
-                    />
+                    <g key={`redness-point-${index}`}>
+                      <motion.circle
+                        cx={scaled.x + scaled.width / 2}
+                        cy={scaled.y + scaled.height / 2}
+                        r="2"
+                        fill={REDNESS_COLOR}
+                        fillOpacity={REDNESS_OPACITY}
+                        stroke={REDNESS_COLOR}
+                        strokeWidth="1"
+                        initial={{ opacity: 0, scale: 0 }}
+                        animate={{ opacity: REDNESS_OPACITY, scale: 1 }}
+                        transition={{ duration: 0.5, delay: index * 0.1 }}
+                      />
+                      
+                      {/* Label Background */}
+                      <motion.rect
+                        x={scaled.x - 30}
+                        y={scaled.y - 35}
+                        width="60"
+                        height="20"
+                        fill={REDNESS_COLOR}
+                        rx="3"
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.3, delay: index * 0.1 + 0.1 }}
+                      />
+                      
+                      {/* Label Text */}
+                      <motion.text
+                        x={scaled.x}
+                        y={scaled.y - 20}
+                        fill="white"
+                        fontSize="10"
+                        fontWeight="bold"
+                        textAnchor="middle"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ duration: 0.3, delay: index * 0.1 + 0.2 }}
+                      >
+                        Redness
+                      </motion.text>
+                    </g>
                   );
                 } else if (polygon.length === 2) {
-                  // Two points - render as a line
+                  // Two points - render as a line with label
                   const [x1, y1] = polygon[0];
                   const [x2, y2] = polygon[1];
                   const scaled1 = scaleCoordinates(x1, y1, 0, 0);
                   const scaled2 = scaleCoordinates(x2, y2, 0, 0);
+                  const midX = (scaled1.x + scaled2.x) / 2;
+                  const midY = (scaled1.y + scaled2.y) / 2;
                   
                   return (
-                    <motion.line
-                      key={`redness-line-${index}`}
-                      x1={scaled1.x}
-                      y1={scaled1.y}
-                      x2={scaled2.x}
-                      y2={scaled2.y}
-                      stroke={REDNESS_COLOR}
-                      strokeWidth="2"
-                      strokeOpacity={REDNESS_OPACITY}
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: REDNESS_OPACITY }}
-                      transition={{ duration: 0.5, delay: index * 0.1 }}
-                    />
+                    <g key={`redness-line-${index}`}>
+                      <motion.line
+                        x1={scaled1.x}
+                        y1={scaled1.y}
+                        x2={scaled2.x}
+                        y2={scaled2.y}
+                        stroke={REDNESS_COLOR}
+                        strokeWidth="2"
+                        strokeOpacity={REDNESS_OPACITY}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: REDNESS_OPACITY }}
+                        transition={{ duration: 0.5, delay: index * 0.1 }}
+                      />
+                      
+                      {/* Label Background */}
+                      <motion.rect
+                        x={midX - 30}
+                        y={midY - 35}
+                        width="60"
+                        height="20"
+                        fill={REDNESS_COLOR}
+                        rx="3"
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.3, delay: index * 0.1 + 0.1 }}
+                      />
+                      
+                      {/* Label Text */}
+                      <motion.text
+                        x={midX}
+                        y={midY - 20}
+                        fill="white"
+                        fontSize="10"
+                        fontWeight="bold"
+                        textAnchor="middle"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ duration: 0.3, delay: index * 0.1 + 0.2 }}
+                      >
+                        Redness
+                      </motion.text>
+                    </g>
                   );
                 } else if (polygon.length >= 3) {
-                  // Valid polygon - render as polygon
+                  // Valid polygon - render as polygon with label
                   const scaledPolygon = scalePolygon(polygon);
                   const points = scaledPolygon.map(([x, y]) => `${x},${y}`).join(' ');
                   
+                  // Calculate center of polygon for label placement
+                  const centerX = scaledPolygon.reduce((sum, [x]) => sum + x, 0) / scaledPolygon.length;
+                  const centerY = scaledPolygon.reduce((sum, [y]) => sum + y, 0) / scaledPolygon.length;
+                  
                   return (
-                    <motion.polygon
-                      key={`redness-polygon-${index}`}
-                      points={points}
-                      fill={REDNESS_COLOR}
-                      fillOpacity={REDNESS_OPACITY}
-                      stroke={REDNESS_COLOR}
-                      strokeWidth="1"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: REDNESS_OPACITY }}
-                      transition={{ duration: 0.5, delay: index * 0.1 }}
-                    />
+                    <g key={`redness-polygon-${index}`}>
+                      <motion.polygon
+                        points={points}
+                        fill={REDNESS_COLOR}
+                        fillOpacity={REDNESS_OPACITY}
+                        stroke={REDNESS_COLOR}
+                        strokeWidth="1"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: REDNESS_OPACITY }}
+                        transition={{ duration: 0.5, delay: index * 0.1 }}
+                      />
+                      
+                      {/* Label Background */}
+                      <motion.rect
+                        x={centerX - 30}
+                        y={centerY - 35}
+                        width="60"
+                        height="20"
+                        fill={REDNESS_COLOR}
+                        rx="3"
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.3, delay: index * 0.1 + 0.1 }}
+                      />
+                      
+                      {/* Label Text */}
+                      <motion.text
+                        x={centerX}
+                        y={centerY - 20}
+                        fill="white"
+                        fontSize="10"
+                        fontWeight="bold"
+                        textAnchor="middle"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ duration: 0.3, delay: index * 0.1 + 0.2 }}
+                      >
+                        Redness
+                      </motion.text>
+                    </g>
                   );
                 }
                 

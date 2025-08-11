@@ -49,7 +49,7 @@ const ACNE_COLORS = {
 };
 
 const REDNESS_COLOR = '#FF4757';
-const REDNESS_OPACITY = 0.3;
+const REDNESS_OPACITY = 0.9;
 
 export default function SkinAnalysisImage({ 
   imageUrl, 
@@ -138,17 +138,6 @@ export default function SkinAnalysisImage({
             {showAcne ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
             <span className="text-sm font-medium">Acne</span>
           </button>
-        </div>
-
-        <div className="flex items-center space-x-4 text-sm text-gray-600">
-          <div className="flex items-center space-x-2">
-            <div className="w-3 h-3 rounded-full bg-red-500 opacity-30"></div>
-            <span>Redness ({Math.round(analysisData.redness.redness_perc * 100)}% - {analysisData.redness.polygons?.length || 0} areas)</span>
-          </div>
-          <div className="flex items-center space-x-2">
-            <div className="w-3 h-3 rounded-full bg-orange-500"></div>
-            <span>Acne ({analysisData.predictions.length} detected)</span>
-          </div>
         </div>
       </div>
 
@@ -434,7 +423,7 @@ export default function SkinAnalysisImage({
       </div>
 
       {/* Analysis Summary */}
-      <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="mt-4 grid grid-cols-1 gap-4">
         <div className="bg-red-50 border border-red-200 rounded-lg p-3">
           <div className="flex items-center space-x-2 mb-2">
             <AlertTriangle className="w-4 h-4 text-red-600" />

@@ -69,21 +69,49 @@ export default function SkinAnalysisImage({
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const imageRef = useRef<HTMLImageElement>(null);
   const [imageLoaded, setImageLoaded] = useState(false);
-  const [imageDimensions, setImageDimensions] = useState({ width: 0, height: 0 });
+  const [imageDimensions, setImageDimensions] = useState({ 
+    width: 0, 
+    height: 0, 
+    offsetX: 0, 
+    offsetY: 0 
+  });
 
-  // Create multiple images for carousel (original + processed versions)
+  // Create multiple images for carousel (analysis versions only)
   const carouselImages = [
-    { url: imageUrl, label: 'Original' },
-    { url: imageUrl, label: 'Acne Analysis' },
-    { url: imageUrl, label: 'Redness Analysis' }
+    { url: imageUrl, label: 'Acne Analysis', view: 'acne' as const },
+    { url: imageUrl, label: 'Redness Analysis', view: 'redness' as const }
   ];
 
   useEffect(() => {
     if (imageRef.current && imageLoaded) {
       const rect = imageRef.current.getBoundingClientRect();
+      const img = imageRef.current;
+      
+      // Calculate the actual displayed image dimensions with object-contain
+      const containerAspectRatio = rect.width / rect.height;
+      const imageAspectRatio = img.naturalWidth / img.naturalHeight;
+      
+      let displayWidth, displayHeight, offsetX, offsetY;
+      
+      if (imageAspectRatio > containerAspectRatio) {
+        // Image is wider than container - fit to width
+        displayWidth = rect.width;
+        displayHeight = rect.width / imageAspectRatio;
+        offsetX = 0;
+        offsetY = (rect.height - displayHeight) / 2;
+      } else {
+        // Image is taller than container - fit to height
+        displayHeight = rect.height;
+        displayWidth = rect.height * imageAspectRatio;
+        offsetX = (rect.width - displayWidth) / 2;
+        offsetY = 0;
+      }
+      
       setImageDimensions({
-        width: rect.width,
-        height: rect.height
+        width: displayWidth,
+        height: displayHeight,
+        offsetX,
+        offsetY
       });
     }
   }, [imageLoaded]);
@@ -99,8 +127,8 @@ export default function SkinAnalysisImage({
     const scaleY = imageDimensions.height / analysisData.image.height;
     
     return {
-      x: x * scaleX,
-      y: y * scaleY,
+      x: (x * scaleX) + imageDimensions.offsetX,
+      y: (y * scaleY) + imageDimensions.offsetY,
       width: width * scaleX,
       height: height * scaleY
     };
@@ -112,7 +140,10 @@ export default function SkinAnalysisImage({
     const scaleX = imageDimensions.width / analysisData.image.width;
     const scaleY = imageDimensions.height / analysisData.image.height;
     
-    return polygon.map(([x, y]) => [x * scaleX, y * scaleY]);
+    return polygon.map(([x, y]) => [
+      (x * scaleX) + imageDimensions.offsetX, 
+      (y * scaleY) + imageDimensions.offsetY
+    ]);
   };
 
   const getAcneColor = (className: string) => {
@@ -135,39 +166,19 @@ export default function SkinAnalysisImage({
 
   const goToImage = (index: number) => {
     setCurrentImageIndex(index);
-    if (index === 1) setCurrentView('acne');
-    if (index === 2) setCurrentView('redness');
+    setCurrentView(carouselImages[index].view);
   };
+
+  // Sync view with current image when image changes
+  useEffect(() => {
+    setCurrentView(carouselImages[currentImageIndex].view);
+  }, [currentImageIndex]);
 
   return (
     <div className={`relative ${className}`}>
-      {/* Header with View Toggle */}
+      {/* Header */}
       <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center space-x-4">
-          <h3 className="text-xl font-bold text-gray-900">Skin Analysis Results</h3>
-          <div className="flex items-center space-x-2 bg-gray-100 rounded-lg p-1">
-            <button
-              onClick={() => setCurrentView('acne')}
-              className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
-                currentView === 'acne'
-                  ? 'bg-white text-gray-900 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              Acne Detection
-            </button>
-            <button
-              onClick={() => setCurrentView('redness')}
-              className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
-                currentView === 'redness'
-                  ? 'bg-white text-gray-900 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              Redness Analysis
-            </button>
-          </div>
-        </div>
+        <h3 className="text-xl font-bold text-gray-900">Skin Analysis Results</h3>
         
         <button
           onClick={() => setShowOverlays(!showOverlays)}
@@ -200,15 +211,20 @@ export default function SkinAnalysisImage({
                   ref={imageRef}
                   src={carouselImages[currentImageIndex].url}
                   alt={carouselImages[currentImageIndex].label}
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-contain"
                   onLoad={handleImageLoad}
                 />
 
                 {/* SVG Overlay */}
                 {imageLoaded && showOverlays && (
                   <svg
-                    className="absolute top-0 left-0 w-full h-full pointer-events-none"
-                    style={{ width: imageDimensions.width, height: imageDimensions.height }}
+                    className="absolute pointer-events-none"
+                    style={{ 
+                      width: imageDimensions.width, 
+                      height: imageDimensions.height,
+                      left: imageDimensions.offsetX,
+                      top: imageDimensions.offsetY
+                    }}
                   >
                     {/* Redness Polygons - only show in redness view */}
                     {currentView === 'redness' && analysisData.redness.polygons && 
@@ -406,7 +422,7 @@ export default function SkinAnalysisImage({
       )}
 
       {/* Analysis Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 gap-4">
         {/* Redness Analysis Card */}
         <motion.div 
           className="bg-gradient-to-br from-red-50 to-red-100 border border-red-200 rounded-xl p-4"

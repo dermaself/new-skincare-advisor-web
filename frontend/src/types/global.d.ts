@@ -24,6 +24,13 @@ declare global {
 
   // Global cache types for webhook-based cart updates
   var pendingCartUpdates: Map<string, any> | undefined;
+
+  // JSX namespace for React components
+  namespace JSX {
+    interface IntrinsicElements {
+      [elemName: string]: any;
+    }
+  }
 }
 
 export {}; 

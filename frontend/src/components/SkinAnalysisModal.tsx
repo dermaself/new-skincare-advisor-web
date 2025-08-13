@@ -947,16 +947,20 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false }:
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          className={`fixed inset-0 z-50 flex items-center justify-center ${
+            embedded ? 'p-0' : 'p-4'
+          }`}
         >
           {/* Backdrop */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-            onClick={handleCameraClose}
-          />
+          {!embedded && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+              onClick={handleCameraClose}
+            />
+          )}
 
           {/* Modal */}
           <motion.div
@@ -964,7 +968,19 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false }:
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.95, opacity: 0 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="relative w-full max-w-[540px] max-h-[95vh] bg-white shadow-xl overflow-hidden flex flex-col h-full"
+            className={`relative w-full bg-white shadow-xl overflow-hidden flex flex-col h-full ${
+              embedded 
+                ? 'max-w-none' 
+                : 'max-w-[540px] max-h-[95vh]'
+            }`}
+            style={{
+              ...(embedded && {
+                width: '100vw',
+                height: '100vh',
+                maxWidth: '100vw',
+                maxHeight: '100vh'
+              })
+            }}
           >
             <CameraCapture
               onCapture={handleImageCapture}
@@ -983,16 +999,20 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false }:
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-50 flex items-center justify-center p-4"
+        className={`fixed inset-0 z-50 flex items-center justify-center ${
+          embedded ? 'p-0' : 'p-4'
+        }`}
       >
         {/* Backdrop */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-          onClick={handleClose}
-        />
+        {!embedded && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            onClick={handleClose}
+          />
+        )}
 
         {/* Modal */}
         <motion.div
@@ -1000,7 +1020,19 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false }:
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.95, opacity: 0 }}
           transition={{ type: "spring", damping: 25, stiffness: 300 }}
-          className="relative w-full max-w-[540px] max-h-[95vh] bg-white shadow-xl overflow-hidden flex flex-col"
+          className={`relative w-full bg-white shadow-xl overflow-hidden flex flex-col ${
+            embedded 
+              ? 'h-full max-w-none' 
+              : 'max-w-[540px] max-h-[95vh] md:max-w-[540px] md:max-h-[95vh] sm:max-w-[540px] sm:max-h-[95vh]'
+          }`}
+          style={{
+            ...(embedded && {
+              width: '100vw',
+              height: '100vh',
+              maxWidth: '100vw',
+              maxHeight: '100vh'
+            })
+          }}
         >
           {/* Header */}
           <div className="relative bg-primary-600">

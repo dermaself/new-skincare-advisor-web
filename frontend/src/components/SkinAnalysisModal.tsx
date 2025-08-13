@@ -1421,24 +1421,22 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false }:
                           
                           {/* Enhanced Image Analysis */}
                           {capturedImage && analysisData ? (
-                            <div className="bg-white rounded-lg p-4">
-                              <SkinAnalysisImage
-                                imageUrl={capturedImage}
-                                analysisData={{
-                                  predictions: analysisData.predictions || [],
-                                  redness: analysisData.redness || {
-                                    num_polygons: 0,
-                                    polygons: [],
-                                    analysis_width: 0,
-                                    analysis_height: 0,
-                                    erythema: false,
-                                    redness_perc: 0
-                                  },
-                                  image: analysisData.image || { width: 0, height: 0 }
-                                }}
-                                className="text-black"
-                              />
-                            </div>
+                            <SkinAnalysisImage
+                              imageUrl={capturedImage}
+                              analysisData={{
+                                predictions: analysisData.predictions || [],
+                                redness: analysisData.redness || {
+                                  num_polygons: 0,
+                                  polygons: [],
+                                  analysis_width: 0,
+                                  analysis_height: 0,
+                                  erythema: false,
+                                  redness_perc: 0
+                                },
+                                image: analysisData.image || { width: 0, height: 0 }
+                              }}
+                              className="text-black"
+                            />
                           ) : (
                             /* Fallback Radar Chart Placeholder */
                             <div className="relative w-64 h-64 mx-auto mb-4">

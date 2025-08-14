@@ -182,7 +182,7 @@ export default function SkinAnalysisImage({
         
         <button
           onClick={() => setShowOverlays(!showOverlays)}
-          className={`flex w-full md:w-auto items-center space-x-2 px-3 py-2 rounded-md transition-colors ${
+          className={`flex w-full mx-4 md:mx-0 md:w-auto items-center justify-center space-x-2 px-3 py-2 rounded-md transition-colors ${
             showOverlays 
               ? 'bg-blue-100 text-blue-700 border border-blue-200' 
               : 'bg-gray-100 text-gray-600 border border-gray-200'

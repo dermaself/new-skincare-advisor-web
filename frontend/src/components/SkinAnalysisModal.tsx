@@ -1126,7 +1126,7 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false }:
           </div>
 
           {/* Content */}
-          <div className="modal-content p-4 max-h-[65vh] overflow-y-auto">
+          <div className="modal-content py-4 max-h-[65vh] overflow-y-auto">
             <AnimatePresence key="content-steps" mode="wait">
               {currentStep === 'onboarding' && (
                 <motion.div
@@ -1412,11 +1412,11 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false }:
                     </div>
 
                   {/* Tab Content */}
-                  <div className="flex-1 overflow-y-auto">
+                  <div className="flex-1 overflow-y-auto py-4">
                     {activeTab === 'results' && (
                       <div>
                         {/* AI Photo Analysis Section */}
-                        <div className="bg-gradient-to-br from-primary-600 to-primary-700 rounded-lg p-6 text-white mb-6">
+                        <div className="bg-gradient-to-br from-primary-600 to-primary-700 text-white py-6 mb-6">
                           <h2 className="text-xl font-bold mb-4 text-center">AI PHOTO ANALYSIS</h2>
                           
                           {/* Enhanced Image Analysis */}
@@ -1467,7 +1467,7 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false }:
                         </div>
 
                         {/* Results Info */}
-                        <div className="bg-white border border-gray-200 rounded-lg p-6">
+                        <div className="bg-white border border-gray-200 rounded-lg p-2 md:p-6 mx-2">
                           <p className="text-sm text-gray-600 mb-4">
                             These results are based on your AI skin health photo analysis. The highest scores represent the skin concerns that are most prominent on your skin.
                           </p>

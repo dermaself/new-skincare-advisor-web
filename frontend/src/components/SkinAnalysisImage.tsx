@@ -178,11 +178,11 @@ export default function SkinAnalysisImage({
     <div className={`relative ${className}`}>
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
-        <h3 className="text-xl font-bold text-gray-900">Skin Analysis Results</h3>
+        <h3 className="text-xl hidden md:block font-bold text-gray-900">Skin Analysis Results</h3>
         
         <button
           onClick={() => setShowOverlays(!showOverlays)}
-          className={`flex items-center space-x-2 px-3 py-2 rounded-md transition-colors ${
+          className={`flex w-full md:w-auto items-center space-x-2 px-3 py-2 rounded-md transition-colors ${
             showOverlays 
               ? 'bg-blue-100 text-blue-700 border border-blue-200' 
               : 'bg-gray-100 text-gray-600 border border-gray-200'
@@ -422,7 +422,7 @@ export default function SkinAnalysisImage({
       )}
 
       {/* Analysis Summary Cards */}
-      <div className="grid grid-cols-1 gap-4">
+      <div className="grid grid-cols-1 gap-4 p-2">
         {/* Redness Analysis Card */}
         <motion.div 
           className="bg-gradient-to-br from-red-50 to-red-100 border border-red-200 rounded-xl p-4"

@@ -177,7 +177,7 @@ export default function SkinAnalysisImage({
   return (
     <div className={`relative ${className}`}>
       {/* Header */}
-      <div className="flex items-center justify-between mb-6 px-4">
+      <div className="flex items-center justify-between mb-6">
         <h3 className="text-xl font-bold text-gray-900">Skin Analysis Results</h3>
         
         <button
@@ -194,7 +194,7 @@ export default function SkinAnalysisImage({
       </div>
 
       {/* Image Carousel */}
-      <div className="relative mb-6 -mx-4">
+      <div className="relative mb-6">
         <div className="relative overflow-hidden bg-gray-100">
           {/* Carousel Images */}
           <div className="relative h-96 w-full">
@@ -211,7 +211,7 @@ export default function SkinAnalysisImage({
                   ref={imageRef}
                   src={carouselImages[currentImageIndex].url}
                   alt={carouselImages[currentImageIndex].label}
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-contain"
                   onLoad={handleImageLoad}
                 />
 
@@ -422,7 +422,7 @@ export default function SkinAnalysisImage({
       )}
 
       {/* Analysis Summary Cards */}
-      <div className="grid grid-cols-1 gap-4 px-4">
+      <div className="grid grid-cols-1 gap-4">
         {/* Redness Analysis Card */}
         <motion.div 
           className="bg-gradient-to-br from-red-50 to-red-100 border border-red-200 rounded-xl p-4"

@@ -1414,7 +1414,7 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false }:
                   {/* Tab Content */}
                   <div className="flex-1 overflow-y-auto">
                     {activeTab === 'results' && (
-                      <div className="p-6">
+                      <div>
                         {/* AI Photo Analysis Section */}
                         <div className="bg-gradient-to-br from-primary-600 to-primary-700 rounded-lg p-6 text-white mb-6">
                           <h2 className="text-xl font-bold mb-4 text-center">AI PHOTO ANALYSIS</h2>
@@ -1482,7 +1482,7 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false }:
                     )}
 
                     {activeTab === 'routine' && (
-                      <div className="p-6">
+                      <div>
                         {/* Your Skin Routine Section */}
                         <div className="bg-white border border-gray-200 rounded-lg p-6">
                           <div className="mb-4">

@@ -107,6 +107,17 @@ export default function SkinAnalysisImage({
         offsetY = 0;
       }
       
+      console.log('Calculated display dimensions:', {
+        displayWidth: Math.round(displayWidth),
+        displayHeight: Math.round(displayHeight),
+        offsetX: Math.round(offsetX),
+        offsetY: Math.round(offsetY),
+        naturalWidth: img.naturalWidth,
+        naturalHeight: img.naturalHeight,
+        containerWidth: rect.width,
+        containerHeight: rect.height
+      });
+      
       setImageDimensions({
         width: displayWidth,
         height: displayHeight,
@@ -118,6 +129,13 @@ export default function SkinAnalysisImage({
 
   const handleImageLoad = () => {
     setImageLoaded(true);
+    
+    // Debug: Log the actual image dimensions
+    if (imageRef.current) {
+      const img = imageRef.current;
+      console.log('Image loaded - Natural dimensions:', img.naturalWidth, 'x', img.naturalHeight);
+      console.log('Image loaded - Display dimensions:', img.offsetWidth, 'x', img.offsetHeight);
+    }
   };
 
   const scaleCoordinates = (x: number, y: number, width: number, height: number) => {
@@ -197,7 +215,10 @@ export default function SkinAnalysisImage({
       <div className="relative mb-6">
         <div className="relative overflow-hidden bg-gray-100">
           {/* Carousel Images */}
-          <div className="relative h-96 w-full">
+          <div className="relative w-full flex justify-center items-center bg-gray-50" style={{ 
+            minHeight: '384px',
+            maxHeight: '80vh'
+          }}>
             <AnimatePresence mode="wait">
               <motion.div
                 key={currentImageIndex}
@@ -211,7 +232,7 @@ export default function SkinAnalysisImage({
                   ref={imageRef}
                   src={carouselImages[currentImageIndex].url}
                   alt={carouselImages[currentImageIndex].label}
-                  className="w-full h-full object-contain"
+                  className="max-w-full max-h-full object-contain"
                   onLoad={handleImageLoad}
                 />
 
@@ -520,9 +541,15 @@ export default function SkinAnalysisImage({
           </div>
           <div className="space-y-2">
             <div className="flex justify-between">
-              <span className="text-sm text-blue-700">Dimensions:</span>
+              <span className="text-sm text-blue-700">Original:</span>
               <span className="text-sm font-semibold text-blue-900">
                 {analysisData.image.width} × {analysisData.image.height}
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-sm text-blue-700">Displayed:</span>
+              <span className="text-sm font-semibold text-blue-900">
+                {imageLoaded ? `${Math.round(imageDimensions.width)} × ${Math.round(imageDimensions.height)}` : 'Loading...'}
               </span>
             </div>
             <div className="flex justify-between">

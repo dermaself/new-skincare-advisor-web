@@ -171,9 +171,7 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
       const mediaStream = await navigator.mediaDevices.getUserMedia({
         video: {
           facingMode: 'user', // Explicitly request front camera
-          width: { ideal: 720, min: 640 },
-          height: { ideal: 1280, min: 480 },
-          aspectRatio: { ideal: 0.5625 } // 9:16 aspect ratio for portrait
+          // Remove dimension constraints to use native camera resolution
         },
         audio: false,
       });
@@ -555,9 +553,18 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
         canvas.height = video.videoHeight;
     
     ctx.drawImage(video, 0, 0);
-        const imageData = canvas.toDataURL('image/jpeg', 0.8);
     
-        setCapturedImage(imageData);
+    // Log the original video dimensions
+    console.log('Original video dimensions:', video.videoWidth, 'x', video.videoHeight);
+    console.log('Canvas dimensions:', canvas.width, 'x', canvas.height);
+    
+    const imageData = canvas.toDataURL('image/jpeg', 1.0);
+    
+    // Log the captured image data size
+    console.log('Captured image data URL length:', imageData.length);
+    console.log('Estimated image size in KB:', Math.round(imageData.length * 0.75 / 1024));
+    
+    setCapturedImage(imageData);
         setCameraState('preview');
     stopCamera();
   };
@@ -578,15 +585,23 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
     const file = event.target.files?.[0];
     if (!file) return;
     
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const result = e.target?.result as string;
+    // Log the original file size
+    console.log('Original file size:', file.size, 'bytes');
+    console.log('Original file type:', file.type);
+    
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const result = e.target?.result as string;
       if (result) {
+        // Log the data URL size
+        console.log('File data URL length:', result.length);
+        console.log('Estimated file size in KB:', Math.round(result.length * 0.75 / 1024));
+        
         setCapturedImage(result);
         setCameraState('preview');
       }
-      };
-      reader.readAsDataURL(file);
+    };
+    reader.readAsDataURL(file);
   };
 
   const triggerFileUpload = () => {

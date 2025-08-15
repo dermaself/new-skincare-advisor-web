@@ -168,6 +168,10 @@ export async function getUploadUrl(mimeType: string = 'image/jpeg'): Promise<Upl
  * Upload image file to blob storage
  */
 export async function uploadImageFile(file: File): Promise<string> {
+  // Log the original file size
+  console.log('Uploading file - original size:', file.size, 'bytes');
+  console.log('File type:', file.type);
+  
   // OWASP: Validate file
   const maxSize = 10 * 1024 * 1024; // 10MB
   const minSize = 1024; // 1KB
@@ -216,9 +220,17 @@ export async function uploadImageFile(file: File): Promise<string> {
  */
 export async function uploadBase64Image(imageDataUrl: string): Promise<string> {
   try {
+    // Log the input data URL size
+    console.log('Uploading base64 image - data URL length:', imageDataUrl.length);
+    console.log('Estimated input size in KB:', Math.round(imageDataUrl.length * 0.75 / 1024));
+    
     // Convert data URL to blob
     const response = await fetch(imageDataUrl);
     const blob = await response.blob();
+    
+    // Log the blob size
+    console.log('Blob size:', blob.size, 'bytes');
+    console.log('Blob type:', blob.type);
     
     // Validate blob size
     const maxSize = 10 * 1024 * 1024; // 10MB

@@ -543,19 +543,26 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
   const capturePhoto = () => {
     if (!videoRef.current || !canvasRef.current) return;
     
-      const video = videoRef.current;
-      const canvas = canvasRef.current;
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d');
 
     if (!ctx) return;
     
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
+    // Get the displayed video dimensions (what user actually sees)
+    const displayedWidth = video.offsetWidth;
+    const displayedHeight = video.offsetHeight;
     
-    ctx.drawImage(video, 0, 0);
+    // Set canvas to displayed dimensions
+    canvas.width = displayedWidth;
+    canvas.height = displayedHeight;
     
-    // Log the original video dimensions
+    // Draw the video at displayed size
+    ctx.drawImage(video, 0, 0, displayedWidth, displayedHeight);
+    
+    // Log both original and displayed dimensions
     console.log('Original video dimensions:', video.videoWidth, 'x', video.videoHeight);
+    console.log('Displayed video dimensions:', displayedWidth, 'x', displayedHeight);
     console.log('Canvas dimensions:', canvas.width, 'x', canvas.height);
     
     const imageData = canvas.toDataURL('image/jpeg', 1.0);
@@ -565,7 +572,7 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
     console.log('Estimated image size in KB:', Math.round(imageData.length * 0.75 / 1024));
     
     setCapturedImage(imageData);
-        setCameraState('preview');
+    setCameraState('preview');
     stopCamera();
   };
 

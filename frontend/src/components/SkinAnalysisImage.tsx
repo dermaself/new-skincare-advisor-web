@@ -107,7 +107,9 @@ export default function SkinAnalysisImage({
         offsetWidth: img.offsetWidth,
         offsetHeight: img.offsetHeight,
         containerWidth: containerWidth,
-        calculatedHeight: calculatedHeight
+        calculatedHeight: calculatedHeight,
+        scaleX: containerWidth / displayWidth,
+        scaleY: calculatedHeight / displayHeight
       });
       console.log('=== IMAGE DISPLAY COMPLETE ===');
       
@@ -137,24 +139,34 @@ export default function SkinAnalysisImage({
   };
 
   const scaleCoordinates = (x: number, y: number, width: number, height: number) => {
-    if (!imageDimensions.width || !imageDimensions.height) return { x: 0, y: 0, width: 0, height: 0 };
+    if (!imageDimensions.width || !imageDimensions.height || !containerRef.current) return { x: 0, y: 0, width: 0, height: 0 };
     
-    // Since we now capture at displayed size, coordinates should match directly
-    // No scaling needed - use coordinates as-is
+    // Scale coordinates from image dimensions to container dimensions
+    const containerWidth = containerRef.current.offsetWidth;
+    const containerHeight = containerRef.current.offsetHeight;
+    
+    const scaleX = containerWidth / imageDimensions.width;
+    const scaleY = containerHeight / imageDimensions.height;
+    
     return {
-      x: x,
-      y: y,
-      width: width,
-      height: height
+      x: x * scaleX,
+      y: y * scaleY,
+      width: width * scaleX,
+      height: height * scaleY
     };
   };
 
   const scalePolygon = (polygon: [number, number][]) => {
-    if (!imageDimensions.width || !imageDimensions.height) return [];
+    if (!imageDimensions.width || !imageDimensions.height || !containerRef.current) return [];
     
-    // Since we now capture at displayed size, coordinates should match directly
-    // No scaling needed - use coordinates as-is
-    return polygon.map(([x, y]) => [x, y]);
+    // Scale coordinates from image dimensions to container dimensions
+    const containerWidth = containerRef.current.offsetWidth;
+    const containerHeight = containerRef.current.offsetHeight;
+    
+    const scaleX = containerWidth / imageDimensions.width;
+    const scaleY = containerHeight / imageDimensions.height;
+    
+    return polygon.map(([x, y]) => [x * scaleX, y * scaleY]);
   };
 
   const getAcneColor = (className: string) => {
@@ -210,7 +222,7 @@ export default function SkinAnalysisImage({
           {/* Carousel Images */}
           <div 
             ref={containerRef}
-            className="relative w-full flex justify-center items-center bg-gray-50 overflow-auto" 
+            className="relative w-full flex justify-center items-center bg-gray-50" 
             style={{ 
               minHeight: '384px',
               height: `${calculatedHeight}px`
@@ -229,20 +241,15 @@ export default function SkinAnalysisImage({
                   ref={imageRef}
                   src={carouselImages[currentImageIndex].url}
                   alt={carouselImages[currentImageIndex].label}
-                  style={{ 
-                    width: 'auto',
-                    height: 'auto'
-                  }}
+                  className="w-full h-full object-contain"
                   onLoad={handleImageLoad}
                 />
 
                 {/* SVG Overlay */}
                 {imageLoaded && showOverlays && (
                   <svg
-                    className="absolute pointer-events-none"
+                    className="absolute pointer-events-none w-full h-full"
                     style={{ 
-                      width: imageDimensions.width, 
-                      height: imageDimensions.height,
                       left: 0,
                       top: 0
                     }}

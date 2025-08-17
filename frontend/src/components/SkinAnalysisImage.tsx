@@ -84,39 +84,21 @@ export default function SkinAnalysisImage({
 
   useEffect(() => {
     if (imageRef.current && imageLoaded) {
-      const rect = imageRef.current.getBoundingClientRect();
       const img = imageRef.current;
       
-      // Calculate the actual displayed image dimensions with object-contain
-      const containerAspectRatio = rect.width / rect.height;
-      const imageAspectRatio = img.naturalWidth / img.naturalHeight;
+      // Use natural dimensions - no scaling
+      const displayWidth = img.naturalWidth;
+      const displayHeight = img.naturalHeight;
+      const offsetX = 0;
+      const offsetY = 0;
       
-      let displayWidth, displayHeight, offsetX, offsetY;
-      
-      if (imageAspectRatio > containerAspectRatio) {
-        // Image is wider than container - fit to width
-        displayWidth = rect.width;
-        displayHeight = rect.width / imageAspectRatio;
-        offsetX = 0;
-        offsetY = (rect.height - displayHeight) / 2;
-      } else {
-        // Image is taller than container - fit to height
-        displayHeight = rect.height;
-        displayWidth = rect.height * imageAspectRatio;
-        offsetX = (rect.width - displayWidth) / 2;
-        offsetY = 0;
-      }
-      
-      console.log('Calculated display dimensions:', {
-        displayWidth: Math.round(displayWidth),
-        displayHeight: Math.round(displayHeight),
-        offsetX: Math.round(offsetX),
-        offsetY: Math.round(offsetY),
+      console.log('SkinAnalysisImage - Using natural dimensions:', {
+        displayWidth: displayWidth,
+        displayHeight: displayHeight,
         naturalWidth: img.naturalWidth,
-        naturalHeight: img.naturalHeight,
-        containerWidth: rect.width,
-        containerHeight: rect.height
+        naturalHeight: img.naturalHeight
       });
+      console.log('=== IMAGE DISPLAY COMPLETE ===');
       
       setImageDimensions({
         width: displayWidth,
@@ -133,35 +115,30 @@ export default function SkinAnalysisImage({
     // Debug: Log the actual image dimensions
     if (imageRef.current) {
       const img = imageRef.current;
-      console.log('Image loaded - Natural dimensions:', img.naturalWidth, 'x', img.naturalHeight);
-      console.log('Image loaded - Display dimensions:', img.offsetWidth, 'x', img.offsetHeight);
+      console.log('=== IMAGE DISPLAY ===');
+      console.log('SkinAnalysisImage - Natural dimensions:', img.naturalWidth, 'x', img.naturalHeight);
+      console.log('SkinAnalysisImage - Display dimensions:', img.offsetWidth, 'x', img.offsetHeight);
+      console.log('SkinAnalysisImage - Analysis data image dimensions:', analysisData.image.width, 'x', analysisData.image.height);
     }
   };
 
   const scaleCoordinates = (x: number, y: number, width: number, height: number) => {
     if (!imageDimensions.width || !imageDimensions.height) return { x: 0, y: 0, width: 0, height: 0 };
     
-    const scaleX = imageDimensions.width / analysisData.image.width;
-    const scaleY = imageDimensions.height / analysisData.image.height;
-    
+    // No scaling needed - use coordinates as-is since image is displayed at natural size
     return {
-      x: (x * scaleX) + imageDimensions.offsetX,
-      y: (y * scaleY) + imageDimensions.offsetY,
-      width: width * scaleX,
-      height: height * scaleY
+      x: x,
+      y: y,
+      width: width,
+      height: height
     };
   };
 
   const scalePolygon = (polygon: [number, number][]) => {
     if (!imageDimensions.width || !imageDimensions.height) return [];
     
-    const scaleX = imageDimensions.width / analysisData.image.width;
-    const scaleY = imageDimensions.height / analysisData.image.height;
-    
-    return polygon.map(([x, y]) => [
-      (x * scaleX) + imageDimensions.offsetX, 
-      (y * scaleY) + imageDimensions.offsetY
-    ]);
+    // No scaling needed - use coordinates as-is since image is displayed at natural size
+    return polygon.map(([x, y]) => [x, y]);
   };
 
   const getAcneColor = (className: string) => {
@@ -215,9 +192,8 @@ export default function SkinAnalysisImage({
       <div className="relative mb-6">
         <div className="relative overflow-hidden bg-gray-100">
           {/* Carousel Images */}
-          <div className="relative w-full flex justify-center items-center bg-gray-50" style={{ 
-            minHeight: '384px',
-            maxHeight: '80vh'
+          <div className="relative w-full flex justify-center items-center bg-gray-50 overflow-auto" style={{ 
+            minHeight: '384px'
           }}>
             <AnimatePresence mode="wait">
               <motion.div
@@ -232,7 +208,10 @@ export default function SkinAnalysisImage({
                   ref={imageRef}
                   src={carouselImages[currentImageIndex].url}
                   alt={carouselImages[currentImageIndex].label}
-                  className="max-w-full max-h-full object-contain"
+                  style={{ 
+                    width: 'auto',
+                    height: 'auto'
+                  }}
                   onLoad={handleImageLoad}
                 />
 
@@ -243,8 +222,8 @@ export default function SkinAnalysisImage({
                     style={{ 
                       width: imageDimensions.width, 
                       height: imageDimensions.height,
-                      left: imageDimensions.offsetX,
-                      top: imageDimensions.offsetY
+                      left: 0,
+                      top: 0
                     }}
                   >
                     {/* Redness Polygons - only show in redness view */}

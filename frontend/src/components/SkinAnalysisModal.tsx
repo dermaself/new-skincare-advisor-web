@@ -797,6 +797,20 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false }:
   };
 
   const handleImageCapture = async (imageData: string, metadata?: any) => {
+    console.log('=== IMAGE CAPTURE PROCESS START ===');
+    console.log('Modal - Captured image data URL length:', imageData.length);
+    console.log('Modal - Estimated captured image size in KB:', Math.round(imageData.length * 0.75 / 1024));
+    
+    // Extract and log image dimensions from captured data
+    const img = new Image();
+    img.src = imageData;
+    await new Promise((resolve) => {
+      img.onload = () => {
+        console.log('Modal - Captured image dimensions:', img.naturalWidth, 'x', img.naturalHeight);
+        resolve(null);
+      };
+    });
+    
     setCapturedImage(imageData);
     setImageMetadata(metadata);
     setShowCamera(false);
@@ -839,10 +853,17 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false }:
       // Store the raw analysis data for the image visualization
       setAnalysisData(analysisResult);
       
+      // Log the analysis result image dimensions
+      if (analysisResult && analysisResult.image) {
+        console.log('Modal - Analysis result image dimensions:', analysisResult.image.width, 'x', analysisResult.image.height);
+      }
+      
       // Transform result to match expected format
       const transformedResult = transformAnalysisResult(analysisResult);
       setRoutine(transformedResult.routine);
       setCurrentStep('results');
+      
+      console.log('=== IMAGE CAPTURE PROCESS COMPLETE ===');
       
     } catch (error) {
       console.error('Analysis failed:', error);
@@ -971,7 +992,7 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false }:
             className={`relative w-full bg-white shadow-xl overflow-hidden flex flex-col h-full ${
               embedded 
                 ? 'max-w-none' 
-                : 'max-w-[540px] max-h-[95vh]'
+                : 'max-w-[540px] h-[95vh]'
             }`}
             style={{
               ...(embedded && {
@@ -1023,7 +1044,7 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false }:
           className={`relative w-full bg-white shadow-xl overflow-hidden flex flex-col ${
             embedded 
               ? 'h-full max-w-none' 
-              : 'max-w-[540px] max-h-[95vh] md:max-w-[540px] md:max-h-[95vh] sm:max-w-[540px] sm:max-h-[95vh]'
+              : 'max-w-[540px] h-[95vh] md:max-w-[540px] md:h-[95vh] sm:max-w-[540px] sm:h-[95vh]'
           }`}
           style={{
             ...(embedded && {

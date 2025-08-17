@@ -133,6 +133,161 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
 
 
 
+  const startCameraWithDimensions = async (targetWidth: number, targetHeight: number) => {
+    if (initializationInProgressRef.current) {
+      console.log('Camera initialization already in progress, skipping...');
+      return;
+    }
+    
+    if (!isMountedRef.current) {
+      console.log('Component unmounted before initialization, skipping...');
+      return;
+    }
+    
+    initializationInProgressRef.current = true;
+    
+    try {
+      setIsLoading(true);
+      setError(null);
+      
+      console.log('Starting camera with dimensions:', targetWidth, 'x', targetHeight);
+      
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error('Camera API not supported in this browser');
+      }
+      
+      if (stream) {
+        console.log('Stopping existing stream...');
+        stream.getTracks().forEach(track => track.stop());
+      }
+      
+      console.log('Requesting camera access with specific dimensions...');
+      
+      if (!isMountedRef.current) {
+        console.log('Component unmounted before getUserMedia, stopping...');
+        return;
+      }
+      
+      const mediaStream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: 'user',
+          width: { ideal: targetWidth, min: Math.max(320, targetWidth * 0.5) },
+          height: { ideal: targetHeight, min: Math.max(240, targetHeight * 0.5) },
+          aspectRatio: { ideal: targetWidth / targetHeight }
+        },
+        audio: false,
+      });
+  
+      if (!isMountedRef.current) {
+        console.log('Component unmounted after getUserMedia, cleaning up...');
+        mediaStream.getTracks().forEach(track => track.stop());
+        return;
+      }
+
+      setStream(mediaStream);
+      
+      if (videoRef.current) {
+        const video = videoRef.current;
+        console.log('Setting video srcObject...');
+        video.srcObject = mediaStream;
+        
+        // Add event listeners to debug video loading
+        const onLoadedMetadata = () => {
+          console.log('Video metadata loaded with dimensions');
+          console.log('Video ready state:', video.readyState);
+          console.log('Video paused:', video.paused);
+          console.log('Video current time:', video.currentTime);
+          console.log('Video dimensions:', video.videoWidth, 'x', video.videoHeight);
+          console.log('Video element dimensions:', video.offsetWidth, 'x', video.offsetHeight);
+          console.log('Target dimensions:', targetWidth, 'x', targetHeight);
+          console.log('Dimensions match:', video.videoWidth === targetWidth && video.videoHeight === targetHeight);
+        };
+        
+        const onCanPlay = () => {
+          console.log('Video can play');
+        };
+        
+        const onPlaying = () => {
+          console.log('Video is playing');
+        };
+        
+        const onError = (e: Event) => {
+          console.error('Video error event:', e);
+        };
+        
+        video.addEventListener('loadedmetadata', onLoadedMetadata);
+        video.addEventListener('canplay', onCanPlay);
+        video.addEventListener('playing', onPlaying);
+        video.addEventListener('error', onError);
+        
+        // Simple video start with error handling
+        try {
+          console.log('Attempting to play video...');
+          await video.play();
+          console.log('Video play successful');
+          setIsCameraActive(true);
+          setIsLoading(false);
+          console.log('Camera started successfully with dimensions');
+          console.log('Video dimensions:', video.videoWidth, 'x', video.videoHeight);
+          console.log('Video element dimensions:', video.offsetWidth, 'x', video.offsetHeight);
+          
+          // Start face detection only if models are loaded
+          if (modelsLoaded) {
+            startFaceDetection();
+          } else {
+            console.log('Camera started with dimensions, waiting for models to load before starting face detection...');
+          }
+          
+        } catch (playError) {
+          console.log('Video play failed:', playError);
+          
+          // Handle AbortError specifically - this is normal when component unmounts
+          if (playError instanceof Error && playError.name === 'AbortError') {
+            console.log('Video play was aborted (component likely unmounted) - this is normal');
+            return; // Don't show error for abort
+          }
+          
+          // Try fallback approach
+          try {
+            console.log('Trying fallback video start...');
+            // Wait a moment and try again
+            await new Promise(resolve => setTimeout(resolve, 100));
+            await video.play();
+            setIsCameraActive(true);
+            setIsLoading(false);
+            console.log('Camera started successfully with dimensions and fallback');
+            
+            // Start face detection only if models are loaded
+            if (modelsLoaded) {
+              startFaceDetection();
+            } else {
+              console.log('Camera started with dimensions and fallback, waiting for models to load before starting face detection...');
+            }
+            
+          } catch (fallbackError) {
+            console.log('Fallback video start also failed:', fallbackError);
+            setError('Could not start video. Please try again.');
+            setIsLoading(false);
+          }
+        }
+      }
+      
+    } catch (err) {
+      console.error('Camera error:', err);
+      
+      // Handle AbortError specifically
+      if (err instanceof Error && err.name === 'AbortError') {
+        console.log('Camera initialization was aborted - this is normal');
+        return; // Don't show error for abort
+      }
+      
+      setError('Could not access camera. Please check permissions.');
+      setIsLoading(false);
+    } finally {
+      initializationInProgressRef.current = false;
+    }
+  };
+
   const startCamera = async () => {
     if (initializationInProgressRef.current) {
       console.log('Camera initialization already in progress, skipping...');
@@ -171,7 +326,7 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
       const mediaStream = await navigator.mediaDevices.getUserMedia({
         video: {
           facingMode: 'user', // Explicitly request front camera
-          // Remove dimension constraints to use native camera resolution
+          // We'll set the exact dimensions after video loads
         },
         audio: false,
       });
@@ -197,6 +352,22 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
           console.log('Video current time:', video.currentTime);
           console.log('Video dimensions:', video.videoWidth, 'x', video.videoHeight);
           console.log('Video element dimensions:', video.offsetWidth, 'x', video.offsetHeight);
+          
+          // Check if video dimensions match display dimensions
+          if (video.videoWidth !== video.offsetWidth || video.videoHeight !== video.offsetHeight) {
+            console.log('Video dimensions mismatch detected. Restarting camera with correct dimensions...');
+            // Restart camera with correct dimensions
+            setTimeout(() => {
+              if (isMountedRef.current) {
+                stopCamera();
+                setTimeout(() => {
+                  if (isMountedRef.current) {
+                    startCameraWithDimensions(video.offsetWidth, video.offsetHeight);
+                  }
+                }, 100);
+              }
+            }, 500);
+          }
         };
         
         const onCanPlay = () => {

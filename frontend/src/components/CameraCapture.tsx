@@ -316,7 +316,29 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
         stream.getTracks().forEach(track => track.stop());
       }
       
-      console.log('Requesting camera access...');
+      // Calculate target dimensions during loading phase
+      let targetWidth = 640;
+      let targetHeight = 480;
+      
+      // Get container dimensions if available
+      const container = document.querySelector('.modal-container') || 
+                       document.querySelector('[class*="bg-white"]') ||
+                       document.body;
+      
+      if (container) {
+        const rect = container.getBoundingClientRect();
+        // Estimate video area (subtract header and controls)
+        const estimatedVideoWidth = Math.round(rect.width * 0.9);
+        const estimatedVideoHeight = Math.round(rect.height * 0.7);
+        
+        targetWidth = Math.max(320, estimatedVideoWidth);
+        targetHeight = Math.max(240, estimatedVideoHeight);
+        
+        console.log('Container dimensions:', rect.width, 'x', rect.height);
+        console.log('Estimated video dimensions:', targetWidth, 'x', targetHeight);
+      }
+      
+      console.log('Requesting camera access with dimensions:', targetWidth, 'x', targetHeight);
       
       if (!isMountedRef.current) {
         console.log('Component unmounted before getUserMedia, stopping...');
@@ -325,8 +347,10 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
       
       const mediaStream = await navigator.mediaDevices.getUserMedia({
         video: {
-          facingMode: 'user', // Explicitly request front camera
-          // We'll set the exact dimensions after video loads
+          facingMode: 'user',
+          width: { ideal: targetWidth, min: Math.max(320, targetWidth * 0.5) },
+          height: { ideal: targetHeight, min: Math.max(240, targetHeight * 0.5) },
+          aspectRatio: { ideal: targetWidth / targetHeight }
         },
         audio: false,
       });
@@ -352,22 +376,8 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
           console.log('Video current time:', video.currentTime);
           console.log('Video dimensions:', video.videoWidth, 'x', video.videoHeight);
           console.log('Video element dimensions:', video.offsetWidth, 'x', video.offsetHeight);
-          
-          // Check if video dimensions match display dimensions
-          if (video.videoWidth !== video.offsetWidth || video.videoHeight !== video.offsetHeight) {
-            console.log('Video dimensions mismatch detected. Restarting camera with correct dimensions...');
-            // Restart camera with correct dimensions
-            setTimeout(() => {
-              if (isMountedRef.current) {
-                stopCamera();
-                setTimeout(() => {
-                  if (isMountedRef.current) {
-                    startCameraWithDimensions(video.offsetWidth, video.offsetHeight);
-                  }
-                }, 100);
-              }
-            }, 500);
-          }
+          console.log('Target dimensions:', targetWidth, 'x', targetHeight);
+          console.log('Dimensions match:', video.videoWidth === targetWidth && video.videoHeight === targetHeight);
         };
         
         const onCanPlay = () => {
@@ -1022,6 +1032,7 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
                     console.log('Video srcObject:', videoRef.current.srcObject);
                     console.log('Video readyState:', videoRef.current.readyState);
                     console.log('Video paused:', videoRef.current.paused);
+                    console.log('Dimensions match:', videoRef.current.videoWidth === videoRef.current.offsetWidth && videoRef.current.videoHeight === videoRef.current.offsetHeight);
                   }
                 }}
                 onCanPlay={() => {

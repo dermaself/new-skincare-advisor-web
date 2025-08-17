@@ -1041,10 +1041,8 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false }:
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.95, opacity: 0 }}
           transition={{ type: "spring", damping: 25, stiffness: 300 }}
-          className={`relative w-full bg-white shadow-xl overflow-hidden flex flex-col ${
-            embedded 
-              ? 'h-full max-w-none' 
-              : 'max-w-[540px] h-[95vh] md:max-w-[540px] md:h-[95vh] sm:max-w-[540px] sm:h-[95vh]'
+          className={`relative w-full bg-white shadow-xl overflow-hidden flex flex-col h-full ${
+            embedded ? 'max-w-none' : 'max-w-[540px]'
           }`}
           style={{
             ...(embedded && {
@@ -1147,7 +1145,7 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false }:
           </div>
 
           {/* Content */}
-          <div className="modal-content py-4 max-h-[65vh] overflow-y-auto">
+          <div className="modal-content py-4 h-full overflow-y-auto">
             <AnimatePresence key="content-steps" mode="wait">
               {currentStep === 'onboarding' && (
                 <motion.div
@@ -1156,7 +1154,7 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false }:
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -20 }}
                   transition={{ duration: 0.3 }}
-                  className="text-center"
+                  className="text-center p-4 flex flex-col justify-center h-full"
                 >
                   <h3 className="text-2xl font-bold text-gray-900 mb-4">
                     Get Your Virtual Skincare Consultation
@@ -1221,7 +1219,7 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false }:
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -20 }}
                   transition={{ duration: 0.3 }}
-                  className="space-y-0"
+                  className="space-y-0 px-4 h-full"
                 >
                   {/* Skin Concerns */}
                   <div className="question min-h-[60vh] flex flex-col justify-center">

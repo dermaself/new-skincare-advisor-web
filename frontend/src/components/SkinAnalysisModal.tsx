@@ -1222,7 +1222,7 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false }:
                   className="space-y-0 px-4 h-full"
                 >
                   {/* Skin Concerns */}
-                  <div className="question min-h-[60vh] flex flex-col justify-center">
+                  <div className="question min-h-[60vh] h-full flex flex-col justify-center">
                     <h1 className="question__header-text">
                       SELECT TWO SKIN CONCERNS YOU WOULD LIKE TO FOCUS ON
                     </h1>
@@ -1269,7 +1269,7 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false }:
                   </div>
 
                   {/* Skin Type */}
-                  <div className="question min-h-[60vh] flex flex-col justify-center" ref={skinTypeRef}>
+                  <div className="question min-h-[60vh] h-full flex flex-col justify-center" ref={skinTypeRef}>
                     <h1 className="question__header-text">
                       WHAT IS YOUR SKIN TYPE?
                     </h1>
@@ -1315,7 +1315,7 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false }:
                   </div>
 
                   {/* Age Group */}
-                  <div className="question min-h-[60vh] flex flex-col justify-center" ref={ageGroupRef}>
+                  <div className="question min-h-[60vh] h-full flex flex-col justify-center" ref={ageGroupRef}>
                     <h1 className="question__header-text">
                       WHAT IS YOUR AGE GROUP?
                     </h1>
@@ -1351,7 +1351,7 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false }:
                     </div>
                   </div>
 
-                  <div className="flex justify-between pt-6" ref={buttonsRef}>
+                  <div className="flex justify-between py-6" ref={buttonsRef}>
                     <motion.button
                       onClick={handleBack}
                       className="btn-secondary"
@@ -1380,7 +1380,7 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false }:
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -20 }}
-                  className="space-y-6"
+                  className="space-y-6 h-full flex flex-col items-center justify-center"
                 >
                   <div className="flex flex-col items-center justify-center py-12">
                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mb-4"></div>

@@ -68,6 +68,7 @@ export default function SkinAnalysisImage({
   const [hoveredDetection, setHoveredDetection] = useState<string | null>(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const imageRef = useRef<HTMLImageElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageDimensions, setImageDimensions] = useState({ 
     width: 0, 
@@ -75,6 +76,7 @@ export default function SkinAnalysisImage({
     offsetX: 0, 
     offsetY: 0 
   });
+  const [calculatedHeight, setCalculatedHeight] = useState<number>(384);
 
   // Create multiple images for carousel (analysis versions only)
   const carouselImages = [
@@ -83,8 +85,9 @@ export default function SkinAnalysisImage({
   ];
 
   useEffect(() => {
-    if (imageRef.current && imageLoaded) {
+    if (imageRef.current && imageLoaded && containerRef.current) {
       const img = imageRef.current;
+      const container = containerRef.current;
       
       // Since we now capture at displayed size, use natural dimensions (which are the captured dimensions)
       const displayWidth = img.naturalWidth;
@@ -92,13 +95,19 @@ export default function SkinAnalysisImage({
       const offsetX = 0;
       const offsetY = 0;
       
+      // Calculate height based on image aspect ratio and container width
+      const containerWidth = container.offsetWidth;
+      const calculatedHeight = Math.max(384, (displayHeight * containerWidth) / displayWidth);
+      
       console.log('SkinAnalysisImage - Using captured dimensions:', {
         displayWidth: displayWidth,
         displayHeight: displayHeight,
         naturalWidth: img.naturalWidth,
         naturalHeight: img.naturalHeight,
         offsetWidth: img.offsetWidth,
-        offsetHeight: img.offsetHeight
+        offsetHeight: img.offsetHeight,
+        containerWidth: containerWidth,
+        calculatedHeight: calculatedHeight
       });
       console.log('=== IMAGE DISPLAY COMPLETE ===');
       
@@ -108,6 +117,8 @@ export default function SkinAnalysisImage({
         offsetX,
         offsetY
       });
+      
+      setCalculatedHeight(calculatedHeight);
     }
   }, [imageLoaded]);
 
@@ -197,9 +208,14 @@ export default function SkinAnalysisImage({
       <div className="relative mb-6">
         <div className="relative overflow-hidden bg-gray-100">
           {/* Carousel Images */}
-          <div className="relative w-full flex justify-center items-center bg-gray-50 overflow-auto" style={{ 
-            minHeight: '384px'
-          }}>
+          <div 
+            ref={containerRef}
+            className="relative w-full flex justify-center items-center bg-gray-50 overflow-auto" 
+            style={{ 
+              minHeight: '384px',
+              height: `${calculatedHeight}px`
+            }}
+          >
             <AnimatePresence mode="wait">
               <motion.div
                 key={currentImageIndex}

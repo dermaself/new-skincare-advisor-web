@@ -86,17 +86,19 @@ export default function SkinAnalysisImage({
     if (imageRef.current && imageLoaded) {
       const img = imageRef.current;
       
-      // Use natural dimensions - no scaling
-      const displayWidth = img.naturalWidth;
-      const displayHeight = img.naturalHeight;
+      // Use rendered dimensions instead of natural dimensions
+      const displayWidth = img.offsetWidth;
+      const displayHeight = img.offsetHeight;
       const offsetX = 0;
       const offsetY = 0;
       
-      console.log('SkinAnalysisImage - Using natural dimensions:', {
+      console.log('SkinAnalysisImage - Using rendered dimensions:', {
         displayWidth: displayWidth,
         displayHeight: displayHeight,
         naturalWidth: img.naturalWidth,
-        naturalHeight: img.naturalHeight
+        naturalHeight: img.naturalHeight,
+        offsetWidth: img.offsetWidth,
+        offsetHeight: img.offsetHeight
       });
       console.log('=== IMAGE DISPLAY COMPLETE ===');
       
@@ -116,29 +118,37 @@ export default function SkinAnalysisImage({
     if (imageRef.current) {
       const img = imageRef.current;
       console.log('=== IMAGE DISPLAY ===');
-      console.log('SkinAnalysisImage - Natural dimensions:', img.naturalWidth, 'x', img.naturalHeight);
-      console.log('SkinAnalysisImage - Display dimensions:', img.offsetWidth, 'x', img.offsetHeight);
+      console.log('SkinAnalysisImage - Intrinsic (natural) dimensions:', img.naturalWidth, 'x', img.naturalHeight);
+      console.log('SkinAnalysisImage - Rendered (display) dimensions:', img.offsetWidth, 'x', img.offsetHeight);
       console.log('SkinAnalysisImage - Analysis data image dimensions:', analysisData.image.width, 'x', analysisData.image.height);
+      console.log('SkinAnalysisImage - Scale factor X:', (img.offsetWidth / analysisData.image.width).toFixed(3));
+      console.log('SkinAnalysisImage - Scale factor Y:', (img.offsetHeight / analysisData.image.height).toFixed(3));
     }
   };
 
   const scaleCoordinates = (x: number, y: number, width: number, height: number) => {
     if (!imageDimensions.width || !imageDimensions.height) return { x: 0, y: 0, width: 0, height: 0 };
     
-    // No scaling needed - use coordinates as-is since image is displayed at natural size
+    // Scale coordinates from original image dimensions to rendered dimensions
+    const scaleX = imageDimensions.width / analysisData.image.width;
+    const scaleY = imageDimensions.height / analysisData.image.height;
+    
     return {
-      x: x,
-      y: y,
-      width: width,
-      height: height
+      x: x * scaleX,
+      y: y * scaleY,
+      width: width * scaleX,
+      height: height * scaleY
     };
   };
 
   const scalePolygon = (polygon: [number, number][]) => {
     if (!imageDimensions.width || !imageDimensions.height) return [];
     
-    // No scaling needed - use coordinates as-is since image is displayed at natural size
-    return polygon.map(([x, y]) => [x, y]);
+    // Scale coordinates from original image dimensions to rendered dimensions
+    const scaleX = imageDimensions.width / analysisData.image.width;
+    const scaleY = imageDimensions.height / analysisData.image.height;
+    
+    return polygon.map(([x, y]) => [x * scaleX, y * scaleY]);
   };
 
   const getAcneColor = (className: string) => {
@@ -520,13 +530,13 @@ export default function SkinAnalysisImage({
           </div>
           <div className="space-y-2">
             <div className="flex justify-between">
-              <span className="text-sm text-blue-700">Original:</span>
+              <span className="text-sm text-blue-700">Intrinsic:</span>
               <span className="text-sm font-semibold text-blue-900">
                 {analysisData.image.width} × {analysisData.image.height}
               </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-sm text-blue-700">Displayed:</span>
+              <span className="text-sm text-blue-700">Rendered:</span>
               <span className="text-sm font-semibold text-blue-900">
                 {imageLoaded ? `${Math.round(imageDimensions.width)} × ${Math.round(imageDimensions.height)}` : 'Loading...'}
               </span>

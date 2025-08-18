@@ -48,9 +48,10 @@ Add this code to your Shopify theme (e.g., in `product.liquid` or `index.liquid`
 
 <script>
 function openSkinAnalysis() {
-    // Create iframe
+    // Create iframe with camera permissions
     const iframe = document.createElement('iframe');
     iframe.src = 'https://your-domain.com/embed';
+    iframe.allow = 'camera; microphone; geolocation';
     iframe.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:9999;border:none;background:transparent;';
     
     // Add to page
@@ -131,6 +132,7 @@ Add a floating button that appears on all pages:
 function openSkinAnalysis() {
     const iframe = document.createElement('iframe');
     iframe.src = 'https://your-domain.com/embed';
+    iframe.allow = 'camera; microphone; geolocation';
     iframe.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:9999;border:none;background:transparent;';
     document.body.appendChild(iframe);
     
@@ -286,4 +288,48 @@ For technical support or customization requests, contact the DermaSelf team.
 - The app processes images locally on the user's device
 - No personal data is stored or transmitted
 - All communication with Shopify uses secure postMessage API
-- HTTPS is required for production deployment 
+- HTTPS is required for production deployment
+
+## Server Configuration for Camera Access
+
+To enable camera access in iframes, you need to configure your server with the proper headers:
+
+### For Vercel (vercel.json):
+```json
+{
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "Permissions-Policy",
+          "value": "camera=*, microphone=*, geolocation=*"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "ALLOWALL"
+        }
+      ]
+    }
+  ]
+}
+```
+
+### For Netlify (_headers file):
+```
+/*
+  Permissions-Policy: camera=*, microphone=*, geolocation=*
+  X-Frame-Options: ALLOWALL
+```
+
+### For Apache (.htaccess):
+```apache
+Header set Permissions-Policy "camera=*, microphone=*, geolocation=*"
+Header set X-Frame-Options "ALLOWALL"
+```
+
+### For Nginx:
+```nginx
+add_header Permissions-Policy "camera=*, microphone=*, geolocation=*";
+add_header X-Frame-Options "ALLOWALL";
+``` 

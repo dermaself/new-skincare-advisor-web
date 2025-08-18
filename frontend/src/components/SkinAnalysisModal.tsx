@@ -968,9 +968,7 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false }:
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className={`fixed inset-0 z-50 flex items-center justify-center ${
-            embedded ? 'p-0' : 'p-4'
-          }`}
+          className={`${embedded ? 'relative w-full h-full' : 'fixed inset-0 z-50 flex items-center justify-center p-4'}`}
         >
           {/* Backdrop */}
           {!embedded && (
@@ -990,18 +988,8 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false }:
             exit={{ scale: 0.95, opacity: 0 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
             className={`relative w-full bg-white shadow-xl overflow-hidden flex flex-col h-full ${
-              embedded 
-                ? 'max-w-none' 
-                : 'max-w-[540px] h-[95vh]'
+              embedded ? 'w-full h-full' : 'max-w-[540px] h-[95vh]'
             }`}
-            style={{
-              ...(embedded && {
-                width: '100vw',
-                height: '100vh',
-                maxWidth: '100vw',
-                maxHeight: '100vh'
-              })
-            }}
           >
             <CameraCapture
               onCapture={handleImageCapture}
@@ -1020,9 +1008,7 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false }:
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className={`fixed inset-0 z-50 flex items-center justify-center ${
-          embedded ? 'p-0' : 'p-4'
-        }`}
+        className={`${embedded ? 'relative w-full h-full' : 'fixed inset-0 z-50 flex items-center justify-center p-4'}`}
       >
         {/* Backdrop */}
         {!embedded && (
@@ -1042,16 +1028,8 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false }:
           exit={{ scale: 0.95, opacity: 0 }}
           transition={{ type: "spring", damping: 25, stiffness: 300 }}
           className={`relative w-full bg-white shadow-xl overflow-hidden flex flex-col h-full ${
-            embedded ? 'max-w-none' : 'max-w-[540px]'
+            embedded ? 'w-full h-full' : 'max-w-[540px]'
           }`}
-          style={{
-            ...(embedded && {
-              width: '100vw',
-              height: '100vh',
-              maxWidth: '100vw',
-              maxHeight: '100vh'
-            })
-          }}
         >
           {/* Header */}
           <div className="relative bg-primary-600">

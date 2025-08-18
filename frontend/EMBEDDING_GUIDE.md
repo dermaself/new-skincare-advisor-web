@@ -51,7 +51,7 @@ function openSkinAnalysis() {
     // Create iframe
     const iframe = document.createElement('iframe');
     iframe.src = 'https://your-domain.com/embed';
-    iframe.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:9999;border:none;background:white;';
+    iframe.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:9999;border:none;background:transparent;';
     
     // Add to page
     document.body.appendChild(iframe);
@@ -131,7 +131,7 @@ Add a floating button that appears on all pages:
 function openSkinAnalysis() {
     const iframe = document.createElement('iframe');
     iframe.src = 'https://your-domain.com/embed';
-    iframe.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:9999;border:none;background:white;';
+    iframe.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:9999;border:none;background:transparent;';
     document.body.appendChild(iframe);
     
     window.addEventListener('message', function(event) {

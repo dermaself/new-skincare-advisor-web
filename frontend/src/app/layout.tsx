@@ -35,7 +35,7 @@ export default function RootLayout({
     <html lang="en">
       <body className={inter.className}>
         <CartProvider>
-          <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+          <div className="min-h-screen">
             {children}
           </div>
           <CartSuccessModalWrapper />

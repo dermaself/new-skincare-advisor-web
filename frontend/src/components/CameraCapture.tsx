@@ -849,7 +849,7 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        className={`${embedded ? 'absolute' : 'fixed'} inset-0 z-50 flex items-center justify-center bg-transparent bg-opacity-75 py-4`}
+        className={`fixed inset-0 z-50 flex items-center justify-center bg-transparent bg-opacity-75 py-4`}
       >
         <div className="bg-white rounded-2xl p-8 max-w-md w-full">
           <div className="text-center mb-6">
@@ -893,7 +893,7 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className={`${embedded ? 'absolute' : 'fixed'} inset-0 z-50 flex items-center justify-center bg-transparent bg-opacity-75 py-4`}
+      className={`fixed inset-0 z-50 flex items-center justify-center bg-transparent bg-opacity-75 py-4`}
     >
       <style jsx>{`
         @keyframes pulse {

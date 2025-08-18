@@ -1382,7 +1382,7 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false }:
                   exit={{ opacity: 0, x: -20 }}
                   className="space-y-6 h-full flex flex-col items-center justify-center"
                 >
-                  <div className="flex flex-col items-center justify-center py-12">
+                  <div className="flex flex-col items-center justify-center py-12 px-4">
                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mb-4"></div>
                     <h2 className="text-xl font-bold text-gray-900 mb-2">Analyzing Your Photo</h2>
                     <p className="text-gray-600 text-center max-w-md">
@@ -1431,7 +1431,7 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false }:
                     </div>
 
                   {/* Tab Content */}
-                  <div className="flex-1 overflow-y-auto py-4">
+                  <div className="flex-1 py-4">
                     {activeTab === 'results' && (
                       <div>
                         {/* AI Photo Analysis Section */}

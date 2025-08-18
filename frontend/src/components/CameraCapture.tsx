@@ -1087,7 +1087,7 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
                   </div>
 
         {/* Controls */}
-        <div ref={controlsRef} className="p-1 sm:p-2 bg-gray-50 flex-shrink-0">
+        <div ref={controlsRef} className="pt-4 px-2 pb-1 bg-gray-50 flex-shrink-0">
           {!isCameraActive && cameraState === 'live' && (
             <div className="flex flex-col items-center gap-4">
               <button

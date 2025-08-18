@@ -200,9 +200,7 @@ export default function SkinAnalysisImage({
   return (
     <div className={`relative ${className}`}>
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <h3 className="text-xl hidden md:block font-bold text-gray-900">Skin Analysis Results</h3>
-        
+      <div className="flex items-center justify-center mb-6">
         <button
           onClick={() => setShowOverlays(!showOverlays)}
           className={`flex w-full mx-4 md:mx-0 md:w-auto items-center justify-center space-x-2 px-3 py-2 rounded-md transition-colors ${
@@ -386,7 +384,7 @@ export default function SkinAnalysisImage({
           <div className="absolute top-1/2 left-4 transform -translate-y-1/2">
             <button
               onClick={prevImage}
-              className="bg-white/80 hover:bg-white text-gray-800 p-2 rounded-full shadow-lg transition-all"
+              className="bg-white/20 hover:bg-white text-gray-800 p-2 rounded-full shadow-lg transition-all"
             >
               <ChevronLeft className="w-5 h-5" />
             </button>
@@ -395,7 +393,7 @@ export default function SkinAnalysisImage({
           <div className="absolute top-1/2 right-4 transform -translate-y-1/2">
             <button
               onClick={nextImage}
-              className="bg-white/80 hover:bg-white text-gray-800 p-2 rounded-full shadow-lg transition-all"
+              className="bg-white/20 hover:bg-white text-gray-800 p-2 rounded-full shadow-lg transition-all"
             >
               <ChevronRight className="w-5 h-5" />
             </button>

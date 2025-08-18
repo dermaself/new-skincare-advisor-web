@@ -57,6 +57,16 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
   const [guidanceMessage, setGuidanceMessage] = useState<string>('Position your face in the center');
   const [guidanceType, setGuidanceType] = useState<'default' | 'position' | 'distance' | 'angle' | 'lighting'>('default');
 
+  // Helper function to set appropriate error message based on context
+  const setCameraError = (message: string) => {
+    const isInIframe = window.parent !== window;
+    if (isInIframe) {
+      setError('Camera access is limited in embedded mode. Please upload a photo instead.');
+    } else {
+      setError(message);
+    }
+  };
+
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -152,6 +162,10 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
       
       console.log('Starting camera with dimensions:', targetWidth, 'x', targetHeight);
       
+      // Check if we're in an iframe
+      const isInIframe = window.parent !== window;
+      console.log('Running in iframe:', isInIframe);
+      
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         throw new Error('Camera API not supported in this browser');
       }
@@ -168,15 +182,42 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
         return;
       }
       
-      const mediaStream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: 'user',
-          width: { ideal: targetWidth, min: Math.max(320, targetWidth * 0.5) },
-          height: { ideal: targetHeight, min: Math.max(240, targetHeight * 0.5) },
-          aspectRatio: { ideal: targetWidth / targetHeight }
-        },
-        audio: false,
-      });
+      // Try different camera constraints for iframe compatibility
+      let mediaStream;
+      try {
+        // First try with specific dimensions
+        mediaStream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: 'user',
+            width: { ideal: targetWidth, min: Math.max(320, targetWidth * 0.5) },
+            height: { ideal: targetHeight, min: Math.max(240, targetHeight * 0.5) },
+            aspectRatio: { ideal: targetWidth / targetHeight }
+          },
+          audio: false,
+        });
+      } catch (dimensionError) {
+        console.log('Failed with specific dimensions, trying basic constraints:', dimensionError);
+        
+        // If that fails, try with basic constraints
+        try {
+          mediaStream = await navigator.mediaDevices.getUserMedia({
+            video: {
+              facingMode: 'user',
+              width: { ideal: 640, min: 320 },
+              height: { ideal: 480, min: 240 }
+            },
+            audio: false,
+          });
+        } catch (basicError) {
+          console.log('Failed with basic constraints, trying minimal constraints:', basicError);
+          
+          // Last resort: minimal constraints
+          mediaStream = await navigator.mediaDevices.getUserMedia({
+            video: true,
+            audio: false,
+          });
+        }
+      }
   
       if (!isMountedRef.current) {
         console.log('Component unmounted after getUserMedia, cleaning up...');
@@ -307,6 +348,10 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
       
       console.log('Starting camera...');
       
+      // Check if we're in an iframe
+      const isInIframe = window.parent !== window;
+      console.log('Running in iframe:', isInIframe);
+      
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         throw new Error('Camera API not supported in this browser');
       }
@@ -345,15 +390,42 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
         return;
       }
       
-      const mediaStream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: 'user',
-          width: { ideal: targetWidth, min: Math.max(320, targetWidth * 0.5) },
-          height: { ideal: targetHeight, min: Math.max(240, targetHeight * 0.5) },
-          aspectRatio: { ideal: targetWidth / targetHeight }
-        },
-        audio: false,
-      });
+      // Try different camera constraints for iframe compatibility
+      let mediaStream;
+      try {
+        // First try with specific dimensions
+        mediaStream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: 'user',
+            width: { ideal: targetWidth, min: Math.max(320, targetWidth * 0.5) },
+            height: { ideal: targetHeight, min: Math.max(240, targetHeight * 0.5) },
+            aspectRatio: { ideal: targetWidth / targetHeight }
+          },
+          audio: false,
+        });
+      } catch (dimensionError) {
+        console.log('Failed with specific dimensions, trying basic constraints:', dimensionError);
+        
+        // If that fails, try with basic constraints
+        try {
+          mediaStream = await navigator.mediaDevices.getUserMedia({
+            video: {
+              facingMode: 'user',
+              width: { ideal: 640, min: 320 },
+              height: { ideal: 480, min: 320 }
+            },
+            audio: false,
+          });
+        } catch (basicError) {
+          console.log('Failed with basic constraints, trying minimal constraints:', basicError);
+          
+          // Last resort: minimal constraints
+          mediaStream = await navigator.mediaDevices.getUserMedia({
+            video: true,
+            audio: false,
+          });
+        }
+      }
   
       if (!isMountedRef.current) {
         console.log('Component unmounted after getUserMedia, cleaning up...');
@@ -845,11 +917,12 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
   }, [cameraState]);
 
   if (error) {
+    const isInIframe = window.parent !== window;
     return (
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        className={`fixed inset-0 z-50 flex items-center justify-center bg-transparent bg-opacity-75 py-4`}
+        className={`${embedded ? 'absolute' : 'fixed'} inset-0 z-50 flex items-center justify-center bg-transparent bg-opacity-75 py-4`}
       >
         <div className="bg-white rounded-2xl p-8 max-w-md w-full">
           <div className="text-center mb-6">
@@ -858,8 +931,18 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
             </div>
             <h3 className="text-xl font-semibold mb-2">Camera Not Available</h3>
             <p className="text-gray-600 mb-6">
-              No worries! You can upload a photo instead to continue with your skin analysis.
+              {isInIframe 
+                ? "Camera access is limited when embedded. Please upload a photo to continue with your skin analysis."
+                : "No worries! You can upload a photo instead to continue with your skin analysis."
+              }
             </p>
+            {isInIframe && (
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
+                <p className="text-sm text-yellow-800">
+                  💡 <strong>Tip:</strong> For the best experience, try opening the skin analysis in a new tab or window.
+                </p>
+              </div>
+            )}
           </div>
           
           <ImageUpload onImageSelect={(imageData: string) => {
@@ -893,7 +976,7 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className={`fixed inset-0 z-50 flex items-center justify-center bg-transparent bg-opacity-75 py-4`}
+      className={`${embedded ? 'absolute' : 'fixed'} inset-0 z-50 flex items-center justify-center bg-transparent bg-opacity-75 py-4`}
     >
       <style jsx>{`
         @keyframes pulse {

@@ -34,30 +34,7 @@ export default function EmbedPage() {
 
   return (
     <div className="w-full h-screen bg-black/20 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="w-full max-w-[540px] h-[95vh] max-h-[800px] bg-white rounded-xl shadow-2xl overflow-hidden border border-gray-200 relative">
-        {/* Camera Access Notice */}
-        <div className="absolute top-4 left-4 right-4 z-10">
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center">
-                  <span className="text-blue-600 text-xs">📷</span>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-blue-900">Camera Access Limited</p>
-                  <p className="text-xs text-blue-700">Open in new tab for full camera access</p>
-                </div>
-              </div>
-              <button
-                onClick={() => window.open(window.location.href, '_blank', 'width=540,height=800')}
-                className="px-3 py-1 bg-blue-600 text-white text-xs rounded-md hover:bg-blue-700 transition-colors"
-              >
-                Open New Tab
-              </button>
-            </div>
-          </div>
-        </div>
-        
+      <div className="w-full max-w-[540px] h-[95vh] max-h-[800px] bg-white rounded-xl shadow-2xl overflow-hidden border border-gray-200">
         <SkinAnalysisModal 
           isOpen={showModal} 
           onClose={handleCloseModal} 

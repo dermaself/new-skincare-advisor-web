@@ -1,32 +1,43 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+
+import { useState, useEffect } from 'react';
 import SkinAnalysisModal from '@/components/SkinAnalysisModal';
 
 export default function EmbedPage() {
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [showModal, setShowModal] = useState(true); // Always show modal in embed mode
 
+  // Listen for messages from parent Shopify page
   useEffect(() => {
-    // Auto-open the modal when embedded
-    setIsModalOpen(true);
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data.type === 'OPEN_SKIN_ANALYSIS') {
+        setShowModal(true);
+      } else if (event.data.type === 'CLOSE_SKIN_ANALYSIS') {
+        setShowModal(false);
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
   }, []);
 
-  const handleClose = () => {
-    setIsModalOpen(false);
+  const handleCloseModal = () => {
+    setShowModal(false);
     
-    // Send message to parent (Shopify) to close iframe
-    if (typeof window !== 'undefined' && window.parent !== window) {
+    // Notify parent that modal was closed
+    if (window.parent !== window) {
       window.parent.postMessage({
-        type: 'SHOPIFY_CLOSE_MODAL'
+        type: 'SKIN_ANALYSIS_CLOSED',
+        payload: {}
       }, '*');
     }
   };
 
   return (
-    <div className="embed-container min-h-screen bg-gray-50">
+    <div className="w-full h-full">
       <SkinAnalysisModal 
-        isOpen={isModalOpen} 
-        onClose={handleClose}
-        embedded={true}
+        isOpen={showModal} 
+        onClose={handleCloseModal} 
+        embedded={true} 
       />
     </div>
   );

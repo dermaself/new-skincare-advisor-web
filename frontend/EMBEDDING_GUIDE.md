@@ -332,4 +332,34 @@ Header set X-Frame-Options "ALLOWALL"
 ```nginx
 add_header Permissions-Policy "camera=*, microphone=*, geolocation=*";
 add_header X-Frame-Options "ALLOWALL";
+```
+
+### For Azure (web.config):
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<configuration>
+  <system.webServer>
+    <httpProtocol>
+      <customHeaders>
+        <add name="Permissions-Policy" value="camera=*, microphone=*, geolocation=*" />
+        <add name="X-Frame-Options" value="ALLOWALL" />
+      </customHeaders>
+    </httpProtocol>
+  </system.webServer>
+</configuration>
+```
+
+### For Azure Static Web Apps (staticwebapp.config.json):
+```json
+{
+  "headers": [
+    {
+      "route": "/*",
+      "headers": {
+        "Permissions-Policy": "camera=*, microphone=*, geolocation=*",
+        "X-Frame-Options": "ALLOWALL"
+      }
+    }
+  ]
+}
 ``` 

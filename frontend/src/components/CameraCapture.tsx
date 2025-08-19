@@ -851,6 +851,17 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
     startCamera();
   };
 
+  // Auto-fallback to upload if camera fails
+  useEffect(() => {
+    if (error && error.includes('Permissions policy violation')) {
+      // Automatically show upload option after a short delay
+      setTimeout(() => {
+        setError(null);
+        triggerFileUpload();
+      }, 2000);
+    }
+  }, [error]);
+
 
 
   useEffect(() => {
@@ -1122,15 +1133,24 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
         <div ref={controlsRef} className="pt-4 px-2 pb-1 bg-gray-50 flex-shrink-0">
           {!isCameraActive && cameraState === 'live' && (
             <div className="flex flex-col items-center gap-4">
-              <button
-                onClick={handleTakePhotoClick}
-                className="w-full max-w-xs px-3 py-2 bg-blue-600 text-white hover:bg-blue-700 transition-colors rounded-xl font-semibold flex items-center justify-center gap-2 text-sm"
-              >
-                <Camera className="w-4 h-4" />
-                {isMobileDevice() ? 'Take Photo' : 'Upload Photo'}
-              </button>
-                </div>
-            )}
+              <div className="flex gap-2 w-full max-w-xs">
+                <button
+                  onClick={handleTakePhotoClick}
+                  className="flex-1 px-3 py-2 bg-blue-600 text-white hover:bg-blue-700 transition-colors rounded-xl font-semibold flex items-center justify-center gap-2 text-sm"
+                >
+                  <Camera className="w-4 h-4" />
+                  Camera
+                </button>
+                <button
+                  onClick={triggerFileUpload}
+                  className="flex-1 px-3 py-2 bg-gray-600 text-white hover:bg-gray-700 transition-colors rounded-xl font-semibold flex items-center justify-center gap-2 text-sm"
+                >
+                  <Upload className="w-4 h-4" />
+                  Upload
+                </button>
+              </div>
+            </div>
+          )}
 
           {cameraState === 'live' && isCameraActive && (
             <div className="flex flex-col items-center gap-1 sm:gap-2">

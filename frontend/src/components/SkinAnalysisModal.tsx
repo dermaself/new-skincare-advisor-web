@@ -1132,7 +1132,7 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false }:
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -20 }}
                   transition={{ duration: 0.3 }}
-                  className="text-center p-4 flex flex-col h-full"
+                  className="text-center p-4 flex flex-col h-full min-h-[fit-content]"
                 >
                   <h3 className="text-2xl font-bold text-gray-900 mb-4">
                     Get Your Virtual Skincare Consultation
@@ -1200,7 +1200,7 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false }:
                   className="space-y-0 px-4 h-full"
                 >
                   {/* Skin Concerns */}
-                  <div className="question min-h-[60vh] h-full flex flex-col justify-center">
+                  <div className="question min-h-[fit-content] h-full flex flex-col justify-center">
                     <h1 className="question__header-text">
                       SELECT TWO SKIN CONCERNS YOU WOULD LIKE TO FOCUS ON
                     </h1>
@@ -1247,7 +1247,7 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false }:
                   </div>
 
                   {/* Skin Type */}
-                  <div className="question min-h-[60vh] h-full flex flex-col justify-center" ref={skinTypeRef}>
+                  <div className="question min-h-[fit-content] h-full flex flex-col justify-center" ref={skinTypeRef}>
                     <h1 className="question__header-text">
                       WHAT IS YOUR SKIN TYPE?
                     </h1>
@@ -1293,7 +1293,7 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false }:
                   </div>
 
                   {/* Age Group */}
-                  <div className="question min-h-[60vh] h-full flex flex-col justify-center" ref={ageGroupRef}>
+                  <div className="question min-h-[fit-content] h-full flex flex-col justify-center" ref={ageGroupRef}>
                     <h1 className="question__header-text">
                       WHAT IS YOUR AGE GROUP?
                     </h1>

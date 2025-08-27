@@ -1132,7 +1132,7 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false }:
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -20 }}
                   transition={{ duration: 0.3 }}
-                  className="text-center p-4 flex flex-col justify-center h-full"
+                  className="text-center p-4 flex flex-col h-full"
                 >
                   <h3 className="text-2xl font-bold text-gray-900 mb-4">
                     Get Your Virtual Skincare Consultation

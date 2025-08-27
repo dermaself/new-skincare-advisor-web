@@ -178,25 +178,16 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
       }
       
       // Use simpler camera constraints that work better in iframes
-      let mediaStream;
+      let mediaStream: MediaStream;
       try {
-        // Start with minimal constraints for better iframe compatibility
+        const videoConstraints = await getVideoConstraintsForCurrentCamera();
         mediaStream = await navigator.mediaDevices.getUserMedia({
-          video: {
-            facingMode: 'user',
-            width: { ideal: 640, min: 320 },
-            height: { ideal: 480, min: 240 }
-          },
-          audio: false,
+          video: videoConstraints,
+          audio: false
         });
       } catch (basicError) {
-        console.log('Failed with basic constraints, trying minimal constraints:', basicError);
-        
-        // Last resort: minimal constraints
-        mediaStream = await navigator.mediaDevices.getUserMedia({
-          video: true,
-          audio: false,
-        });
+        console.log('Failed with preferred constraints, trying minimal constraints:', basicError);
+        mediaStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
       }
   
       if (!isMountedRef.current) {
@@ -308,6 +299,40 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
       initializationInProgressRef.current = false;
     }
   };
+  
+  const getVideoConstraintsForCurrentCamera = async () => {
+    const preferredFacingMode = currentCamera === 'front' ? 'user' : 'environment';
+  
+    // Start with facingMode (works on most browsers)
+    const base: MediaTrackConstraints = {
+      facingMode: { ideal: preferredFacingMode },
+      width: { ideal: 640, min: 320 },
+      height: { ideal: 480, min: 240 }
+    };
+  
+    // After permission, labels are populated. Try to choose by deviceId for iOS reliability.
+    try {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const videoInputs = devices.filter(d => d.kind === 'videoinput');
+      if (videoInputs.length) {
+        const pick = (wantBack: boolean) => {
+          const regex = wantBack ? /back|rear|environment/i : /front|user|face/i;
+          return (
+            videoInputs.find(d => regex.test(d.label)) ||
+            (wantBack ? videoInputs[videoInputs.length - 1] : videoInputs[0])
+          );
+        };
+        const chosen = pick(currentCamera === 'back');
+        if (chosen?.deviceId) {
+          return { ...base, deviceId: { exact: chosen.deviceId } };
+        }
+      }
+    } catch (e) {
+      // ignore; fall back to facingMode only
+    }
+  
+    return base;
+  };
 
   const startCamera = async () => {
     if (initializationInProgressRef.current) {
@@ -371,25 +396,16 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
       }
       
       // Use simpler camera constraints that work better in iframes
-      let mediaStream;
+      let mediaStream: MediaStream;
       try {
-        // Start with minimal constraints for better iframe compatibility
+        const videoConstraints = await getVideoConstraintsForCurrentCamera();
         mediaStream = await navigator.mediaDevices.getUserMedia({
-          video: {
-            facingMode: 'user',
-            width: { ideal: 640, min: 320 },
-            height: { ideal: 480, min: 240 }
-          },
-          audio: false,
+          video: videoConstraints,
+          audio: false
         });
       } catch (basicError) {
-        console.log('Failed with basic constraints, trying minimal constraints:', basicError);
-        
-        // Last resort: minimal constraints
-        mediaStream = await navigator.mediaDevices.getUserMedia({
-          video: true,
-          audio: false,
-        });
+        console.log('Failed with preferred constraints, trying minimal constraints:', basicError);
+        mediaStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
       }
   
       if (!isMountedRef.current) {

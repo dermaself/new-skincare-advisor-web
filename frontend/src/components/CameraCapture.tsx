@@ -1,7 +1,7 @@
 'use client';
 import React, { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Camera, X, Upload, RotateCcw, User, Move, CheckCircle, Target, MoveHorizontal, Sun, Check, ArrowLeft } from 'lucide-react';
+import { Camera, X, Upload, SwitchCameraIcon, User, Move, CheckCircle, Target, MoveHorizontal, Sun, Check, ArrowLeft } from 'lucide-react';
 import ImageUpload from './ImageUpload';
 // Dynamic import to avoid SSR issues
 let faceapi: any = null;
@@ -136,205 +136,201 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
     }
   }, [cameraState]);
 
-
-
-  const startCameraWithDimensions = async (targetWidth: number, targetHeight: number) => {
-    if (initializationInProgressRef.current) {
-      console.log('Camera initialization already in progress, skipping...');
-      return;
-    }
+  // const startCameraWithDimensions = async (targetWidth: number, targetHeight: number) => {
+  //   if (initializationInProgressRef.current) {
+  //     console.log('Camera initialization already in progress, skipping...');
+  //     return;
+  //   }
     
-    if (!isMountedRef.current) {
-      console.log('Component unmounted before initialization, skipping...');
-      return;
-    }
+  //   if (!isMountedRef.current) {
+  //     console.log('Component unmounted before initialization, skipping...');
+  //     return;
+  //   }
     
-    initializationInProgressRef.current = true;
+  //   initializationInProgressRef.current = true;
     
-    try {
-      setIsLoading(true);
-      setError(null);
+  //   try {
+  //     setIsLoading(true);
+  //     setError(null);
       
-      console.log('Starting camera with dimensions:', targetWidth, 'x', targetHeight);
+  //     console.log('Starting camera with dimensions:', targetWidth, 'x', targetHeight);
       
-      // Check if we're in an iframe
-      const isInIframe = window.parent !== window;
-      console.log('Running in iframe:', isInIframe);
+  //     // Check if we're in an iframe
+  //     const isInIframe = window.parent !== window;
+  //     console.log('Running in iframe:', isInIframe);
       
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        throw new Error('Camera API not supported in this browser');
-      }
+  //     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+  //       throw new Error('Camera API not supported in this browser');
+  //     }
       
-      if (stream) {
-        console.log('Stopping existing stream...');
-        stream.getTracks().forEach(track => track.stop());
-      }
+  //     if (stream) {
+  //       console.log('Stopping existing stream...');
+  //       stream.getTracks().forEach(track => track.stop());
+  //     }
       
-      console.log('Requesting camera access with specific dimensions...');
+  //     console.log('Requesting camera access with specific dimensions...');
       
-      if (!isMountedRef.current) {
-        console.log('Component unmounted before getUserMedia, stopping...');
-        return;
-      }
+  //     if (!isMountedRef.current) {
+  //       console.log('Component unmounted before getUserMedia, stopping...');
+  //       return;
+  //     }
       
-      // Use simpler camera constraints that work better in iframes
-      let mediaStream: MediaStream;
-      try {
-        const videoConstraints = await getVideoConstraintsForCurrentCamera();
-        mediaStream = await navigator.mediaDevices.getUserMedia({
-          video: videoConstraints,
-          audio: false
-        });
-      } catch (basicError) {
-        console.log('Failed with preferred constraints, trying minimal constraints:', basicError);
-        mediaStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
-      }
+  //     // Use simpler camera constraints that work better in iframes
+  //     let mediaStream: MediaStream;
+  //     try {
+  //       const videoConstraints = await getVideoConstraintsForCurrentCamera();
+  //       mediaStream = await navigator.mediaDevices.getUserMedia({
+  //         video: videoConstraints,
+  //         audio: false
+  //       });
+  //     } catch (basicError) {
+  //       console.log('Failed with preferred constraints, trying minimal constraints:', basicError);
+  //       mediaStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+  //     }
   
-      if (!isMountedRef.current) {
-        console.log('Component unmounted after getUserMedia, cleaning up...');
-        mediaStream.getTracks().forEach(track => track.stop());
-        return;
-      }
+  //     if (!isMountedRef.current) {
+  //       console.log('Component unmounted after getUserMedia, cleaning up...');
+  //       mediaStream.getTracks().forEach(track => track.stop());
+  //       return;
+  //     }
 
-      setStream(mediaStream);
+  //     setStream(mediaStream);
       
-      if (videoRef.current) {
-        const video = videoRef.current;
-        console.log('Setting video srcObject...');
-        video.srcObject = mediaStream;
+  //     if (videoRef.current) {
+  //       const video = videoRef.current;
+  //       console.log('Setting video srcObject...');
+  //       video.srcObject = mediaStream;
         
-        // Add event listeners to debug video loading
-        const onLoadedMetadata = () => {
-          console.log('Video metadata loaded with dimensions');
-          console.log('Video ready state:', video.readyState);
-          console.log('Video paused:', video.paused);
-          console.log('Video current time:', video.currentTime);
-          console.log('Video dimensions:', video.videoWidth, 'x', video.videoHeight);
-          console.log('Video element dimensions:', video.offsetWidth, 'x', video.offsetHeight);
-          console.log('Target dimensions:', targetWidth, 'x', targetHeight);
-          console.log('Dimensions match:', video.videoWidth === targetWidth && video.videoHeight === targetHeight);
-        };
+  //       // Add event listeners to debug video loading
+  //       const onLoadedMetadata = () => {
+  //         console.log('Video metadata loaded with dimensions');
+  //         console.log('Video ready state:', video.readyState);
+  //         console.log('Video paused:', video.paused);
+  //         console.log('Video current time:', video.currentTime);
+  //         console.log('Video dimensions:', video.videoWidth, 'x', video.videoHeight);
+  //         console.log('Video element dimensions:', video.offsetWidth, 'x', video.offsetHeight);
+  //         console.log('Target dimensions:', targetWidth, 'x', targetHeight);
+  //         console.log('Dimensions match:', video.videoWidth === targetWidth && video.videoHeight === targetHeight);
+  //       };
         
-        const onCanPlay = () => {
-          console.log('Video can play');
-        };
+  //       const onCanPlay = () => {
+  //         console.log('Video can play');
+  //       };
         
-        const onPlaying = () => {
-          console.log('Video is playing');
-        };
+  //       const onPlaying = () => {
+  //         console.log('Video is playing');
+  //       };
         
-        const onError = (e: Event) => {
-          console.error('Video error event:', e);
-        };
+  //       const onError = (e: Event) => {
+  //         console.error('Video error event:', e);
+  //       };
         
-        video.addEventListener('loadedmetadata', onLoadedMetadata);
-        video.addEventListener('canplay', onCanPlay);
-        video.addEventListener('playing', onPlaying);
-        video.addEventListener('error', onError);
+  //       video.addEventListener('loadedmetadata', onLoadedMetadata);
+  //       video.addEventListener('canplay', onCanPlay);
+  //       video.addEventListener('playing', onPlaying);
+  //       video.addEventListener('error', onError);
         
-        // Simple video start with error handling
-        try {
-          console.log('Attempting to play video...');
-          await video.play();
-          console.log('Video play successful');
-          setIsCameraActive(true);
-          setIsLoading(false);
-          console.log('Camera started successfully with dimensions');
-          console.log('Video dimensions:', video.videoWidth, 'x', video.videoHeight);
-          console.log('Video element dimensions:', video.offsetWidth, 'x', video.offsetHeight);
+  //       // Simple video start with error handling
+  //       try {
+  //         console.log('Attempting to play video...');
+  //         await video.play();
+  //         console.log('Video play successful');
+  //         setIsCameraActive(true);
+  //         setIsLoading(false);
+  //         console.log('Camera started successfully with dimensions');
+  //         console.log('Video dimensions:', video.videoWidth, 'x', video.videoHeight);
+  //         console.log('Video element dimensions:', video.offsetWidth, 'x', video.offsetHeight);
           
-          // Start face detection only if models are loaded
-          if (modelsLoaded) {
-            startFaceDetection();
-          } else {
-            console.log('Camera started with dimensions, waiting for models to load before starting face detection...');
-          }
+  //         // Start face detection only if models are loaded
+  //         if (modelsLoaded) {
+  //           startFaceDetection();
+  //         } else {
+  //           console.log('Camera started with dimensions, waiting for models to load before starting face detection...');
+  //         }
           
-        } catch (playError) {
-          console.log('Video play failed:', playError);
+  //       } catch (playError) {
+  //         console.log('Video play failed:', playError);
           
-          // Handle AbortError specifically - this is normal when component unmounts
-          if (playError instanceof Error && playError.name === 'AbortError') {
-            console.log('Video play was aborted (component likely unmounted) - this is normal');
-            return; // Don't show error for abort
-          }
+  //         // Handle AbortError specifically - this is normal when component unmounts
+  //         if (playError instanceof Error && playError.name === 'AbortError') {
+  //           console.log('Video play was aborted (component likely unmounted) - this is normal');
+  //           return; // Don't show error for abort
+  //         }
           
-          // Try fallback approach
-          try {
-            console.log('Trying fallback video start...');
-            // Wait a moment and try again
-            await new Promise(resolve => setTimeout(resolve, 100));
-            await video.play();
-            setIsCameraActive(true);
-            setIsLoading(false);
-            console.log('Camera started successfully with dimensions and fallback');
+  //         // Try fallback approach
+  //         try {
+  //           console.log('Trying fallback video start...');
+  //           // Wait a moment and try again
+  //           await new Promise(resolve => setTimeout(resolve, 100));
+  //           await video.play();
+  //           setIsCameraActive(true);
+  //           setIsLoading(false);
+  //           console.log('Camera started successfully with dimensions and fallback');
             
-            // Start face detection only if models are loaded
-            if (modelsLoaded) {
-              startFaceDetection();
-            } else {
-              console.log('Camera started with dimensions and fallback, waiting for models to load before starting face detection...');
-            }
+  //           // Start face detection only if models are loaded
+  //           if (modelsLoaded) {
+  //             startFaceDetection();
+  //           } else {
+  //             console.log('Camera started with dimensions and fallback, waiting for models to load before starting face detection...');
+  //           }
             
-          } catch (fallbackError) {
-            console.log('Fallback video start also failed:', fallbackError);
-            setError('Could not start video. Please try again.');
-            setIsLoading(false);
-          }
-        }
-      }
+  //         } catch (fallbackError) {
+  //           console.log('Fallback video start also failed:', fallbackError);
+  //           setError('Could not start video. Please try again.');
+  //           setIsLoading(false);
+  //         }
+  //       }
+  //     }
       
-    } catch (err) {
-      console.error('Camera error:', err);
+  //   } catch (err) {
+  //     console.error('Camera error:', err);
       
-      // Handle AbortError specifically
-      if (err instanceof Error && err.name === 'AbortError') {
-        console.log('Camera initialization was aborted - this is normal');
-        return; // Don't show error for abort
-      }
+  //     // Handle AbortError specifically
+  //     if (err instanceof Error && err.name === 'AbortError') {
+  //       console.log('Camera initialization was aborted - this is normal');
+  //       return; // Don't show error for abort
+  //     }
       
-      setError('Could not access camera. Please check permissions.');
-      setIsLoading(false);
-    } finally {
-      initializationInProgressRef.current = false;
-    }
-  };
+  //     setError('Could not access camera. Please check permissions.');
+  //     setIsLoading(false);
+  //   } finally {
+  //     initializationInProgressRef.current = false;
+  //   }
+  // };
   
-  const getVideoConstraintsForCurrentCamera = async () => {
-    const preferredFacingMode = currentCamera === 'front' ? 'user' : 'environment';
+  const getVideoConstraints = async (facing: 'front' | 'back'): Promise<MediaTrackConstraints> => {
+    const preferredFacingMode = facing === 'front' ? 'user' : 'environment';
   
     // Start with facingMode (works on most browsers)
-    const base: MediaTrackConstraints = {
+    let constraints: MediaTrackConstraints = {
       facingMode: { ideal: preferredFacingMode },
       width: { ideal: 640, min: 320 },
       height: { ideal: 480, min: 240 }
     };
   
-    // After permission, labels are populated. Try to choose by deviceId for iOS reliability.
+    // After permission, labels are available—pick by deviceId for iOS reliability
     try {
       const devices = await navigator.mediaDevices.enumerateDevices();
-      const videoInputs = devices.filter(d => d.kind === 'videoinput');
-      if (videoInputs.length) {
-        const pick = (wantBack: boolean) => {
-          const regex = wantBack ? /back|rear|environment/i : /front|user|face/i;
-          return (
-            videoInputs.find(d => regex.test(d.label)) ||
-            (wantBack ? videoInputs[videoInputs.length - 1] : videoInputs[0])
-          );
-        };
-        const chosen = pick(currentCamera === 'back');
-        if (chosen?.deviceId) {
-          return { ...base, deviceId: { exact: chosen.deviceId } };
-        }
+      const vids = devices.filter(d => d.kind === 'videoinput');
+  
+      const pick = (wantBack: boolean) => {
+        const re = wantBack ? /back|rear|environment/i : /front|user|face/i;
+        return vids.find(d => re.test(d.label)) ||
+               (wantBack ? vids[vids.length - 1] : vids[0]);
+      };
+  
+      const chosen = pick(facing === 'back');
+      if (chosen?.deviceId) {
+        constraints = { ...constraints, deviceId: { exact: chosen.deviceId } };
       }
-    } catch (e) {
+    } catch {
       // ignore; fall back to facingMode only
     }
   
-    return base;
+    return constraints;
   };
 
-  const startCamera = async () => {
+  const startCamera = async (desiredFacing?: 'front' | 'back') => {
     if (initializationInProgressRef.current) {
       console.log('Camera initialization already in progress, skipping...');
       return;
@@ -398,7 +394,7 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
       // Use simpler camera constraints that work better in iframes
       let mediaStream: MediaStream;
       try {
-        const videoConstraints = await getVideoConstraintsForCurrentCamera();
+        const videoConstraints = await getVideoConstraints(desiredFacing || currentCamera);
         mediaStream = await navigator.mediaDevices.getUserMedia({
           video: videoConstraints,
           audio: false
@@ -1041,7 +1037,7 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
       >
         {/* Header */}
         <div ref={headerRef} className="flex items-center justify-between px-2 sm:px-4 py-1 sm:py-2 border-b border-gray-200 flex-shrink-0">
-                      <div>
+            <div>
               <h3 className="text-sm sm:text-lg font-bold text-gray-900">
                 Skin Analysis Camera
               </h3>
@@ -1064,12 +1060,10 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
               <div className="text-white text-center">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
                 <p>Starting camera...</p>
-                  </div>
-                    </div>
-                  )}
+              </div>
+            </div>
+          )}
           
-
-
           {cameraState === 'live' && (
             <div className="relative w-full h-full overflow-hidden">
               <video
@@ -1105,10 +1099,6 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
                 }}
               />
               
-
-              
-
-              
               {/* Dynamic Guidance Text */}
               <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-20">
                 <div className={`px-6 py-3 rounded-lg text-sm text-center max-w-xs transition-all duration-300 ${
@@ -1127,23 +1117,19 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
                   </div>
                 </div>
               </div>
-                  </div>
-            )}
-
-            {cameraState === 'preview' && (
-            <div 
-              className="relative w-full h-full"
-            >
-                    <img
-                      src={capturedImage!}
-                      alt="Captured photo"
-                className="w-full h-full object-cover"
-                    />
-                  </div>
+            </div>
           )}
-          
 
-                  </div>
+          {cameraState === 'preview' && (
+            <div className="relative w-full h-full">
+              <img
+                src={capturedImage!}
+                alt="Captured photo"
+                className="w-full h-full object-cover"
+              />
+            </div>
+          )}
+        </div>
 
         {/* Controls */}
         <div ref={controlsRef} className="pt-4 px-2 pb-1 bg-gray-50 flex-shrink-0">
@@ -1174,24 +1160,24 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
               <div className="flex items-center gap-1 sm:gap-2">
                 <button
                   onClick={switchCamera}
-                  className="p-1.5 sm:p-2 bg-gray-200 text-gray-800 rounded-full hover:bg-gray-300"
+                  className="p-1.5 sm:p-2 bg-gray-200 text-gray-800 rounded-full hover:bg-gray-300 flex items-center justify-center"
                 >
-                  <Camera className="w-3 h-3 sm:w-4 sm:h-4" />
+                  <SwitchCameraIcon className="w-5 h-5" />
                 </button>
                 
               <button
                 onClick={capturePhoto}
                 disabled={!isCameraActive || isLoading}
-                  className="w-10 h-10 sm:w-14 sm:h-14 bg-blue-600 text-white hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-all flex items-center justify-center rounded-full shadow-lg"
+                  className="w-20 h-12 bg-blue-600 text-white hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-all flex items-center justify-center rounded-full shadow-lg"
               >
-                  <Camera className="w-4 h-4 sm:w-5 sm:h-5" />
+                  <Camera className="w-6 h-6" />
               </button>
                 
                 <button
                   onClick={triggerFileUpload}
-                  className="p-1.5 sm:p-2 bg-gray-200 text-gray-800 rounded-full hover:bg-gray-300"
+                  className="p-1.5 sm:p-2 bg-gray-200 text-gray-800 rounded-full hover:bg-gray-300 flex items-center justify-center "
                 >
-                  <Upload className="w-3 h-3 sm:w-4 sm:h-4" />
+                  <Upload className="w-5 h-5" />
                 </button>
               </div>
               
@@ -1206,8 +1192,6 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
                   <span>Good lighting for best results</span>
                 </p>
               </div>
-              
-
             </div>
           )}
 

@@ -114,3 +114,6 @@ Thumbs.db
 # Backup files
 *.bak
 *.backup
+
+# Skin web folder
+skin-web/

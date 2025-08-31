@@ -922,7 +922,7 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
 
         {/* Controls */}
         <div ref={controlsRef} className="pt-4 px-2 pb-1 bg-gray-50 flex-shrink-0">
-          {!isCameraActive && cameraState === 'live' && (
+          {!isCameraActive && cameraState === 'live' && !stream && (
             <div className="flex flex-col items-center gap-4">
               <div className="flex gap-2 w-full max-w-xs">
                 <button
@@ -943,7 +943,7 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
             </div>
           )}
 
-          {cameraState === 'live' && isCameraActive && (
+          {cameraState === 'live' && (isCameraActive || stream) && (
             <div className="flex flex-col items-center gap-1 sm:gap-2">
               {/* Camera controls */}
               <div className="flex items-center gap-1 sm:gap-2">

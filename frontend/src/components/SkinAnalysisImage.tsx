@@ -238,19 +238,62 @@ export default function SkinAnalysisImage({
 
   return (
     <div className={`relative ${className}`}>
-      {/* Header */}
-      <div className="flex items-center justify-center mb-6">
-        <button
-          onClick={() => setShowOverlays(!showOverlays)}
-          className={`flex w-full mx-4 md:mx-0 md:w-auto items-center justify-center space-x-2 px-3 py-2 rounded-md transition-colors ${
-            showOverlays 
-              ? 'bg-blue-100 text-blue-700 border border-blue-200' 
-              : 'bg-gray-100 text-gray-600 border border-gray-200'
-          }`}
-        >
-          {showOverlays ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
-          <span className="text-sm font-medium">Overlays</span>
-        </button>
+      {/* Header with Color Legend */}
+      <div className="mb-6">
+        {/* Overlay Toggle */}
+        <div className="flex items-center justify-center mb-4">
+          <button
+            onClick={() => setShowOverlays(!showOverlays)}
+            className={`flex w-full mx-4 md:mx-0 md:w-auto items-center justify-center space-x-2 px-3 py-2 rounded-md transition-colors ${
+              showOverlays 
+                ? 'bg-blue-100 text-blue-700 border border-blue-200' 
+                : 'bg-gray-100 text-gray-600 border border-gray-200'
+            }`}
+          >
+            {showOverlays ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+            <span className="text-sm font-medium">Overlays</span>
+          </button>
+        </div>
+
+        {/* Color Legend Panel */}
+        {showOverlays && (
+          <motion.div 
+            className="bg-white border border-gray-200 rounded-lg p-4 mx-4 md:mx-0"
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+          >
+            <h3 className="text-sm font-semibold text-gray-900 mb-3">
+              {currentView === 'acne' ? 'Acne Detection Legend' : 'Redness Detection Legend'}
+            </h3>
+            
+            {currentView === 'acne' ? (
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                {Object.entries(ACNE_COLORS).map(([className, color]) => (
+                  <div key={className} className="flex items-center space-x-2">
+                    <div 
+                      className="w-4 h-4 rounded-sm border border-gray-300"
+                      style={{ backgroundColor: color }}
+                    />
+                    <span className="text-xs text-gray-700 font-medium">
+                      {className.replace(/([A-Z])/g, ' $1').trim()}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="flex items-center space-x-2">
+                <div 
+                  className="w-4 h-4 rounded-sm border border-gray-300"
+                  style={{ backgroundColor: REDNESS_COLOR }}
+                />
+                <span className="text-xs text-gray-700 font-medium">
+                  Redness Areas (Erythema)
+                </span>
+              </div>
+            )}
+          </motion.div>
+        )}
       </div>
 
       {/* Image Carousel */}
@@ -338,7 +381,7 @@ export default function SkinAnalysisImage({
                       })
                     }
 
-                    {/* Acne Detection Boxes - only show in acne view */}
+                    {/* Acne Detection Areas - only show in acne view */}
                     {currentView === 'acne' && analysisData.predictions.map((prediction, index) => {
                       const scaled = scaleCoordinates(
                         prediction.x - prediction.width / 2,
@@ -352,16 +395,17 @@ export default function SkinAnalysisImage({
                       
                       return (
                         <g key={prediction.detection_id}>
-                          {/* Bounding Box - Clean design without labels */}
+                          {/* Filled Detection Area */}
                           <motion.rect
                             x={scaled.x}
                             y={scaled.y}
                             width={scaled.width}
                             height={scaled.height}
-                            fill="none"
+                            fill={color}
+                            fillOpacity={isHovered ? 0.8 : 0.6}
                             stroke={color}
                             strokeWidth={isHovered ? "3" : "2"}
-                            strokeDasharray={isHovered ? "none" : "5,5"}
+                            strokeOpacity={isHovered ? 1 : 0.8}
                             className="pointer-events-auto cursor-pointer"
                             onMouseEnter={() => setHoveredDetection(prediction.detection_id)}
                             onMouseLeave={() => setHoveredDetection(null)}
@@ -369,6 +413,23 @@ export default function SkinAnalysisImage({
                             animate={{ opacity: 1, scale: 1 }}
                             transition={{ duration: 0.3, delay: index * 0.1 }}
                           />
+                          
+                          {/* Border highlight on hover */}
+                          {isHovered && (
+                            <motion.rect
+                              x={scaled.x - 2}
+                              y={scaled.y - 2}
+                              width={scaled.width + 4}
+                              height={scaled.height + 4}
+                              fill="none"
+                              stroke="white"
+                              strokeWidth="2"
+                              strokeDasharray="5,5"
+                              initial={{ opacity: 0 }}
+                              animate={{ opacity: 1 }}
+                              transition={{ duration: 0.2 }}
+                            />
+                          )}
                         </g>
                       );
                     })}
@@ -423,27 +484,7 @@ export default function SkinAnalysisImage({
         </div>
       </div>
 
-      {/* Hover Tooltip */}
-      {hoveredDetection && (
-        <div className="absolute bg-white border border-gray-200 rounded-lg shadow-lg p-3 pointer-events-none z-10">
-          {(() => {
-            const prediction = analysisData.predictions.find(p => p.detection_id === hoveredDetection);
-            if (!prediction) return null;
-            
-            return (
-              <div className="text-sm">
-                <div className="font-semibold text-gray-900">{prediction.class}</div>
-                <div className="text-gray-600">
-                  Confidence: {Math.round(prediction.confidence * 100)}%
-                </div>
-                <div className="text-gray-600">
-                  Size: {Math.round(prediction.width)} × {Math.round(prediction.height)}px
-                </div>
-              </div>
-            );
-          })()}
-        </div>
-      )}
+
 
       {/* Analysis Summary Cards */}
       <div className="grid grid-cols-1 gap-4 p-2">
@@ -523,6 +564,33 @@ export default function SkinAnalysisImage({
                 )}%
               </span>
             </div>
+            {/* Detailed breakdown of detected types */}
+            {analysisData.predictions.length > 0 && (
+              <div className="mt-3 pt-3 border-t border-purple-200">
+                <div className="text-xs text-purple-700 font-medium mb-2">Detected Types:</div>
+                <div className="space-y-1">
+                  {Object.entries(
+                    analysisData.predictions.reduce((acc, p) => {
+                      acc[p.class] = (acc[p.class] || 0) + 1;
+                      return acc;
+                    }, {} as Record<string, number>)
+                  ).map(([className, count]) => (
+                    <div key={className} className="flex justify-between items-center">
+                      <div className="flex items-center space-x-2">
+                        <div 
+                          className="w-3 h-3 rounded-sm border border-gray-300"
+                          style={{ backgroundColor: getAcneColor(className) }}
+                        />
+                        <span className="text-xs text-purple-700">
+                          {className.replace(/([A-Z])/g, ' $1').trim()}
+                        </span>
+                      </div>
+                      <span className="text-xs font-semibold text-purple-900">{count}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </motion.div>
 

@@ -1197,157 +1197,208 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false }:
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -20 }}
                   transition={{ duration: 0.3 }}
-                  className="space-y-0 px-4 h-full"
+                  className="h-full flex flex-col"
                 >
                   {/* Skin Concerns */}
-                  <div className="question min-h-[fit-content] h-full flex flex-col justify-center">
-                    <h1 className="question__header-text">
-                      SELECT TWO SKIN CONCERNS YOU WOULD LIKE TO FOCUS ON
-                    </h1>
-                    <div className="answers">
+                  <div className="flex-1 flex flex-col px-6 py-8">
+                    <div className="text-center mb-8">
+                      <h1 className="text-2xl font-bold text-gray-900 mb-3">
+                        SELECT TWO SKIN CONCERNS YOU WOULD LIKE TO FOCUS ON
+                      </h1>
+                      <div className="text-sm text-gray-600">
+                        Choose the concerns that matter most to you
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 gap-4 mb-8">
                       {skinConcerns.map((concern) => (
-                        <div key={concern.name} className="answer-container">
-                          <label className={`answer ${selectedConcerns.includes(concern.name) ? 'selected gradient-border' : ''}`}>
-                            <input
-                              type="checkbox"
-                              className="answer__checkbox"
-                              checked={selectedConcerns.includes(concern.name)}
-                              onChange={() => handleConcernToggle(concern.name)}
-                            />
-                            <img
-                              src={concern.image}
-                              alt={concern.name}
-                              className="answer__image h-48 w-full object-cover"
-                            />
-                            <div className="answer__footer-wrapper">
-                              <img src={concern.icon} alt="" className="answer__icon" />
-                              <p className="answer__text">{concern.name}</p>
+                        <div 
+                          key={concern.name} 
+                          className={`relative cursor-pointer transition-all duration-200 ${
+                            selectedConcerns.includes(concern.name) 
+                              ? 'transform scale-[1.02]' 
+                              : 'hover:transform hover:scale-[1.01]'
+                          }`}
+                          onClick={() => handleConcernToggle(concern.name)}
+                        >
+                          <div className={`relative rounded-2xl overflow-hidden border-2 transition-all duration-200 ${
+                            selectedConcerns.includes(concern.name)
+                              ? 'border-blue-500 shadow-lg shadow-blue-100'
+                              : 'border-gray-200 hover:border-gray-300'
+                          }`}>
+                            <div className="flex items-center p-4">
+                              <img
+                                src={concern.image}
+                                alt={concern.name}
+                                className="w-16 h-16 rounded-xl object-cover mr-4"
+                              />
+                              <div className="flex-1">
+                                <div className="font-semibold text-gray-900 text-base mb-1">
+                                  {concern.name}
+                                </div>
+                                <div className="text-sm text-gray-600 line-clamp-2">
+                                  {concern.description}
+                                </div>
+                              </div>
+                              <div className={`w-6 h-6 rounded-full border-2 transition-all duration-200 ${
+                                selectedConcerns.includes(concern.name)
+                                  ? 'bg-blue-500 border-blue-500'
+                                  : 'border-gray-300'
+                              } flex items-center justify-center`}>
+                                {selectedConcerns.includes(concern.name) && (
+                                  <CheckCircle className="w-4 h-4 text-white" />
+                                )}
+                              </div>
                             </div>
-                          </label>
-                          
-                          <div className={`answer__info ${openInfo === concern.name ? 'show' : ''}`}>
-                            <div className="answer__footer-wrapper">
-                              <img src={concern.icon} alt="" className="answer__icon" />
-                              <p className="answer__text">{concern.name}</p>
-                            </div>
-                            <p className="answer__info-text">{concern.description}</p>
-                          </div>
-                          
-                          <button
-                            className="answer__info-button"
-                            onClick={() => toggleInfo(concern.name)}
-                            aria-label={`More information about ${concern.name}`}
-                            title={`More information about ${concern.name}`}
-                          >
-                            <Info className="info-image-closed" />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Skin Type */}
-                  <div className="question min-h-[fit-content] h-full flex flex-col justify-center" ref={skinTypeRef}>
-                    <h1 className="question__header-text">
-                      WHAT IS YOUR SKIN TYPE?
-                    </h1>
-                    <div className="answers">
-                      {skinTypes.map((type) => (
-                        <div key={type.name} className="answer-container">
-                          <label className={`answer ${selectedSkinType === type.name ? 'selected gradient-border' : ''}`}>
-                            <input
-                              type="radio"
-                              name="skinType"
-                              className="answer__checkbox"
-                              checked={selectedSkinType === type.name}
-                              onChange={() => setSelectedSkinType(type.name)}
-                            />
-                            <img
-                              src={type.image}
-                              alt={type.name}
-                              className="answer__image h-48 w-full object-cover"
-                            />
-                            <div className="answer__footer-wrapper">
-                              <p className="answer__text">{type.name}</p>
-                            </div>
-                          </label>
-                          
-                          <div className={`answer__info ${openInfo === type.name ? 'show' : ''}`}>
-                            <div className="answer__footer-wrapper">
-                              <p className="answer__text">{type.name}</p>
-                            </div>
-                            <p className="answer__info-text">{type.description}</p>
-                          </div>
-                          
-                          <button
-                            className="answer__info-button"
-                            onClick={() => toggleInfo(type.name)}
-                            aria-label={`More information about ${type.name}`}
-                            title={`More information about ${type.name}`}
-                          >
-                            <Info className="info-image-closed" />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Age Group */}
-                  <div className="question min-h-[fit-content] h-full flex flex-col justify-center" ref={ageGroupRef}>
-                    <h1 className="question__header-text">
-                      WHAT IS YOUR AGE GROUP?
-                    </h1>
-                    <div className="answers">
-                      {ageGroups.map((age) => (
-                        <div key={age.name} className="answer-container">
-                          <label className={`answer ${selectedAgeGroup === age.name ? 'selected gradient-border' : ''}`}>
-                            <input
-                              type="radio"
-                              name="ageGroup"
-                              className="answer__checkbox"
-                              checked={selectedAgeGroup === age.name}
-                              onChange={() => setSelectedAgeGroup(age.name)}
-                            />
-                            <img
-                              src={age.image}
-                              alt={age.name}
-                              className="answer__image h-48 w-full object-cover"
-                            />
-                            <div className="answer__footer-wrapper">
-                              <p className="answer__text">{age.name}</p>
-                            </div>
-                          </label>
-                          
-                          <div className={`answer__info ${openInfo === age.name ? 'show' : ''}`}>
-                            <div className="answer__footer-wrapper">
-                              <p className="answer__text">{age.name}</p>
-                            </div>
-                            <p className="answer__info-text">{age.description}</p>
                           </div>
                         </div>
                       ))}
                     </div>
+
+                    {/* Skin Type */}
+                    {selectedConcerns.length === 2 && (
+                      <div className="mb-8" ref={skinTypeRef}>
+                        <div className="text-center mb-6">
+                          <h2 className="text-xl font-bold text-gray-900 mb-2">
+                            WHAT IS YOUR SKIN TYPE?
+                          </h2>
+                          <div className="text-sm text-gray-600">
+                            This helps us recommend the right products for you
+                          </div>
+                        </div>
+                        
+                        <div className="grid grid-cols-1 gap-4">
+                          {skinTypes.map((type) => (
+                            <div 
+                              key={type.name} 
+                              className={`relative cursor-pointer transition-all duration-200 ${
+                                selectedSkinType === type.name 
+                                  ? 'transform scale-[1.02]' 
+                                  : 'hover:transform hover:scale-[1.01]'
+                              }`}
+                              onClick={() => setSelectedSkinType(type.name)}
+                            >
+                              <div className={`relative rounded-2xl overflow-hidden border-2 transition-all duration-200 ${
+                                selectedSkinType === type.name
+                                  ? 'border-blue-500 shadow-lg shadow-blue-100'
+                                  : 'border-gray-200 hover:border-gray-300'
+                              }`}>
+                                <div className="flex items-center p-4">
+                                  <img
+                                    src={type.image}
+                                    alt={type.name}
+                                    className="w-16 h-16 rounded-xl object-cover mr-4"
+                                  />
+                                  <div className="flex-1">
+                                    <div className="font-semibold text-gray-900 text-base mb-1">
+                                      {type.name}
+                                    </div>
+                                    <div className="text-sm text-gray-600 line-clamp-2">
+                                      {type.description}
+                                    </div>
+                                  </div>
+                                  <div className={`w-6 h-6 rounded-full border-2 transition-all duration-200 ${
+                                    selectedSkinType === type.name
+                                      ? 'bg-blue-500 border-blue-500'
+                                      : 'border-gray-300'
+                                  } flex items-center justify-center`}>
+                                    {selectedSkinType === type.name && (
+                                      <CheckCircle className="w-4 h-4 text-white" />
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Age Group */}
+                    {selectedConcerns.length === 2 && selectedSkinType && (
+                      <div className="mb-8" ref={ageGroupRef}>
+                        <div className="text-center mb-6">
+                          <h2 className="text-xl font-bold text-gray-900 mb-2">
+                            WHAT IS YOUR AGE GROUP?
+                          </h2>
+                          <div className="text-sm text-gray-600">
+                            Age affects skin needs and product recommendations
+                          </div>
+                        </div>
+                        
+                        <div className="grid grid-cols-1 gap-4">
+                          {ageGroups.map((age) => (
+                            <div 
+                              key={age.name} 
+                              className={`relative cursor-pointer transition-all duration-200 ${
+                                selectedAgeGroup === age.name 
+                                  ? 'transform scale-[1.02]' 
+                                  : 'hover:transform hover:scale-[1.01]'
+                              }`}
+                              onClick={() => setSelectedAgeGroup(age.name)}
+                            >
+                              <div className={`relative rounded-2xl overflow-hidden border-2 transition-all duration-200 ${
+                                selectedAgeGroup === age.name
+                                  ? 'border-blue-500 shadow-lg shadow-blue-100'
+                                  : 'border-gray-200 hover:border-gray-300'
+                              }`}>
+                                <div className="flex items-center p-4">
+                                  <img
+                                    src={age.image}
+                                    alt={age.name}
+                                    className="w-16 h-16 rounded-xl object-cover mr-4"
+                                  />
+                                  <div className="flex-1">
+                                    <div className="font-semibold text-gray-900 text-base mb-1">
+                                      {age.name}
+                                    </div>
+                                    <div className="text-sm text-gray-600 line-clamp-2">
+                                      {age.description}
+                                    </div>
+                                  </div>
+                                  <div className={`w-6 h-6 rounded-full border-2 transition-all duration-200 ${
+                                    selectedAgeGroup === age.name
+                                      ? 'bg-blue-500 border-blue-500'
+                                      : 'border-gray-300'
+                                  } flex items-center justify-center`}>
+                                    {selectedAgeGroup === age.name && (
+                                      <CheckCircle className="w-4 h-4 text-white" />
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
 
-                  <div className="flex justify-between py-6" ref={buttonsRef}>
-                    <motion.button
-                      onClick={handleBack}
-                      className="btn-secondary"
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                    >
-                      Back
-                    </motion.button>
-                    <motion.button
-                      onClick={handleStartScan}
-                      className="btn-primary"
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      disabled={selectedConcerns.length !== 2 || !selectedSkinType || !selectedAgeGroup}
-                    >
-                      Take Photo
-                    </motion.button>
-                  </div>
+                  {/* Conditional Footer with Buttons - Only show when all questions are answered */}
+                  {selectedConcerns.length === 2 && selectedSkinType && selectedAgeGroup && (
+                    <div className="border-t border-gray-200 bg-white px-6 py-4 mt-auto" ref={buttonsRef}>
+                      <div className="flex justify-between space-x-4">
+                        <motion.button
+                          onClick={handleBack}
+                          className="flex-1 py-3 px-6 border border-gray-300 text-gray-700 font-medium rounded-xl hover:bg-gray-50 transition-colors"
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                        >
+                          <ArrowLeft className="w-4 h-4 inline mr-2" />
+                          Back
+                        </motion.button>
+                        <motion.button
+                          onClick={handleStartScan}
+                          className="flex-1 py-3 px-6 font-medium rounded-xl transition-all duration-200 bg-blue-600 text-white hover:bg-blue-700 shadow-lg"
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                        >
+                          <Camera className="w-4 h-4 inline mr-2" />
+                          Take Photo
+                        </motion.button>
+                      </div>
+                    </div>
+                  )}
                 </motion.div>
               )}
 

@@ -568,20 +568,20 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
 
     if (!ctx) return;
     
-    // Get the displayed video dimensions (what user actually sees)
-    const displayedWidth = video.offsetWidth;
-    const displayedHeight = video.offsetHeight;
+    // Use original video dimensions for maximum quality
+    const originalWidth = video.videoWidth;
+    const originalHeight = video.videoHeight;
     
-    // Set canvas to displayed dimensions
-    canvas.width = displayedWidth;
-    canvas.height = displayedHeight;
+    // Set canvas to original dimensions for maximum quality
+    canvas.width = originalWidth;
+    canvas.height = originalHeight;
     
-    // Draw the video at displayed size
-    ctx.drawImage(video, 0, 0, displayedWidth, displayedHeight);
+    // Draw the video at original size
+    ctx.drawImage(video, 0, 0, originalWidth, originalHeight);
     
     // Log both original and displayed dimensions
     console.log('Original video dimensions:', video.videoWidth, 'x', video.videoHeight);
-    console.log('Displayed video dimensions:', displayedWidth, 'x', displayedHeight);
+    console.log('Displayed video dimensions:', video.offsetWidth, 'x', video.offsetHeight);
     console.log('Canvas dimensions:', canvas.width, 'x', canvas.height);
     
     const imageData = canvas.toDataURL('image/jpeg', 1.0);

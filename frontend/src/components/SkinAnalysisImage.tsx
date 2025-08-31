@@ -89,7 +89,7 @@ export default function SkinAnalysisImage({
       const img = imageRef.current;
       const container = containerRef.current;
       
-      // Since we now capture at displayed size, use natural dimensions (which are the captured dimensions)
+      // Use natural dimensions (original captured dimensions)
       const displayWidth = img.naturalWidth;
       const displayHeight = img.naturalHeight;
       const offsetX = 0;
@@ -135,18 +135,52 @@ export default function SkinAnalysisImage({
       console.log('SkinAnalysisImage - Displayed dimensions (rendered):', img.offsetWidth, 'x', img.offsetHeight);
       console.log('SkinAnalysisImage - Analysis data image dimensions:', analysisData.image.width, 'x', analysisData.image.height);
       console.log('SkinAnalysisImage - Dimensions match:', img.naturalWidth === analysisData.image.width && img.naturalHeight === analysisData.image.height);
+      
+      // Force a re-render after image loads to ensure proper scaling
+      setTimeout(() => {
+        if (containerRef.current) {
+          const container = containerRef.current;
+          const containerWidth = container.offsetWidth;
+          const calculatedHeight = Math.max(384, (img.naturalHeight * containerWidth) / img.naturalWidth);
+          
+          setImageDimensions({
+            width: img.naturalWidth,
+            height: img.naturalHeight,
+            offsetX: 0,
+            offsetY: 0
+          });
+          
+          setCalculatedHeight(calculatedHeight);
+        }
+      }, 100);
     }
   };
 
   const scaleCoordinates = (x: number, y: number, width: number, height: number) => {
-    if (!imageDimensions.width || !imageDimensions.height || !containerRef.current) return { x: 0, y: 0, width: 0, height: 0 };
+    if (!imageDimensions.width || !imageDimensions.height || !containerRef.current) {
+      console.warn('Scale coordinates: Missing dimensions', { imageDimensions, containerRef: !!containerRef.current });
+      return { x: 0, y: 0, width: 0, height: 0 };
+    }
     
     // Scale coordinates from image dimensions to container dimensions
     const containerWidth = containerRef.current.offsetWidth;
-    const containerHeight = containerRef.current.offsetHeight;
+    const containerHeight = calculatedHeight; // Use calculated height instead of container height
     
     const scaleX = containerWidth / imageDimensions.width;
     const scaleY = containerHeight / imageDimensions.height;
+    
+    console.log('Scale coordinates:', {
+      original: { x, y, width, height },
+      imageDimensions,
+      containerDimensions: { width: containerWidth, height: containerHeight },
+      scale: { scaleX, scaleY },
+      result: {
+        x: x * scaleX,
+        y: y * scaleY,
+        width: width * scaleX,
+        height: height * scaleY
+      }
+    });
     
     return {
       x: x * scaleX,
@@ -157,11 +191,14 @@ export default function SkinAnalysisImage({
   };
 
   const scalePolygon = (polygon: [number, number][]) => {
-    if (!imageDimensions.width || !imageDimensions.height || !containerRef.current) return [];
+    if (!imageDimensions.width || !imageDimensions.height || !containerRef.current) {
+      console.warn('Scale polygon: Missing dimensions');
+      return [];
+    }
     
     // Scale coordinates from image dimensions to container dimensions
     const containerWidth = containerRef.current.offsetWidth;
-    const containerHeight = containerRef.current.offsetHeight;
+    const containerHeight = calculatedHeight; // Use calculated height instead of container height
     
     const scaleX = containerWidth / imageDimensions.width;
     const scaleY = containerHeight / imageDimensions.height;
@@ -195,6 +232,8 @@ export default function SkinAnalysisImage({
   // Sync view with current image when image changes
   useEffect(() => {
     setCurrentView(carouselImages[currentImageIndex].view);
+    // Reset image loaded state when image changes to ensure proper scaling
+    setImageLoaded(false);
   }, [currentImageIndex]);
 
   return (
@@ -241,6 +280,7 @@ export default function SkinAnalysisImage({
                   alt={carouselImages[currentImageIndex].label}
                   className="w-full h-full object-contain"
                   onLoad={handleImageLoad}
+                  key={`${carouselImages[currentImageIndex].url}-${currentImageIndex}`}
                 />
 
                 {/* SVG Overlay */}
@@ -312,7 +352,7 @@ export default function SkinAnalysisImage({
                       
                       return (
                         <g key={prediction.detection_id}>
-                          {/* Bounding Box */}
+                          {/* Bounding Box - Clean design without labels */}
                           <motion.rect
                             x={scaled.x}
                             y={scaled.y}
@@ -329,48 +369,6 @@ export default function SkinAnalysisImage({
                             animate={{ opacity: 1, scale: 1 }}
                             transition={{ duration: 0.3, delay: index * 0.1 }}
                           />
-                          
-                          {/* Label Background */}
-                          <motion.rect
-                            x={scaled.x}
-                            y={scaled.y - 25}
-                            width={Math.max(80, prediction.class.length * 8)}
-                            height="20"
-                            fill={color}
-                            rx="3"
-                            initial={{ opacity: 0, y: -10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.3, delay: index * 0.1 + 0.1 }}
-                          />
-                          
-                          {/* Label Text */}
-                          <motion.text
-                            x={scaled.x + 5}
-                            y={scaled.y - 10}
-                            fill="white"
-                            fontSize="10"
-                            fontWeight="bold"
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            transition={{ duration: 0.3, delay: index * 0.1 + 0.2 }}
-                          >
-                            {prediction.class}
-                          </motion.text>
-                          
-                          {/* Confidence Score */}
-                          <motion.text
-                            x={scaled.x + scaled.width + 5}
-                            y={scaled.y + scaled.height / 2}
-                            fill={color}
-                            fontSize="10"
-                            fontWeight="bold"
-                            className={`${getConfidenceColor(prediction.confidence)}`}
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            transition={{ duration: 0.3, delay: index * 0.1 + 0.3 }}
-                          >
-                            {Math.round(prediction.confidence * 100)}%
-                          </motion.text>
                         </g>
                       );
                     })}

@@ -231,10 +231,26 @@ export default function SkinAnalysisImage({
 
   // Sync view with current image when image changes
   useEffect(() => {
+    console.log('Carousel image changed:', {
+      currentImageIndex,
+      view: carouselImages[currentImageIndex].view,
+      currentView
+    });
     setCurrentView(carouselImages[currentImageIndex].view);
     // Reset image loaded state when image changes to ensure proper scaling
     setImageLoaded(false);
   }, [currentImageIndex]);
+
+  // Ensure acne view is set on first load
+  useEffect(() => {
+    if (analysisData && analysisData.predictions && analysisData.predictions.length > 0) {
+      console.log('Setting acne view on first load:', {
+        predictionsCount: analysisData.predictions.length,
+        currentView
+      });
+      setCurrentView('acne');
+    }
+  }, [analysisData]);
 
   return (
     <div className={`relative ${className}`}>
@@ -382,57 +398,61 @@ export default function SkinAnalysisImage({
                     }
 
                     {/* Acne Detection Areas - only show in acne view */}
-                    {currentView === 'acne' && analysisData.predictions.map((prediction, index) => {
-                      const scaled = scaleCoordinates(
-                        prediction.x - prediction.width / 2,
-                        prediction.y - prediction.height / 2,
-                        prediction.width,
-                        prediction.height
-                      );
-                      
-                      const color = getAcneColor(prediction.class);
-                      const isHovered = hoveredDetection === prediction.detection_id;
-                      
-                      return (
-                        <g key={prediction.detection_id}>
-                          {/* Filled Detection Area */}
-                          <motion.rect
-                            x={scaled.x}
-                            y={scaled.y}
-                            width={scaled.width}
-                            height={scaled.height}
-                            fill={color}
-                            fillOpacity={isHovered ? 0.8 : 0.6}
-                            stroke={color}
-                            strokeWidth={isHovered ? "3" : "2"}
-                            strokeOpacity={isHovered ? 1 : 0.8}
-                            className="pointer-events-auto cursor-pointer"
-                            onMouseEnter={() => setHoveredDetection(prediction.detection_id)}
-                            onMouseLeave={() => setHoveredDetection(null)}
-                            initial={{ opacity: 0, scale: 0.8 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            transition={{ duration: 0.3, delay: index * 0.1 }}
-                          />
+                    {currentView === 'acne' && analysisData.predictions && analysisData.predictions.length > 0 && (
+                      <>
+                        {analysisData.predictions.map((prediction, index) => {
+                          const scaled = scaleCoordinates(
+                            prediction.x - prediction.width / 2,
+                            prediction.y - prediction.height / 2,
+                            prediction.width,
+                            prediction.height
+                          );
                           
-                          {/* Border highlight on hover */}
-                          {isHovered && (
-                            <motion.rect
-                              x={scaled.x - 2}
-                              y={scaled.y - 2}
-                              width={scaled.width + 4}
-                              height={scaled.height + 4}
-                              fill="none"
-                              stroke="white"
-                              strokeWidth="2"
-                              strokeDasharray="5,5"
-                              initial={{ opacity: 0 }}
-                              animate={{ opacity: 1 }}
-                              transition={{ duration: 0.2 }}
-                            />
-                          )}
-                        </g>
-                      );
-                    })}
+                          const color = getAcneColor(prediction.class);
+                          const isHovered = hoveredDetection === prediction.detection_id;
+                          
+                          return (
+                            <g key={prediction.detection_id}>
+                              {/* Filled Detection Area */}
+                              <motion.rect
+                                x={scaled.x}
+                                y={scaled.y}
+                                width={scaled.width}
+                                height={scaled.height}
+                                fill={color}
+                                fillOpacity={isHovered ? 0.8 : 0.6}
+                                stroke={color}
+                                strokeWidth={isHovered ? "3" : "2"}
+                                strokeOpacity={isHovered ? 1 : 0.8}
+                                className="pointer-events-auto cursor-pointer"
+                                onMouseEnter={() => setHoveredDetection(prediction.detection_id)}
+                                onMouseLeave={() => setHoveredDetection(null)}
+                                initial={{ opacity: 0, scale: 0.8 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                transition={{ duration: 0.3, delay: index * 0.1 }}
+                              />
+                              
+                              {/* Border highlight on hover */}
+                              {isHovered && (
+                                <motion.rect
+                                  x={scaled.x - 2}
+                                  y={scaled.y - 2}
+                                  width={scaled.width + 4}
+                                  height={scaled.height + 4}
+                                  fill="none"
+                                  stroke="white"
+                                  strokeWidth="2"
+                                  strokeDasharray="5,5"
+                                  initial={{ opacity: 0 }}
+                                  animate={{ opacity: 1 }}
+                                  transition={{ duration: 0.2 }}
+                                />
+                              )}
+                            </g>
+                          );
+                        })}
+                      </>
+                    )}
                   </svg>
                 )}
               </motion.div>

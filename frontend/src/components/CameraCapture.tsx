@@ -1,7 +1,8 @@
 'use client';
 import React, { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Camera, X, Upload, RotateCcw, User, Move, CheckCircle, Target, MoveHorizontal, Sun, Check, ArrowLeft } from 'lucide-react';
+import { Camera, X, Upload, SwitchCameraIcon, User, Move, CheckCircle, Target, MoveHorizontal, Sun, Check, ArrowLeft } from 'lucide-react';
+import ImageUpload from './ImageUpload';
 // Dynamic import to avoid SSR issues
 let faceapi: any = null;
 if (typeof window !== 'undefined') {
@@ -55,6 +56,11 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
   const detectedFacesRef = useRef<any[]>([]);
   const [guidanceMessage, setGuidanceMessage] = useState<string>('Position your face in the center');
   const [guidanceType, setGuidanceType] = useState<'default' | 'position' | 'distance' | 'angle' | 'lighting'>('default');
+
+  // Helper function to set appropriate error message
+  const setCameraError = (message: string) => {
+    setError(message);
+  };
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -130,16 +136,9 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
     }
   }, [cameraState]);
 
-
-
-  const startCamera = async () => {
-    if (initializationInProgressRef.current) {
-      console.log('Camera initialization already in progress, skipping...');
-      return;
-    }
-    
-    if (!isMountedRef.current) {
-      console.log('Component unmounted before initialization, skipping...');
+  // Replace the complex startCamera function with this simplified version
+  const startCamera = async (desiredFacing?: 'front' | 'back') => {
+    if (initializationInProgressRef.current || !isMountedRef.current) {
       return;
     }
     
@@ -155,30 +154,27 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
         throw new Error('Camera API not supported in this browser');
       }
       
+      // Stop existing stream
       if (stream) {
         console.log('Stopping existing stream...');
         stream.getTracks().forEach(track => track.stop());
+        setStream(null);
       }
+      
+      // Simple camera constraints - avoid complex device selection
+      const constraints = {
+        video: {
+          facingMode: { ideal: (desiredFacing || currentCamera) === 'front' ? 'user' : 'environment' },
+          width: { ideal: 640, min: 320 },
+          height: { ideal: 480, min: 240 }
+        },
+        audio: false
+      };
       
       console.log('Requesting camera access...');
+      const mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
       
       if (!isMountedRef.current) {
-        console.log('Component unmounted before getUserMedia, stopping...');
-        return;
-      }
-      
-      const mediaStream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: 'user', // Explicitly request front camera
-          width: { ideal: 720, min: 640 },
-          height: { ideal: 1280, min: 480 },
-          aspectRatio: { ideal: 0.5625 } // 9:16 aspect ratio for portrait
-        },
-        audio: false,
-      });
-  
-      if (!isMountedRef.current) {
-        console.log('Component unmounted after getUserMedia, cleaning up...');
         mediaStream.getTracks().forEach(track => track.stop());
         return;
       }
@@ -187,99 +183,119 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
       
       if (videoRef.current) {
         const video = videoRef.current;
-        console.log('Setting video srcObject...');
+        
+        // Clear any existing srcObject first
+        video.srcObject = null;
+        
+        // Set the new stream
         video.srcObject = mediaStream;
         
-        // Add event listeners to debug video loading
-        const onLoadedMetadata = () => {
-          console.log('Video metadata loaded');
-          console.log('Video ready state:', video.readyState);
-          console.log('Video paused:', video.paused);
-          console.log('Video current time:', video.currentTime);
-          console.log('Video dimensions:', video.videoWidth, 'x', video.videoHeight);
-          console.log('Video element dimensions:', video.offsetWidth, 'x', video.offsetHeight);
-        };
+        // Wait for the video to be ready
+        await new Promise<void>((resolve, reject) => {
+          const timeout = setTimeout(() => {
+            reject(new Error('Video load timeout'));
+          }, 10000); // 10 second timeout
+          
+          const onLoadedMetadata = () => {
+            clearTimeout(timeout);
+            video.removeEventListener('loadedmetadata', onLoadedMetadata);
+            video.removeEventListener('error', onError);
+            console.log('Video metadata loaded successfully');
+            resolve();
+          };
+          
+          const onError = (e: Event) => {
+            clearTimeout(timeout);
+            video.removeEventListener('loadedmetadata', onLoadedMetadata);
+            video.removeEventListener('error', onError);
+            console.error('Video error:', e);
+            reject(e);
+          };
+          
+          video.addEventListener('loadedmetadata', onLoadedMetadata);
+          video.addEventListener('error', onError);
+        });
         
-        const onCanPlay = () => {
-          console.log('Video can play');
-        };
-        
-        const onPlaying = () => {
-          console.log('Video is playing');
-        };
-        
-        const onError = (e: Event) => {
-          console.error('Video error event:', e);
-        };
-        
-        video.addEventListener('loadedmetadata', onLoadedMetadata);
-        video.addEventListener('canplay', onCanPlay);
-        video.addEventListener('playing', onPlaying);
-        video.addEventListener('error', onError);
-        
-        // Simple video start with error handling
+        // Start video playback
         try {
-          console.log('Attempting to play video...');
           await video.play();
-          console.log('Video play successful');
+          console.log('Video playing successfully');
           setIsCameraActive(true);
           setIsLoading(false);
-          console.log('Camera started successfully');
-          console.log('Video dimensions:', video.videoWidth, 'x', video.videoHeight);
-          console.log('Video element dimensions:', video.offsetWidth, 'x', video.offsetHeight);
           
-          // Start face detection only if models are loaded
-          if (modelsLoaded) {
-            startFaceDetection();
-          } else {
-            console.log('Camera started, waiting for models to load before starting face detection...');
-          }
+          // Start face detection after a delay (optional)
+          setTimeout(() => {
+            if (modelsLoaded && isMountedRef.current) {
+              startFaceDetection();
+            }
+          }, 1000);
           
         } catch (playError) {
-          console.log('Video play failed:', playError);
-          
-          // Handle AbortError specifically - this is normal when component unmounts
-          if (playError instanceof Error && playError.name === 'AbortError') {
-            console.log('Video play was aborted (component likely unmounted) - this is normal');
-            return; // Don't show error for abort
-          }
-          
-          // Try fallback approach
-          try {
-            console.log('Trying fallback video start...');
-            // Wait a moment and try again
-            await new Promise(resolve => setTimeout(resolve, 100));
-            await video.play();
-            setIsCameraActive(true);
-            setIsLoading(false);
-            console.log('Camera started successfully with fallback');
-            
-            // Start face detection only if models are loaded
-            if (modelsLoaded) {
-              startFaceDetection();
-            } else {
-              console.log('Camera started with fallback, waiting for models to load before starting face detection...');
-            }
-            
-          } catch (fallbackError) {
-            console.log('Fallback video start also failed:', fallbackError);
-            setError('Could not start video. Please try again.');
-            setIsLoading(false);
-          }
+          console.error('Video play failed:', playError);
+          throw new Error('Could not start video playback');
         }
       }
       
     } catch (err) {
       console.error('Camera error:', err);
       
-      // Handle AbortError specifically
       if (err instanceof Error && err.name === 'AbortError') {
-        console.log('Camera initialization was aborted - this is normal');
         return; // Don't show error for abort
       }
       
-      setError('Could not access camera. Please check permissions.');
-      setIsLoading(false);
+      // Try fallback with minimal constraints
+      try {
+        console.log('Trying fallback with minimal constraints...');
+        const fallbackStream = await navigator.mediaDevices.getUserMedia({ 
+          video: true, 
+          audio: false 
+        });
+        
+        if (!isMountedRef.current) {
+          fallbackStream.getTracks().forEach(track => track.stop());
+          return;
+        }
+        
+        setStream(fallbackStream);
+        
+        if (videoRef.current) {
+          const video = videoRef.current;
+          video.srcObject = null;
+          video.srcObject = fallbackStream;
+          
+          // Wait for video to be ready
+          await new Promise<void>((resolve, reject) => {
+            const timeout = setTimeout(() => reject(new Error('Fallback timeout')), 5000);
+            
+            const onLoadedMetadata = () => {
+              clearTimeout(timeout);
+              video.removeEventListener('loadedmetadata', onLoadedMetadata);
+              video.removeEventListener('error', onError);
+              resolve();
+            };
+            
+            const onError = (e: Event) => {
+              clearTimeout(timeout);
+              video.removeEventListener('loadedmetadata', onLoadedMetadata);
+              video.removeEventListener('error', onError);
+              reject(e);
+            };
+            
+            video.addEventListener('loadedmetadata', onLoadedMetadata);
+            video.addEventListener('error', onError);
+          });
+          
+          await video.play();
+          setIsCameraActive(true);
+          setIsLoading(false);
+          console.log('Camera started with fallback constraints');
+        }
+        
+      } catch (fallbackErr) {
+        console.error('Fallback camera error:', fallbackErr);
+        setError('Could not access camera. Please check permissions and try again.');
+        setIsLoading(false);
+      }
     } finally {
       initializationInProgressRef.current = false;
     }
@@ -530,12 +546,14 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
   };
 
   const switchCamera = () => {
-    setCurrentCamera(currentCamera === 'front' ? 'back' : 'front');
+    const newCamera = currentCamera === 'front' ? 'back' : 'front';
+    setCurrentCamera(newCamera);
+    
     if (isCameraActive) {
       stopCamera();
       setTimeout(() => {
         if (isMountedRef.current) {
-          startCamera();
+          startCamera(newCamera);
         }
       }, 100);
     }
@@ -544,20 +562,36 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
   const capturePhoto = () => {
     if (!videoRef.current || !canvasRef.current) return;
     
-      const video = videoRef.current;
-      const canvas = canvasRef.current;
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d');
 
     if (!ctx) return;
     
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
+    // Use original video dimensions for maximum quality
+    const originalWidth = video.videoWidth;
+    const originalHeight = video.videoHeight;
     
-    ctx.drawImage(video, 0, 0);
-        const imageData = canvas.toDataURL('image/jpeg', 0.8);
+    // Set canvas to original dimensions for maximum quality
+    canvas.width = originalWidth;
+    canvas.height = originalHeight;
     
-        setCapturedImage(imageData);
-        setCameraState('preview');
+    // Draw the video at original size
+    ctx.drawImage(video, 0, 0, originalWidth, originalHeight);
+    
+    // Log both original and displayed dimensions
+    console.log('Original video dimensions:', video.videoWidth, 'x', video.videoHeight);
+    console.log('Displayed video dimensions:', video.offsetWidth, 'x', video.offsetHeight);
+    console.log('Canvas dimensions:', canvas.width, 'x', canvas.height);
+    
+    const imageData = canvas.toDataURL('image/jpeg', 1.0);
+    
+    // Log the captured image data size
+    console.log('Captured image data URL length:', imageData.length);
+    console.log('Estimated image size in KB:', Math.round(imageData.length * 0.75 / 1024));
+    
+    setCapturedImage(imageData);
+    setCameraState('preview');
     stopCamera();
   };
 
@@ -577,15 +611,23 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
     const file = event.target.files?.[0];
     if (!file) return;
     
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const result = e.target?.result as string;
+    // Log the original file size
+    console.log('Original file size:', file.size, 'bytes');
+    console.log('Original file type:', file.type);
+    
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const result = e.target?.result as string;
       if (result) {
+        // Log the data URL size
+        console.log('File data URL length:', result.length);
+        console.log('Estimated file size in KB:', Math.round(result.length * 0.75 / 1024));
+        
         setCapturedImage(result);
         setCameraState('preview');
       }
-      };
-      reader.readAsDataURL(file);
+    };
+    reader.readAsDataURL(file);
   };
 
   const triggerFileUpload = () => {
@@ -606,14 +648,20 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
   };
 
   const handleTakePhotoClick = () => {
-    if (isMobileDevice()) {
-      // On mobile, start camera directly
-      startCamera();
-    } else {
-      // On desktop, trigger file upload
-      triggerFileUpload();
-    }
+    // Always try to start camera first, regardless of device
+    startCamera();
   };
+
+  // Auto-fallback to upload if camera fails
+  useEffect(() => {
+    if (error && error.includes('Permissions policy violation')) {
+      // Automatically show upload option after a short delay
+      setTimeout(() => {
+        setError(null);
+        triggerFileUpload();
+      }, 2000);
+    }
+  }, [error]);
 
 
 
@@ -647,27 +695,37 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
         animate={{ opacity: 1 }}
         className={`${embedded ? 'absolute' : 'fixed'} inset-0 z-50 flex items-center justify-center bg-transparent bg-opacity-75 py-4`}
       >
-        <div className="bg-white rounded-2xl p-8 max-w-md w-full text-center">
-          <div className="text-red-500 mb-4">
-            <Camera size={48} className="mx-auto" />
+        <div className="bg-white rounded-2xl p-8 max-w-md w-full">
+          <div className="text-center mb-6">
+            <div className="text-blue-500 mb-4">
+              <Upload size={48} className="mx-auto" />
+            </div>
+            <h3 className="text-xl font-semibold mb-2">Camera Not Available</h3>
+            <p className="text-gray-600 mb-6">
+              No worries! You can upload a photo instead to continue with your skin analysis.
+            </p>
           </div>
-          <h3 className="text-xl font-semibold mb-2">Camera Error</h3>
-          <p className="text-gray-600 mb-6">{error}</p>
-          <div className="flex gap-3">
+          
+          <ImageUpload onImageSelect={(imageData: string) => {
+            setError(null);
+            onCapture(imageData);
+          }} />
+          
+          <div className="mt-6 flex gap-3">
             <button
               onClick={onClose}
-              className="flex-1 px-4 py-3 bg-gray-200 text-gray-800 rounded-lg"
+              className="flex-1 px-4 py-3 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors"
             >
-              Close
+              Cancel
             </button>
             <button
               onClick={() => {
                 setError(null);
                 startCamera();
               }}
-              className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-lg"
+              className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
             >
-              Try Again
+              Try Camera Again
             </button>
           </div>
         </div>
@@ -768,7 +826,7 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
       >
         {/* Header */}
         <div ref={headerRef} className="flex items-center justify-between px-2 sm:px-4 py-1 sm:py-2 border-b border-gray-200 flex-shrink-0">
-                      <div>
+            <div>
               <h3 className="text-sm sm:text-lg font-bold text-gray-900">
                 Skin Analysis Camera
               </h3>
@@ -791,12 +849,10 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
               <div className="text-white text-center">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
                 <p>Starting camera...</p>
-                  </div>
-                    </div>
-                  )}
+              </div>
+            </div>
+          )}
           
-
-
           {cameraState === 'live' && (
             <div className="relative w-full h-full overflow-hidden">
               <video
@@ -818,6 +874,7 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
                     console.log('Video srcObject:', videoRef.current.srcObject);
                     console.log('Video readyState:', videoRef.current.readyState);
                     console.log('Video paused:', videoRef.current.paused);
+                    console.log('Dimensions match:', videoRef.current.videoWidth === videoRef.current.offsetWidth && videoRef.current.videoHeight === videoRef.current.offsetHeight);
                   }
                 }}
                 onCanPlay={() => {
@@ -830,10 +887,6 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
                   console.error('Video error:', e);
                 }}
               />
-              
-
-              
-
               
               {/* Dynamic Guidance Text */}
               <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-20">
@@ -853,63 +906,47 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
                   </div>
                 </div>
               </div>
-                  </div>
-            )}
-
-            {cameraState === 'preview' && (
-            <div 
-              className="relative w-full h-full rounded-2xl border-2 border-gray-300"
-              style={{ height: videoHeight > 0 ? `${videoHeight}px` : '100%' }}
-            >
-                    <img
-                      src={capturedImage!}
-                      alt="Captured photo"
-                className="w-full h-full object-cover rounded-2xl"
-                    />
-                  </div>
+            </div>
           )}
-          
 
-                  </div>
+          {cameraState === 'preview' && (
+            <div className="relative w-full h-full">
+              <img
+                src={capturedImage!}
+                alt="Captured photo"
+                className="w-full h-full object-cover"
+              />
+            </div>
+          )}
+        </div>
 
         {/* Controls */}
-        <div ref={controlsRef} className="p-1 sm:p-2 bg-gray-50 flex-shrink-0">
-          {!isCameraActive && cameraState === 'live' && (
-            <div className="flex flex-col items-center gap-4">
-              <button
-                onClick={handleTakePhotoClick}
-                className="w-full max-w-xs px-3 py-2 bg-blue-600 text-white hover:bg-blue-700 transition-colors rounded-xl font-semibold flex items-center justify-center gap-2 text-sm"
-              >
-                <Camera className="w-4 h-4" />
-                {isMobileDevice() ? 'Take Photo' : 'Upload Photo'}
-              </button>
-                </div>
-            )}
+        <div ref={controlsRef} className="pt-4 px-2 pb-1 bg-gray-50 flex-shrink-0">
 
-          {cameraState === 'live' && isCameraActive && (
+          {cameraState === 'live' && (isCameraActive || stream) && (
             <div className="flex flex-col items-center gap-1 sm:gap-2">
               {/* Camera controls */}
               <div className="flex items-center gap-1 sm:gap-2">
                 <button
                   onClick={switchCamera}
-                  className="p-1.5 sm:p-2 bg-gray-200 text-gray-800 rounded-full hover:bg-gray-300"
+                  className="w-16 p-1.5 sm:p-2 bg-gray-200 text-gray-800 rounded-full hover:bg-gray-300 flex items-center justify-center"
                 >
-                  <Camera className="w-3 h-3 sm:w-4 sm:h-4" />
+                  <SwitchCameraIcon className="w-5 h-5" />
                 </button>
                 
               <button
                 onClick={capturePhoto}
                 disabled={!isCameraActive || isLoading}
-                  className="w-10 h-10 sm:w-14 sm:h-14 bg-blue-600 text-white hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-all flex items-center justify-center rounded-full shadow-lg"
+                  className="w-20 h-12 bg-blue-600 text-white hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-all flex items-center justify-center rounded-full shadow-lg"
               >
-                  <Camera className="w-4 h-4 sm:w-5 sm:h-5" />
+                  <Camera className="w-6 h-6" />
               </button>
                 
                 <button
                   onClick={triggerFileUpload}
-                  className="p-1.5 sm:p-2 bg-gray-200 text-gray-800 rounded-full hover:bg-gray-300"
+                  className="w-16 p-1.5 sm:p-2 bg-gray-200 text-gray-800 rounded-full hover:bg-gray-300 flex items-center justify-center "
                 >
-                  <Upload className="w-3 h-3 sm:w-4 sm:h-4" />
+                  <Upload className="w-5 h-5" />
                 </button>
               </div>
               
@@ -924,8 +961,6 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
                   <span>Good lighting for best results</span>
                 </p>
               </div>
-              
-
             </div>
           )}
 

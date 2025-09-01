@@ -4,6 +4,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Camera, FileText, Sparkles, Heart, CheckCircle, ArrowLeft, Info, RotateCcw } from 'lucide-react';
 import CameraCapture from './CameraCapture';
 import RoutineProductCard from './RoutineProductCard';
+import SkinAnalysisImage from './SkinAnalysisImage';
+
 
 interface SkinAnalysisModalProps {
   isOpen: boolean;
@@ -178,16 +180,61 @@ const shopifyCart = {
     try {
       if (typeof window !== 'undefined' && window.parent !== window) {
         // If embedded in Shopify, communicate with parent
-        window.parent.postMessage({
+        // Convert GraphQL ID to numeric ID if needed
+        let variantId = product.shopifyVariantId;
+        console.log('Original shopifyVariantId:', product.shopifyVariantId);
+        
+        if (!variantId) {
+          console.error('No shopifyVariantId found for product:', product.name);
+          throw new Error('Product variant ID is missing');
+        }
+        
+        if (typeof product.shopifyVariantId === 'string' && product.shopifyVariantId.includes('gid://shopify/ProductVariant/')) {
+          variantId = product.shopifyVariantId.split('/').pop();
+          console.log('Converted to numeric ID:', variantId);
+        }
+        
+        // Ensure we have a valid numeric ID
+        if (!variantId || isNaN(parseInt(variantId))) {
+          console.error('Invalid variant ID:', variantId, 'for product:', product.name);
+          throw new Error(`Invalid variant ID: ${variantId}`);
+        }
+        
+        const messagePayload = {
           type: 'SHOPIFY_ADD_TO_CART',
           payload: { 
-            productId: product.shopifyProductId,
-            variantId: product.shopifyVariantId,
+            variantId: variantId,
             quantity,
-            customAttributes
+            customAttributes,
+            productInfo: {
+              name: product.name,
+              image: product.image,
+              price: product.price,
+              title: product.name,
+              product_title: product.name
+            }
           }
-        }, '*');
-        return true;
+        };
+        
+        console.log('Sending message to parent:', messagePayload);
+        window.parent.postMessage(messagePayload, '*');
+        
+        // Wait for response from parent
+        return new Promise((resolve) => {
+          const handleMessage = (event: MessageEvent) => {
+            if (event.data.type === 'CART_UPDATE_SUCCESS' || event.data.type === 'CART_UPDATE_ERROR') {
+              window.removeEventListener('message', handleMessage);
+              resolve(event.data.type === 'CART_UPDATE_SUCCESS');
+            }
+          };
+          window.addEventListener('message', handleMessage);
+          
+          // Timeout after 5 seconds
+          setTimeout(() => {
+            window.removeEventListener('message', handleMessage);
+            resolve(false);
+          }, 5000);
+        });
       } else {
         // Standalone mode - simulate cart addition
         console.log(`Added ${quantity}x ${product.name} to cart with attributes:`, customAttributes);
@@ -207,14 +254,43 @@ const shopifyCart = {
         window.parent.postMessage({
           type: 'SHOPIFY_ADD_ROUTINE_TO_CART',
           payload: { 
-            products: products.map(p => ({
-              productId: p.shopifyProductId,
-              variantId: p.shopifyVariantId,
-              quantity: 1
-            }))
+            products: products.map(p => {
+              // Convert GraphQL ID to numeric ID if needed
+              let variantId = p.shopifyVariantId;
+              if (typeof p.shopifyVariantId === 'string' && p.shopifyVariantId.includes('gid://shopify/ProductVariant/')) {
+                variantId = p.shopifyVariantId.split('/').pop();
+              }
+              
+              return {
+                variantId: variantId,
+                quantity: 1,
+                properties: {
+                  source: 'dermaself_recommendation',
+                  recommendation_type: 'skin_analysis',
+                  product_step: p.step,
+                  added_at: new Date().toISOString()
+                }
+              };
+            })
           }
         }, '*');
-        return true;
+        
+        // Wait for response from parent
+        return new Promise((resolve) => {
+          const handleMessage = (event: MessageEvent) => {
+            if (event.data.type === 'ROUTINE_ADD_SUCCESS' || event.data.type === 'ROUTINE_ADD_ERROR') {
+              window.removeEventListener('message', handleMessage);
+              resolve(event.data.type === 'ROUTINE_ADD_SUCCESS');
+            }
+          };
+          window.addEventListener('message', handleMessage);
+          
+          // Timeout after 10 seconds
+          setTimeout(() => {
+            window.removeEventListener('message', handleMessage);
+            resolve(false);
+          }, 10000);
+        });
       } else {
         // Standalone mode - simulate cart addition
         console.log(`Added ${products.length} products to cart`);
@@ -231,7 +307,8 @@ const shopifyCart = {
     if (typeof window !== 'undefined') {
       return window.parent !== window || 
              window.location.hostname.includes('myshopify.com') ||
-             window.location.hostname.includes('shopify.com');
+             window.location.hostname.includes('shopify.com') ||
+             document.querySelector('[data-shopify]') !== null;
     }
     return false;
   }
@@ -263,6 +340,7 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false }:
   const [selectedAgeGroup, setSelectedAgeGroup] = useState<string>('');
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [imageMetadata, setImageMetadata] = useState<any>(null);
+  const [analysisData, setAnalysisData] = useState<any>(null);
   const [showCamera, setShowCamera] = useState(false);
   const [openInfo, setOpenInfo] = useState<string | null>(null);
   
@@ -278,6 +356,8 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false }:
   const [cartItems, setCartItems] = useState<{ [productId: string]: number }>({});
   const [cartLoading, setCartLoading] = useState<{ [productId: string]: boolean }>({});
   const [isShopify, setIsShopify] = useState(false);
+  
+
 
   const skinTypeRef = useRef<HTMLDivElement>(null);
   const ageGroupRef = useRef<HTMLDivElement>(null);
@@ -291,6 +371,8 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false }:
       setSelectedSkinType('');
       setSelectedAgeGroup('');
       setCapturedImage(null);
+      setImageMetadata(null);
+      setAnalysisData(null);
       setShowCamera(false);
       setOpenInfo(null);
       setRoutine(null);
@@ -349,12 +431,47 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false }:
   const handleAddToCart = async (product: Product) => {
     setCartLoading(prev => ({ ...prev, [product.id]: true }));
     try {
-      const success = await shopifyCart.addToCart(product, 1);
+      // Add custom attributes for tracking recommended products
+      const customAttributes = [
+        {
+          key: 'source',
+          value: 'dermaself_recommendation'
+        },
+        {
+          key: 'recommendation_type',
+          value: 'skin_analysis'
+        },
+        {
+          key: 'product_step',
+          value: product.step
+        },
+        {
+          key: 'skin_concerns',
+          value: selectedConcerns.join(',')
+        },
+        {
+          key: 'skin_type',
+          value: selectedSkinType
+        },
+        {
+          key: 'age_group',
+          value: selectedAgeGroup
+        },
+        {
+          key: 'added_at',
+          value: new Date().toISOString()
+        }
+      ];
+      
+      const success = await shopifyCart.addToCart(product, 1, customAttributes);
       if (success) {
         setCartItems(prev => ({
           ...prev,
           [product.id]: (prev[product.id] || 0) + 1
         }));
+        
+        // Success modal will be handled by CartContext
+        console.log('Product added to cart successfully');
       }
     } catch (error) {
       console.error('Failed to add to cart:', error);
@@ -414,6 +531,9 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false }:
         newCartItems[product.id] = (newCartItems[product.id] || 0) + 1;
       });
       setCartItems(newCartItems);
+      
+      // Success modal will be handled by CartContext
+      console.log('Routine added to cart successfully');
     } catch (error) {
       console.error('Failed to add routine to cart:', error);
     } finally {
@@ -421,10 +541,77 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false }:
     }
   };
 
-  // Detect Shopify environment
+  // Detect Shopify environment and listen for cart updates
   useEffect(() => {
     setIsShopify(shopifyCart.isShopify());
-  }, []);
+    
+    // Listen for cart updates from parent Shopify page
+    const handleCartUpdate = (event: MessageEvent) => {
+      console.log('Message received from parent:', event.data);
+      
+      if (event.data.type === 'CART_UPDATE_SUCCESS') {
+        // Update local cart state when products are successfully added
+        const { cart } = event.data.payload;
+        console.log('Cart update received:', event.data);
+        
+        // Update cart items based on what's in the cart
+        if (cart && cart.items && cart.items.length > 0) {
+          const newCartItems: { [key: string]: number } = {};
+          
+          cart.items.forEach((item: any) => {
+            // Find product by variant ID
+            const allProducts = routine ? 
+              routine[routineType].flatMap(step => step.products) : 
+              realProducts;
+            
+            const product = allProducts.find(p => 
+              p.shopifyVariantId === item.variant_id?.toString() ||
+              p.shopifyVariantId?.split('/').pop() === item.variant_id?.toString()
+            );
+            
+            if (product) {
+              newCartItems[product.id] = item.quantity;
+            }
+          });
+          
+          setCartItems(newCartItems);
+        }
+      } else if (event.data.type === 'CART_INITIAL_STATE') {
+        // Handle initial cart state from Shopify
+        const { cart } = event.data.payload;
+        console.log('Initial cart state received:', cart);
+        
+        // Update cart items based on what's already in the cart
+        if (cart.items && cart.items.length > 0) {
+          const newCartItems: { [key: string]: number } = {};
+          
+          cart.items.forEach((item: any) => {
+            // Find product by variant ID
+            const allProducts = routine ? 
+              routine[routineType].flatMap(step => step.products) : 
+              realProducts;
+            
+            const product = allProducts.find(p => 
+              p.shopifyVariantId === item.variant_id?.toString() ||
+              p.shopifyVariantId?.split('/').pop() === item.variant_id?.toString()
+            );
+            
+            if (product) {
+              newCartItems[product.id] = item.quantity;
+            }
+          });
+          
+          setCartItems(newCartItems);
+        }
+      }
+    };
+    
+    window.addEventListener('message', handleCartUpdate);
+    
+    return () => {
+      window.removeEventListener('message', handleCartUpdate);
+    };
+  }, [routine, routineType, realProducts]);
 
   // Auto-scroll to skin type after 2 concerns selected
   useEffect(() => {
@@ -602,11 +789,28 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false }:
     setRecommendationSource('ai');
   };
 
+  // Cart success modal handlers
+
+
   const handleStartScan = () => {
     setShowCamera(true);
   };
 
   const handleImageCapture = async (imageData: string, metadata?: any) => {
+    console.log('=== IMAGE CAPTURE PROCESS START ===');
+    console.log('Modal - Captured image data URL length:', imageData.length);
+    console.log('Modal - Estimated captured image size in KB:', Math.round(imageData.length * 0.75 / 1024));
+    
+    // Extract and log image dimensions from captured data
+    const img = new Image();
+    img.src = imageData;
+    await new Promise((resolve) => {
+      img.onload = () => {
+        console.log('Modal - Captured image dimensions:', img.naturalWidth, 'x', img.naturalHeight);
+        resolve(null);
+      };
+    });
+    
     setCapturedImage(imageData);
     setImageMetadata(metadata);
     setShowCamera(false);
@@ -646,10 +850,20 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false }:
         metadata
       );
       
+      // Store the raw analysis data for the image visualization
+      setAnalysisData(analysisResult);
+      
+      // Log the analysis result image dimensions
+      if (analysisResult && analysisResult.image) {
+        console.log('Modal - Analysis result image dimensions:', analysisResult.image.width, 'x', analysisResult.image.height);
+      }
+      
       // Transform result to match expected format
       const transformedResult = transformAnalysisResult(analysisResult);
       setRoutine(transformedResult.routine);
       setCurrentStep('results');
+      
+      console.log('=== IMAGE CAPTURE PROCESS COMPLETE ===');
       
     } catch (error) {
       console.error('Analysis failed:', error);
@@ -749,21 +963,23 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false }:
   // If camera is shown, render it embedded within the modal
   if (showCamera) {
     return (
-      <AnimatePresence>
+      <AnimatePresence key="camera-modal">
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          className={`${embedded ? 'relative w-full h-full' : 'fixed inset-0 z-50 flex items-center justify-center p-4'}`}
         >
           {/* Backdrop */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-            onClick={handleCameraClose}
-          />
+          {!embedded && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+              onClick={handleCameraClose}
+            />
+          )}
 
           {/* Modal */}
           <motion.div
@@ -771,7 +987,9 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false }:
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.95, opacity: 0 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="relative w-full max-w-[540px] max-h-[95vh] bg-white shadow-xl overflow-hidden flex flex-col h-full"
+            className={`relative w-full bg-white shadow-xl overflow-hidden flex flex-col h-full ${
+              embedded ? 'w-full h-full' : 'max-w-[540px] h-[95vh]'
+            }`}
           >
             <CameraCapture
               onCapture={handleImageCapture}
@@ -785,21 +1003,23 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false }:
   }
 
   return (
-    <AnimatePresence>
+    <AnimatePresence key="main-modal">
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-50 flex items-center justify-center p-4"
+        className={`${embedded ? 'relative w-full h-full' : 'fixed inset-0 z-50 flex items-center justify-center p-4'}`}
       >
         {/* Backdrop */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-          onClick={handleClose}
-        />
+        {!embedded && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            onClick={handleClose}
+          />
+        )}
 
         {/* Modal */}
         <motion.div
@@ -807,12 +1027,14 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false }:
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.95, opacity: 0 }}
           transition={{ type: "spring", damping: 25, stiffness: 300 }}
-          className="relative w-full max-w-[540px] max-h-[95vh] bg-white shadow-xl overflow-hidden flex flex-col"
+          className={`relative w-full bg-white shadow-xl overflow-hidden flex flex-col h-full ${
+            embedded ? 'w-full h-full' : 'max-w-[540px]'
+          }`}
         >
           {/* Header */}
           <div className="relative bg-primary-600">
             {currentStep === 'onboarding' && (
-              <>
+              <React.Fragment key="onboarding-header">
                 <div className="flex items-center justify-between p-4">
                   <div className="flex items-center space-x-2">
                     <div className="w-8 h-8 bg-white/20 flex items-center justify-center">
@@ -839,7 +1061,7 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false }:
                     className="w-full h-64 object-cover"
                   />
                 </div>
-              </>
+              </React.Fragment>
             )}
 
           </div>
@@ -901,8 +1123,8 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false }:
           </div>
 
           {/* Content */}
-          <div className="modal-content p-4 max-h-[65vh] overflow-y-auto">
-            <AnimatePresence mode="wait">
+          <div className="modal-content py-4 h-full overflow-y-auto">
+            <AnimatePresence key="content-steps" mode="wait">
               {currentStep === 'onboarding' && (
                 <motion.div
                   key="onboarding"
@@ -910,7 +1132,7 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false }:
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -20 }}
                   transition={{ duration: 0.3 }}
-                  className="text-center"
+                  className="text-center p-4 flex flex-col h-full min-h-[fit-content]"
                 >
                   <h3 className="text-2xl font-bold text-gray-900 mb-4">
                     Get Your Virtual Skincare Consultation
@@ -975,169 +1197,221 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false }:
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -20 }}
                   transition={{ duration: 0.3 }}
-                  className="space-y-0"
+                  className="h-full flex flex-col"
                 >
                   {/* Skin Concerns */}
-                  <div className="question min-h-[60vh] flex flex-col justify-center">
-                    <h1 className="question__header-text">
-                      SELECT TWO SKIN CONCERNS YOU WOULD LIKE TO FOCUS ON
-                    </h1>
-                    <div className="answers">
+                  <div className="flex-1 flex flex-col px-6 py-8">
+                    <div className="text-center mb-8">
+                      <h1 className="text-2xl font-bold text-gray-900 mb-3">
+                        SELECT TWO SKIN CONCERNS YOU WOULD LIKE TO FOCUS ON
+                      </h1>
+                      <div className="text-sm text-gray-600">
+                        Choose the concerns that matter most to you
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 gap-4 mb-8">
                       {skinConcerns.map((concern) => (
-                        <div key={concern.name} className="answer-container">
-                          <label className={`answer ${selectedConcerns.includes(concern.name) ? 'selected gradient-border' : ''}`}>
-                            <input
-                              type="checkbox"
-                              className="answer__checkbox"
-                              checked={selectedConcerns.includes(concern.name)}
-                              onChange={() => handleConcernToggle(concern.name)}
-                            />
-                            <img
-                              src={concern.image}
-                              alt={concern.name}
-                              className="answer__image h-48 w-full object-cover"
-                            />
-                            <div className="answer__footer-wrapper">
-                              <img src={concern.icon} alt="" className="answer__icon" />
-                              <p className="answer__text">{concern.name}</p>
+                        <div 
+                          key={concern.name} 
+                          className={`relative cursor-pointer transition-all duration-200 ${
+                            selectedConcerns.includes(concern.name) 
+                              ? 'transform scale-[1.02]' 
+                              : 'hover:transform hover:scale-[1.01]'
+                          }`}
+                          onClick={() => handleConcernToggle(concern.name)}
+                        >
+                          <div className={`relative rounded-2xl overflow-hidden border-2 transition-all duration-200 ${
+                            selectedConcerns.includes(concern.name)
+                              ? 'border-blue-500 shadow-lg shadow-blue-100'
+                              : 'border-gray-200 hover:border-gray-300'
+                          }`}>
+                            <div className="flex items-center p-4">
+                              <img
+                                src={concern.image}
+                                alt={concern.name}
+                                className="w-16 h-16 rounded-xl object-cover mr-4"
+                              />
+                              <div className="flex-1">
+                                <div className="font-semibold text-gray-900 text-base mb-1">
+                                  {concern.name}
+                                </div>
+                                <div className="text-sm text-gray-600 line-clamp-2">
+                                  {concern.description}
+                                </div>
+                              </div>
+                              <div className={`w-6 h-6 rounded-full border-2 transition-all duration-200 ${
+                                selectedConcerns.includes(concern.name)
+                                  ? 'bg-blue-500 border-blue-500'
+                                  : 'border-gray-300'
+                              } flex items-center justify-center`}>
+                                {selectedConcerns.includes(concern.name) && (
+                                  <CheckCircle className="w-4 h-4 text-white" />
+                                )}
+                              </div>
                             </div>
-                          </label>
-                          
-                          <div className={`answer__info ${openInfo === concern.name ? 'show' : ''}`}>
-                            <div className="answer__footer-wrapper">
-                              <img src={concern.icon} alt="" className="answer__icon" />
-                              <p className="answer__text">{concern.name}</p>
-                            </div>
-                            <p className="answer__info-text">{concern.description}</p>
-                          </div>
-                          
-                          <button
-                            className="answer__info-button"
-                            onClick={() => toggleInfo(concern.name)}
-                            aria-label={`More information about ${concern.name}`}
-                            title={`More information about ${concern.name}`}
-                          >
-                            <Info className="info-image-closed" />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Skin Type */}
-                  <div className="question min-h-[60vh] flex flex-col justify-center" ref={skinTypeRef}>
-                    <h1 className="question__header-text">
-                      WHAT IS YOUR SKIN TYPE?
-                    </h1>
-                    <div className="answers">
-                      {skinTypes.map((type) => (
-                        <div key={type.name} className="answer-container">
-                          <label className={`answer ${selectedSkinType === type.name ? 'selected gradient-border' : ''}`}>
-                            <input
-                              type="radio"
-                              name="skinType"
-                              className="answer__checkbox"
-                              checked={selectedSkinType === type.name}
-                              onChange={() => setSelectedSkinType(type.name)}
-                            />
-                            <img
-                              src={type.image}
-                              alt={type.name}
-                              className="answer__image h-48 w-full object-cover"
-                            />
-                            <div className="answer__footer-wrapper">
-                              <p className="answer__text">{type.name}</p>
-                            </div>
-                          </label>
-                          
-                          <div className={`answer__info ${openInfo === type.name ? 'show' : ''}`}>
-                            <div className="answer__footer-wrapper">
-                              <p className="answer__text">{type.name}</p>
-                            </div>
-                            <p className="answer__info-text">{type.description}</p>
-                          </div>
-                          
-                          <button
-                            className="answer__info-button"
-                            onClick={() => toggleInfo(type.name)}
-                            aria-label={`More information about ${type.name}`}
-                            title={`More information about ${type.name}`}
-                          >
-                            <Info className="info-image-closed" />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Age Group */}
-                  <div className="question min-h-[60vh] flex flex-col justify-center" ref={ageGroupRef}>
-                    <h1 className="question__header-text">
-                      WHAT IS YOUR AGE GROUP?
-                    </h1>
-                    <div className="answers">
-                      {ageGroups.map((age) => (
-                        <div key={age.name} className="answer-container">
-                          <label className={`answer ${selectedAgeGroup === age.name ? 'selected gradient-border' : ''}`}>
-                            <input
-                              type="radio"
-                              name="ageGroup"
-                              className="answer__checkbox"
-                              checked={selectedAgeGroup === age.name}
-                              onChange={() => setSelectedAgeGroup(age.name)}
-                            />
-                            <img
-                              src={age.image}
-                              alt={age.name}
-                              className="answer__image h-48 w-full object-cover"
-                            />
-                            <div className="answer__footer-wrapper">
-                              <p className="answer__text">{age.name}</p>
-                            </div>
-                          </label>
-                          
-                          <div className={`answer__info ${openInfo === age.name ? 'show' : ''}`}>
-                            <div className="answer__footer-wrapper">
-                              <p className="answer__text">{age.name}</p>
-                            </div>
-                            <p className="answer__info-text">{age.description}</p>
                           </div>
                         </div>
                       ))}
                     </div>
+
+                    {/* Skin Type */}
+                    {selectedConcerns.length === 2 && (
+                      <div className="mb-8" ref={skinTypeRef}>
+                        <div className="text-center mb-6">
+                          <h2 className="text-xl font-bold text-gray-900 mb-2">
+                            WHAT IS YOUR SKIN TYPE?
+                          </h2>
+                          <div className="text-sm text-gray-600">
+                            This helps us recommend the right products for you
+                          </div>
+                        </div>
+                        
+                        <div className="grid grid-cols-1 gap-4">
+                          {skinTypes.map((type) => (
+                            <div 
+                              key={type.name} 
+                              className={`relative cursor-pointer transition-all duration-200 ${
+                                selectedSkinType === type.name 
+                                  ? 'transform scale-[1.02]' 
+                                  : 'hover:transform hover:scale-[1.01]'
+                              }`}
+                              onClick={() => setSelectedSkinType(type.name)}
+                            >
+                              <div className={`relative rounded-2xl overflow-hidden border-2 transition-all duration-200 ${
+                                selectedSkinType === type.name
+                                  ? 'border-blue-500 shadow-lg shadow-blue-100'
+                                  : 'border-gray-200 hover:border-gray-300'
+                              }`}>
+                                <div className="flex items-center p-4">
+                                  <img
+                                    src={type.image}
+                                    alt={type.name}
+                                    className="w-16 h-16 rounded-xl object-cover mr-4"
+                                  />
+                                  <div className="flex-1">
+                                    <div className="font-semibold text-gray-900 text-base mb-1">
+                                      {type.name}
+                                    </div>
+                                    <div className="text-sm text-gray-600 line-clamp-2">
+                                      {type.description}
+                                    </div>
+                                  </div>
+                                  <div className={`w-6 h-6 rounded-full border-2 transition-all duration-200 ${
+                                    selectedSkinType === type.name
+                                      ? 'bg-blue-500 border-blue-500'
+                                      : 'border-gray-300'
+                                  } flex items-center justify-center`}>
+                                    {selectedSkinType === type.name && (
+                                      <CheckCircle className="w-4 h-4 text-white" />
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Age Group */}
+                    {selectedConcerns.length === 2 && selectedSkinType && (
+                      <div className="mb-8" ref={ageGroupRef}>
+                        <div className="text-center mb-6">
+                          <h2 className="text-xl font-bold text-gray-900 mb-2">
+                            WHAT IS YOUR AGE GROUP?
+                          </h2>
+                          <div className="text-sm text-gray-600">
+                            Age affects skin needs and product recommendations
+                          </div>
+                        </div>
+                        
+                        <div className="grid grid-cols-1 gap-4">
+                          {ageGroups.map((age) => (
+                            <div 
+                              key={age.name} 
+                              className={`relative cursor-pointer transition-all duration-200 ${
+                                selectedAgeGroup === age.name 
+                                  ? 'transform scale-[1.02]' 
+                                  : 'hover:transform hover:scale-[1.01]'
+                              }`}
+                              onClick={() => setSelectedAgeGroup(age.name)}
+                            >
+                              <div className={`relative rounded-2xl overflow-hidden border-2 transition-all duration-200 ${
+                                selectedAgeGroup === age.name
+                                  ? 'border-blue-500 shadow-lg shadow-blue-100'
+                                  : 'border-gray-200 hover:border-gray-300'
+                              }`}>
+                                <div className="flex items-center p-4">
+                                  <img
+                                    src={age.image}
+                                    alt={age.name}
+                                    className="w-16 h-16 rounded-xl object-cover mr-4"
+                                  />
+                                  <div className="flex-1">
+                                    <div className="font-semibold text-gray-900 text-base mb-1">
+                                      {age.name}
+                                    </div>
+                                    <div className="text-sm text-gray-600 line-clamp-2">
+                                      {age.description}
+                                    </div>
+                                  </div>
+                                  <div className={`w-6 h-6 rounded-full border-2 transition-all duration-200 ${
+                                    selectedAgeGroup === age.name
+                                      ? 'bg-blue-500 border-blue-500'
+                                      : 'border-gray-300'
+                                  } flex items-center justify-center`}>
+                                    {selectedAgeGroup === age.name && (
+                                      <CheckCircle className="w-4 h-4 text-white" />
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
 
-                  <div className="flex justify-between pt-6" ref={buttonsRef}>
-                    <motion.button
-                      onClick={handleBack}
-                      className="btn-secondary"
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                    >
-                      Back
-                    </motion.button>
-                    <motion.button
-                      onClick={handleStartScan}
-                      className="btn-primary"
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      disabled={selectedConcerns.length !== 2 || !selectedSkinType || !selectedAgeGroup}
-                    >
-                      Take Photo
-                    </motion.button>
-                  </div>
+                  {/* Conditional Footer with Buttons - Only show when all questions are answered */}
+                  {selectedConcerns.length === 2 && selectedSkinType && selectedAgeGroup && (
+                    <div className="border-t border-gray-200 bg-white px-6 py-4 mt-auto" ref={buttonsRef}>
+                      <div className="flex justify-between space-x-4">
+                        <motion.button
+                          onClick={handleBack}
+                          className="flex-1 py-3 px-6 border border-gray-300 text-gray-700 font-medium rounded-xl hover:bg-gray-50 transition-colors"
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                        >
+                          <ArrowLeft className="w-4 h-4 inline mr-2" />
+                          Back
+                        </motion.button>
+                        <motion.button
+                          onClick={handleStartScan}
+                          className="flex-1 py-3 px-6 font-medium rounded-xl transition-all duration-200 bg-blue-600 text-white hover:bg-blue-700 shadow-lg"
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                        >
+                          <Camera className="w-4 h-4 inline mr-2" />
+                          Take Photo
+                        </motion.button>
+                      </div>
+                    </div>
+                  )}
                 </motion.div>
               )}
 
               {/* Loading Step */}
               {currentStep === 'loading' && (
                 <motion.div
+                  key="loading"
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -20 }}
-                  className="space-y-6"
+                  className="space-y-6 h-full flex flex-col items-center justify-center"
                 >
-                  <div className="flex flex-col items-center justify-center py-12">
+                  <div className="flex flex-col items-center justify-center py-12 px-4">
                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mb-4"></div>
                     <h2 className="text-xl font-bold text-gray-900 mb-2">Analyzing Your Photo</h2>
                     <p className="text-gray-600 text-center max-w-md">
@@ -1150,6 +1424,7 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false }:
               {/* Results Step */}
               {currentStep === 'results' && (
                 <motion.div
+                  key="results"
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -20 }}
@@ -1185,42 +1460,62 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false }:
                     </div>
 
                   {/* Tab Content */}
-                  <div className="flex-1 overflow-y-auto">
+                  <div className="flex-1 py-4">
                     {activeTab === 'results' && (
-                      <div className="p-6">
+                      <div>
                         {/* AI Photo Analysis Section */}
-                        <div className="bg-gradient-to-br from-primary-600 to-primary-700 rounded-lg p-6 text-white mb-6">
+                        <div className="bg-gradient-to-br from-primary-600 to-primary-700 text-white py-6 mb-6">
                           <h2 className="text-xl font-bold mb-4 text-center">AI PHOTO ANALYSIS</h2>
                           
-                          {/* Radar Chart Placeholder */}
-                          <div className="relative w-64 h-64 mx-auto mb-4">
-                            <div className="absolute inset-0 flex items-center justify-center">
-                              <div className="w-48 h-48 border-2 border-white/30 rounded-full flex items-center justify-center">
-                                <div className="w-32 h-32 border-2 border-white/50 rounded-full flex items-center justify-center">
-                                  <div className="w-16 h-16 border-2 border-white/70 rounded-full flex items-center justify-center">
-                                    <div className="w-8 h-8 bg-white/20 rounded-full"></div>
+                          {/* Enhanced Image Analysis */}
+                          {capturedImage && analysisData ? (
+                            <SkinAnalysisImage
+                              imageUrl={capturedImage}
+                              analysisData={{
+                                predictions: analysisData.predictions || [],
+                                redness: analysisData.redness || {
+                                  num_polygons: 0,
+                                  polygons: [],
+                                  analysis_width: 0,
+                                  analysis_height: 0,
+                                  erythema: false,
+                                  redness_perc: 0
+                                },
+                                image: analysisData.image || { width: 0, height: 0 }
+                              }}
+                              className="text-black"
+                            />
+                          ) : (
+                            /* Fallback Radar Chart Placeholder */
+                            <div className="relative w-64 h-64 mx-auto mb-4">
+                              <div className="absolute inset-0 flex items-center justify-center">
+                                <div className="w-48 h-48 border-2 border-white/30 rounded-full flex items-center justify-center">
+                                  <div className="w-32 h-32 border-2 border-white/50 rounded-full flex items-center justify-center">
+                                    <div className="w-16 h-16 border-2 border-white/70 rounded-full flex items-center justify-center">
+                                      <div className="w-8 h-8 bg-white/20 rounded-full"></div>
+                                    </div>
                                   </div>
                                 </div>
                               </div>
+                              
+                              {/* Priority Indicator */}
+                              <div className="absolute top-0 right-0 bg-yellow-400 text-primary-800 px-2 py-1 rounded-full text-xs font-bold">
+                                {selectedConcerns[0] || 'Dehydration'} - Your Priority
+                              </div>
+                              
+                              {/* Concern Labels */}
+                              <div className="absolute top-1/4 right-0 text-xs font-semibold">Dehydration</div>
+                              <div className="absolute bottom-1/4 right-0 text-xs font-semibold">Acne & Blemishes</div>
+                              <div className="absolute bottom-1/4 left-0 text-xs font-semibold text-right">Dark Spots &<br/>Uneven Tone</div>
+                              <div className="absolute top-1/4 left-0 text-xs font-semibold text-right">Dark Circles</div>
+                              <div className="absolute top-0 left-1/2 transform -translate-x-1/2 text-xs font-semibold text-center">Fine Lines &<br/>Wrinkles</div>
+                              <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 text-xs font-semibold text-center">Eye Bags</div>
                             </div>
-                            
-                            {/* Priority Indicator */}
-                            <div className="absolute top-0 right-0 bg-yellow-400 text-primary-800 px-2 py-1 rounded-full text-xs font-bold">
-                              {selectedConcerns[0] || 'Dehydration'} - Your Priority
-                            </div>
-                            
-                            {/* Concern Labels */}
-                            <div className="absolute top-1/4 right-0 text-xs font-semibold">Dehydration</div>
-                            <div className="absolute bottom-1/4 right-0 text-xs font-semibold">Acne & Blemishes</div>
-                            <div className="absolute bottom-1/4 left-0 text-xs font-semibold text-right">Dark Spots &<br/>Uneven Tone</div>
-                            <div className="absolute top-1/4 left-0 text-xs font-semibold text-right">Dark Circles</div>
-                            <div className="absolute top-0 left-1/2 transform -translate-x-1/2 text-xs font-semibold text-center">Fine Lines &<br/>Wrinkles</div>
-                            <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 text-xs font-semibold text-center">Eye Bags</div>
-                          </div>
+                          )}
                         </div>
 
                         {/* Results Info */}
-                        <div className="bg-white border border-gray-200 rounded-lg p-6">
+                        <div className="bg-white border border-gray-200 rounded-lg p-2 md:p-6 mx-2">
                           <p className="text-sm text-gray-600 mb-4">
                             These results are based on your AI skin health photo analysis. The highest scores represent the skin concerns that are most prominent on your skin.
                           </p>
@@ -1235,7 +1530,7 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false }:
                     )}
 
                     {activeTab === 'routine' && (
-                      <div className="p-6">
+                      <div>
                         {/* Your Skin Routine Section */}
                         <div className="bg-white border border-gray-200 rounded-lg p-6">
                           <div className="mb-4">
@@ -1330,6 +1625,8 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false }:
           </div>
         </motion.div>
       </motion.div>
+
+
     </AnimatePresence>
   );
-}   
+}

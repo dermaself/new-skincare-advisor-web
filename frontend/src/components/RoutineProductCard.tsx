@@ -48,7 +48,7 @@ export default function RoutineProductCard({
   showAddAllButton = false,
   onAddAllToCart 
 }: RoutineProductCardProps) {
-  const { addToCart, removeFromCart, isProductInCart, getCartItemLineId, state } = useCart();
+  const { addToCart, removeFromCart, isProductInCart, getCartItemLineId, state, showCartSuccessModal } = useCart();
   const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(
     product.variants[0] || null
   );
@@ -97,11 +97,20 @@ export default function RoutineProductCard({
         }
       ];
       
-      await addToCart(variantId, quantity, customAttributes);
-      setShowSuccess('added');
+      // Prepare product info for the modal
+      const productInfo = {
+        name: product.title,
+        image: product.images[0]?.src || '/placeholder-product.png',
+        price: parseFloat(selectedVariant.price) * 100 // Convert to cents
+      };
       
-      // Hide success message after 2 seconds
-      setTimeout(() => setShowSuccess(false), 2000);
+      await addToCart(variantId, quantity, customAttributes, productInfo);
+      
+      // Show success overlay briefly
+      setShowSuccess('added');
+      setTimeout(() => setShowSuccess(false), 1000);
+      
+      // The cart success modal will be shown automatically by the CartContext
     } catch (error) {
       console.error('Failed to add to cart:', error);
       setErrorMessage(error instanceof Error ? error.message : 'Failed to add to cart');

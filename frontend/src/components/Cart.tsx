@@ -6,7 +6,7 @@ import { ShoppingCart, X, Plus, Minus, Trash2, ExternalLink, Loader2 } from 'luc
 import { useCart } from './CartContext';
 
 export default function Cart() {
-  const { state, updateCartItem, removeFromCart, clearCart } = useCart();
+  const { state, updateCartItem, removeFromCart, clearCart, proceedToCheckout } = useCart();
   const { cart, loading, error } = state;
 
   if (!cart || cart.lines.length === 0) {
@@ -38,9 +38,7 @@ export default function Cart() {
   };
 
   const handleCheckout = () => {
-    if (cart.checkoutUrl) {
-      window.open(cart.checkoutUrl, '_blank');
-    }
+    proceedToCheckout();
   };
 
   const totalItems = cart.lines.reduce((sum, item) => sum + item.quantity, 0);
@@ -74,7 +72,7 @@ export default function Cart() {
         </div>
       )}
 
-      <AnimatePresence>
+      <AnimatePresence key="cart-items">
         {cart.lines.map((item) => (
           <motion.div
             key={item.id}

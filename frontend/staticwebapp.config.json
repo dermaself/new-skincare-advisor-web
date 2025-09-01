@@ -1,13 +1,18 @@
 {
-  "routes": [
+  "headers": [
     {
       "route": "/*",
       "headers": {
-        "X-Frame-Options": "",
-        "Content-Security-Policy": "frame-ancestors 'self' https://dermaself-dev.myshopify.com https://*.myshopify.com https://admin.shopify.com",
-        "X-Content-Type-Options": "nosniff",
-        "Referrer-Policy": "same-origin"
+        "Permissions-Policy": "camera=*, microphone=*, geolocation=*",
+        "X-Frame-Options": "ALLOWALL"
       }
+    }
+  ],
+  "routes": [
+    {
+      "route": "/*",
+      "serve": "/index.html",
+      "statusCode": 200
     }
   ]
 }

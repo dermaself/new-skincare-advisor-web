@@ -4,12 +4,13 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "NEXT_TELEMETRY_DISABLED=1 next build",
     "start": "next start",
     "lint": "next lint"
   },
   "dependencies": {
     "axios": "^1.11.0",
+    "encoding": "^0.1.13",
     "face-api.js": "^0.22.2",
     "framer-motion": "10.16.16",
     "lucide-react": "0.294.0",

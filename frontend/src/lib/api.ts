@@ -75,6 +75,16 @@ export interface AnalysisResponse {
     classification: string;
   };
   
+  // Redness analysis
+  redness?: {
+    num_polygons: number;
+    polygons: Array<Array<[number, number]>>;
+    analysis_width: number;
+    analysis_height: number;
+    erythema: boolean;
+    redness_perc: number;
+  };
+  
   // Product recommendations
   recommendations?: {
     user: {
@@ -158,6 +168,21 @@ export async function getUploadUrl(mimeType: string = 'image/jpeg'): Promise<Upl
  * Upload image file to blob storage
  */
 export async function uploadImageFile(file: File): Promise<string> {
+  // Log the original file size
+  console.log('Uploading file - original size:', file.size, 'bytes');
+  console.log('File type:', file.type);
+  
+  // Extract image dimensions from file
+  const img = new Image();
+  img.src = URL.createObjectURL(file);
+  await new Promise((resolve) => {
+    img.onload = () => {
+      console.log('API Upload - Image dimensions from file:', img.naturalWidth, 'x', img.naturalHeight);
+      URL.revokeObjectURL(img.src);
+      resolve(null);
+    };
+  });
+  
   // OWASP: Validate file
   const maxSize = 10 * 1024 * 1024; // 10MB
   const minSize = 1024; // 1KB
@@ -206,9 +231,27 @@ export async function uploadImageFile(file: File): Promise<string> {
  */
 export async function uploadBase64Image(imageDataUrl: string): Promise<string> {
   try {
+    // Log the input data URL size
+    console.log('Uploading base64 image - data URL length:', imageDataUrl.length);
+    console.log('Estimated input size in KB:', Math.round(imageDataUrl.length * 0.75 / 1024));
+    
+    // Extract image dimensions from data URL
+    const img = new Image();
+    img.src = imageDataUrl;
+    await new Promise((resolve) => {
+      img.onload = () => {
+        console.log('API Upload - Image dimensions from data URL:', img.naturalWidth, 'x', img.naturalHeight);
+        resolve(null);
+      };
+    });
+    
     // Convert data URL to blob
     const response = await fetch(imageDataUrl);
     const blob = await response.blob();
+    
+    // Log the blob size
+    console.log('Blob size:', blob.size, 'bytes');
+    console.log('Blob type:', blob.type);
     
     // Validate blob size
     const maxSize = 10 * 1024 * 1024; // 10MB
@@ -275,6 +318,11 @@ export async function analyzeSkinWithRecommendations(
     
     // Call inference API
     const response = await api.post('/infer', requestBody);
+    
+    // Log the returned image dimensions from analysis
+    if (response.data && response.data.image) {
+      console.log('API Analysis - Returned image dimensions:', response.data.image.width, 'x', response.data.image.height);
+    }
     
     return response.data;
   } catch (error) {

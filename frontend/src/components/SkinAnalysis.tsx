@@ -28,7 +28,9 @@ const mapToLegacyFormat = (response: AnalysisResponse): AnalysisResult => {
     imageUrl: response.imageUrl || '',
     // Include new data for enhanced features
     acneAnalysis: response.acne,
-    productRecommendations: response.recommendations
+    productRecommendations: response.recommendations,
+    // Include raw API response for detailed analysis
+    rawAnalysisData: response
   };
 };
 
@@ -53,6 +55,7 @@ export type AnalysisResult = {
   // Enhanced data
   acneAnalysis?: any;
   productRecommendations?: any;
+  rawAnalysisData?: AnalysisResponse;
 };
 
 export default function SkinAnalysis() {
@@ -96,7 +99,7 @@ export default function SkinAnalysis() {
 
   return (
     <div className="w-full">
-      <AnimatePresence mode="wait">
+      <AnimatePresence key="skin-analysis-steps" mode="wait">
         {step === 'upload' && (
           <motion.div
             key="upload"

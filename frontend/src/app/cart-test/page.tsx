@@ -1,258 +1,201 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useCart } from '../../components/CartContext';
 
-interface ShopifyProduct {
-  id: string;
-  title: string;
-  vendor: string;
-  description: string;
-  images: Array<{
-    src: string;
-    altText: string;
-  }>;
-  variants: Array<{
-    id: string;
-    title: string;
-    price: string;
-    inventory_quantity: number;
-  }>;
-}
-
 export default function CartTestPage() {
-  const { state, addToCart, removeFromCart, isProductInCart, getCartItemLineId, refreshCart } = useCart();
-  const [products, setProducts] = useState<ShopifyProduct[]>([]);
-  const [loading, setLoading] = useState(false);
+  const { state, addToCart, removeFromCart, updateCartItem, getCart, proceedToCheckout } = useCart();
+  const [testVariantId, setTestVariantId] = useState('gid://shopify/ProductVariant/123456789');
+  const [quantity, setQuantity] = useState(1);
+  const [message, setMessage] = useState('');
 
-  // Fetch products on component mount
-  useEffect(() => {
-    const fetchProducts = async () => {
-      try {
-        const response = await fetch('/api/shopify/storefront');
-        if (response.ok) {
-          const data = await response.json();
-          if (data.success && data.products) {
-            setProducts(data.products.slice(0, 5)); // Get first 5 products for testing
-          }
-        }
-      } catch (error) {
-        console.error('Failed to fetch products:', error);
-      }
-    };
-
-    fetchProducts();
-  }, []);
-
-  const handleAddToCart = async (product: ShopifyProduct) => {
-    if (!product.variants[0]) return;
-
-    setLoading(true);
+  const handleAddToCart = async () => {
     try {
-      const variantId = `gid://shopify/ProductVariant/${product.variants[0].id}`;
-      const customAttributes = [
-        { key: 'source', value: 'dermaself_test' },
-        { key: 'test_product', value: 'true' },
-        { key: 'added_at', value: new Date().toISOString() }
-      ];
-
-      await addToCart(variantId, 1, customAttributes);
+      setMessage('Adding to cart...');
+      await addToCart(testVariantId, quantity);
+      setMessage('Product added to cart successfully!');
     } catch (error) {
-      console.error('Failed to add to cart:', error);
-    } finally {
-      setLoading(false);
+      setMessage(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
 
-  const handleRemoveFromCart = async (product: ShopifyProduct) => {
-    if (!product.variants[0]) return;
-
-    setLoading(true);
+  const handleRemoveFromCart = async (lineId: string) => {
     try {
-      const variantId = `gid://shopify/ProductVariant/${product.variants[0].id}`;
-      const lineId = getCartItemLineId(variantId);
-      
-      if (lineId) {
-        await removeFromCart(lineId);
-      }
+      setMessage('Removing from cart...');
+      await removeFromCart(lineId);
+      setMessage('Product removed from cart successfully!');
     } catch (error) {
-      console.error('Failed to remove from cart:', error);
-    } finally {
-      setLoading(false);
+      setMessage(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
 
-  const formatPrice = (price: string) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(parseFloat(price));
+  const handleUpdateQuantity = async (lineId: string, newQuantity: number) => {
+    try {
+      setMessage('Updating quantity...');
+      await updateCartItem(lineId, newQuantity);
+      setMessage('Quantity updated successfully!');
+    } catch (error) {
+      setMessage(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-6xl mx-auto px-4">
-        <h1 className="text-3xl font-bold text-gray-900 mb-8">Cart Synchronization Test</h1>
+    <div className="container mx-auto px-4 py-8">
+      <h1 className="text-3xl font-bold mb-8">Cart Integration Test</h1>
+      
+      {/* Environment Check */}
+      <div className="bg-gray-100 p-4 rounded-lg mb-6">
+        <h2 className="text-xl font-semibold mb-4">Environment Check</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <strong>Shopify Domain:</strong> {process.env.NEXT_PUBLIC_SHOPIFY_DOMAIN || 'Not set'}
+          </div>
+          <div>
+            <strong>Storefront Token:</strong> {process.env.SHOPIFY_STOREFRONT_ACCESS_TOKEN ? 'Set' : 'Not set'}
+          </div>
+          <div>
+            <strong>Is Shopify Environment:</strong> {typeof window !== 'undefined' && (window.parent !== window || window.location.hostname.includes('myshopify.com')) ? 'Yes' : 'No'}
+          </div>
+          <div>
+            <strong>Cart State:</strong> {state.cart ? 'Loaded' : 'Not loaded'}
+          </div>
+        </div>
+      </div>
+
+      {/* Test Controls */}
+      <div className="bg-white border rounded-lg p-6 mb-6">
+        <h2 className="text-xl font-semibold mb-4">Test Controls</h2>
         
-        {/* Cart Status */}
-        <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-          <h2 className="text-xl font-semibold mb-4">Cart Status</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="bg-blue-50 p-4 rounded-lg">
-              <p className="text-sm text-blue-600 font-medium">Cart ID</p>
-              <p className="text-lg font-semibold text-blue-900">
-                {state.cart ? state.cart.id.slice(-8) : 'No cart'}
-              </p>
-            </div>
-            <div className="bg-green-50 p-4 rounded-lg">
-              <p className="text-sm text-green-600 font-medium">Items in Cart</p>
-              <p className="text-lg font-semibold text-green-900">
-                {state.cart ? state.cart.lines.length : 0}
-              </p>
-            </div>
-            <div className="bg-purple-50 p-4 rounded-lg">
-              <p className="text-sm text-purple-600 font-medium">Total</p>
-              <p className="text-lg font-semibold text-purple-900">
-                {state.cart ? formatPrice(state.cart.cost.totalAmount.amount) : '$0.00'}
-              </p>
-            </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+          <div>
+            <label className="block text-sm font-medium mb-2">Variant ID:</label>
+            <input
+              type="text"
+              value={testVariantId}
+              onChange={(e) => setTestVariantId(e.target.value)}
+              className="w-full p-2 border rounded"
+              placeholder="gid://shopify/ProductVariant/123456789"
+            />
           </div>
-          
-          {state.error && (
-            <div className="mt-4 bg-red-50 border border-red-200 rounded-lg p-4">
-              <p className="text-red-800 font-medium">Error: {state.error}</p>
-            </div>
-          )}
-          
-          <div className="mt-4 flex space-x-4">
+          <div>
+            <label className="block text-sm font-medium mb-2">Quantity:</label>
+            <input
+              type="number"
+              value={quantity}
+              onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
+              min="1"
+              className="w-full p-2 border rounded"
+            />
+          </div>
+          <div className="flex items-end">
             <button
-              onClick={refreshCart}
-              disabled={state.loading || !state.cart}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+              onClick={handleAddToCart}
+              disabled={state.loading}
+              className="w-full bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600 disabled:opacity-50"
             >
-              {state.loading ? 'Refreshing...' : 'Refresh Cart'}
+              {state.loading ? 'Adding...' : 'Add to Cart'}
             </button>
-            
-            {state.cart && (
-              <a
-                href={state.cart.checkoutUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
-              >
-                Go to Checkout
-              </a>
-            )}
           </div>
         </div>
 
-        {/* Products */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {products.map((product) => {
-            const variantId = product.variants[0] ? `gid://shopify/ProductVariant/${product.variants[0].id}` : null;
-            const isInCart = variantId ? isProductInCart(variantId) : false;
-            
-            return (
-              <div key={product.id} className="bg-white rounded-lg shadow-md overflow-hidden">
-                <div className="aspect-w-1 aspect-h-1 w-full">
-                  <img
-                    src={product.images[0]?.src || '/placeholder-product.png'}
-                    alt={product.title}
-                    className="w-full h-48 object-cover"
-                  />
-                </div>
-                
-                <div className="p-4">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                    {product.vendor} {product.title}
-                  </h3>
-                  
-                  <p className="text-sm text-gray-600 mb-3 line-clamp-2">
-                    {product.description}
-                  </p>
-                  
-                  <div className="flex items-center justify-between mb-4">
-                    <span className="text-lg font-bold text-gray-900">
-                      {product.variants[0] ? formatPrice(product.variants[0].price) : '$0.00'}
-                    </span>
-                    <span className="text-sm text-gray-500">
-                      Stock: {product.variants[0]?.inventory_quantity || 0}
-                    </span>
-                  </div>
-                  
-                  <button
-                    onClick={isInCart ? () => handleRemoveFromCart(product) : () => handleAddToCart(product)}
-                    disabled={loading || !product.variants[0]}
-                    className={`w-full py-2 px-4 rounded-lg font-medium transition-colors ${
-                      isInCart
-                        ? 'bg-red-600 text-white hover:bg-red-700'
-                        : 'bg-blue-600 text-white hover:bg-blue-700'
-                    } disabled:opacity-50`}
-                  >
-                    {loading ? (
-                      <span>Loading...</span>
-                    ) : isInCart ? (
-                      <span>Remove from Cart</span>
-                    ) : (
-                      <span>Add to Cart</span>
-                    )}
-                  </button>
-                  
-                  {isInCart && (
-                    <div className="mt-2 text-center">
-                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                        ✓ In Cart
-                      </span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Cart Items */}
-        {state.cart && state.cart.lines.length > 0 && (
-          <div className="mt-8 bg-white rounded-lg shadow-md p-6">
-            <h2 className="text-xl font-semibold mb-4">Cart Items</h2>
-            <div className="space-y-4">
-              {state.cart.lines.map((line) => (
-                <div key={line.id} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
-                  <div className="flex items-center space-x-4">
-                    <img
-                      src={line.merchandise.product.images[0]?.url || '/placeholder-product.png'}
-                      alt={line.merchandise.product.title}
-                      className="w-16 h-16 object-cover rounded-lg"
-                    />
-                    <div>
-                      <h4 className="font-medium text-gray-900">
-                        {line.merchandise.product.title}
-                      </h4>
-                      <p className="text-sm text-gray-500">
-                        Qty: {line.quantity} × {formatPrice(line.merchandise.price.amount)}
-                      </p>
-                      {line.attributes && line.attributes.length > 0 && (
-                        <div className="mt-1">
-                          {line.attributes.map((attr, index) => (
-                            <span key={index} className="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded mr-1 mb-1">
-                              {attr.key}: {attr.value}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  
-                  <div className="text-right">
-                    <p className="font-semibold text-gray-900">
-                      {formatPrice((parseFloat(line.merchandise.price.amount) * line.quantity).toString())}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
+        {message && (
+          <div className={`p-3 rounded ${message.includes('Error') ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
+            {message}
           </div>
         )}
+      </div>
+
+      {/* Cart Display */}
+      <div className="bg-white border rounded-lg p-6">
+        <h2 className="text-xl font-semibold mb-4">Current Cart</h2>
+        
+        {state.error && (
+          <div className="bg-red-100 text-red-700 p-3 rounded mb-4">
+            Error: {state.error}
+          </div>
+        )}
+
+        {state.loading && (
+          <div className="text-center py-4">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div>
+            <p className="mt-2">Loading cart...</p>
+          </div>
+        )}
+
+        {state.cart ? (
+          <div>
+            <div className="mb-4">
+              <strong>Cart ID:</strong> {state.cart.id}
+            </div>
+            <div className="mb-4">
+              <strong>Items:</strong> {state.cart.lines.length}
+            </div>
+            <div className="mb-4">
+              <strong>Subtotal:</strong> {state.cart.cost.subtotalAmount.amount} {state.cart.cost.subtotalAmount.currencyCode}
+            </div>
+            <div className="mb-4">
+              <strong>Total:</strong> {state.cart.cost.totalAmount.amount} {state.cart.cost.totalAmount.currencyCode}
+            </div>
+
+            {state.cart.lines.length > 0 ? (
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold">Cart Items:</h3>
+                {state.cart.lines.map((item) => (
+                  <div key={item.id} className="border rounded p-4">
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <h4 className="font-semibold">{item.merchandise.product.title}</h4>
+                        <p className="text-gray-600">{item.merchandise.title}</p>
+                        <p className="text-sm text-gray-500">Variant ID: {item.merchandise.id}</p>
+                        <p className="font-medium">
+                          {item.merchandise.price.amount} {item.merchandise.price.currencyCode}
+                        </p>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="number"
+                          value={item.quantity}
+                          onChange={(e) => handleUpdateQuantity(item.id, parseInt(e.target.value) || 1)}
+                          min="1"
+                          className="w-16 p-1 border rounded text-center"
+                        />
+                        <button
+                          onClick={() => handleRemoveFromCart(item.id)}
+                          className="bg-red-500 text-white px-3 py-1 rounded text-sm hover:bg-red-600"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-gray-500">Cart is empty</p>
+            )}
+
+            {state.cart.lines.length > 0 && (
+              <div className="mt-6">
+                <button
+                  onClick={proceedToCheckout}
+                  className="bg-green-500 text-white py-2 px-4 rounded hover:bg-green-600 inline-block"
+                >
+                  Proceed to Checkout
+                </button>
+              </div>
+            )}
+          </div>
+        ) : (
+          <p className="text-gray-500">No cart loaded</p>
+        )}
+      </div>
+
+      {/* Debug Info */}
+      <div className="mt-8 bg-gray-100 p-4 rounded-lg">
+        <h2 className="text-xl font-semibold mb-4">Debug Information</h2>
+        <pre className="text-sm overflow-auto">
+          {JSON.stringify(state, null, 2)}
+        </pre>
       </div>
     </div>
   );

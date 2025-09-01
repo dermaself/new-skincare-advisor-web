@@ -838,8 +838,7 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false }:
         last_name: 'Test',
         birthdate: selectedAgeGroup ? calculateBirthdate(selectedAgeGroup) : '1990-01-01',
         gender: 'female' as const, // Default for now, can be enhanced with gender selection in quiz
-        budget_level: 'High' as const,
-        shop_domain: process.env.NEXT_PUBLIC_SHOPIFY_DOMAIN
+        budget_level: 'High' as const
       };
       
       // Call the new API with recommendations

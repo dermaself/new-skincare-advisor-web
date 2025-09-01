@@ -14,6 +14,12 @@ export function normalizeShopifyDomain(input: string): string {
 export function getShopifyDomain(): string | undefined {
   // Browser-first detection
   if (typeof window !== 'undefined') {
+    // 1) Prefer explicit ?shop= param when present (standard in embedded apps and storefront embeds)
+    const qsShop = new URLSearchParams(window.location.search).get('shop');
+    if (qsShop) {
+      return normalizeShopifyDomain(qsShop);
+    }
+
     // If embedded, try to read from parent window
     if (window.parent !== window) {
       try {
@@ -26,6 +32,18 @@ export function getShopifyDomain(): string | undefined {
     // If running on a myshopify domain directly
     if (window.location.hostname.includes('myshopify.com')) {
       return window.location.hostname;
+    }
+
+    // Fallback to referrer (useful when opened from a Shopify domain)
+    if (document.referrer) {
+      try {
+        const refHost = new URL(document.referrer).hostname;
+        if (refHost.includes('myshopify.com')) {
+          return refHost;
+        }
+      } catch {
+        // ignore
+      }
     }
   }
 

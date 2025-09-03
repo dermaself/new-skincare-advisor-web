@@ -78,24 +78,33 @@ export default function AnalysisResults({ result, onReset }: AnalysisResultsProp
   const getRoutineSteps = () => {
     if (!result.productRecommendations?.skincare_routine) return [];
     
+    let globalStepNumber = 1;
     return result.productRecommendations.skincare_routine.map((category: any, categoryIndex: number) => {
       return category.modules.map((module: any, moduleIndex: number) => {
         const mainProduct = transformApiProduct(module.main_product);
         const alternativeProducts = (module.alternative_products || []).map(transformApiProduct).filter(Boolean);
         
-        return {
-          stepNumber: categoryIndex * category.modules.length + moduleIndex + 1,
-          stepTitle: `STEP ${categoryIndex * category.modules.length + moduleIndex + 1}: ${module.module?.toUpperCase() || 'SKINCARE STEP'}`,
+        const step = {
+          stepNumber: globalStepNumber,
+          stepTitle: `STEP ${globalStepNumber}: ${module.module?.toUpperCase() || 'SKINCARE STEP'}`,
           category: category.category,
           mainProduct,
           alternativeProducts,
           allProducts: [mainProduct, ...alternativeProducts].filter(Boolean)
         };
+        
+        globalStepNumber++;
+        return step;
       });
     }).flat();
   };
 
   const routineSteps = getRoutineSteps();
+
+  // Debug logging to see what products we're getting
+  console.log('Analysis Results - Product Recommendations:', result.productRecommendations);
+  console.log('Analysis Results - Routine Steps:', routineSteps);
+  console.log('Analysis Results - Number of steps:', routineSteps.length);
 
   // Handle adding all products to cart
   const handleAddAllToCart = async () => {

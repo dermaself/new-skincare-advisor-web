@@ -912,8 +912,8 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false }:
     step: 'cleanse' as const,
     skinTypes: apiProduct.skin_type?.split(',') || [],
     skinConcerns: [],
-    shopifyProductId: apiProduct.product_id?.toString(),
-    shopifyVariantId: apiProduct.product_id?.toString(),
+    shopifyProductId: apiProduct.shopify_product_id?.toString(),
+    shopifyVariantId: apiProduct.shopify_product_id?.toString(),
     inStock: true,
     rating: apiProduct.rating || 4.5,
     reviewCount: 100

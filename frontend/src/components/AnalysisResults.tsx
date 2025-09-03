@@ -58,17 +58,17 @@ export default function AnalysisResults({ result, onReset }: AnalysisResultsProp
       product_type: apiProduct.category || 'Skincare',
       tags: apiProduct.tags || '',
       variants: [{
-        id: apiProduct.variant_id || Math.random(),
+        id: apiProduct.shopify_product_id || apiProduct.variant_id || Math.random(),
         title: apiProduct.variant_title || 'Default',
-        price: apiProduct.price?.toString() || '0.00',
+        price: apiProduct.best_price?.toString() || apiProduct.price?.toString() || '0.00',
         inventory_quantity: apiProduct.inventory_quantity || 10
       }],
       images: [{
         id: 1,
-        src: apiProduct.image_url || '/placeholder-product.png',
+        src: apiProduct.image_url || 'https://via.placeholder.com/300x300?text=Product',
         alt: apiProduct.product_name || 'Product'
       }],
-      body_html: apiProduct.description || '',
+      body_html: apiProduct.info || apiProduct.description || '',
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     };
@@ -105,6 +105,17 @@ export default function AnalysisResults({ result, onReset }: AnalysisResultsProp
   console.log('Analysis Results - Product Recommendations:', result.productRecommendations);
   console.log('Analysis Results - Routine Steps:', routineSteps);
   console.log('Analysis Results - Number of steps:', routineSteps.length);
+  
+  // Log each step individually
+  routineSteps.forEach((step: any, index: number) => {
+    console.log(`Step ${index + 1}:`, {
+      stepNumber: step.stepNumber,
+      stepTitle: step.stepTitle,
+      category: step.category,
+      mainProduct: step.mainProduct,
+      alternativeProductsCount: step.alternativeProducts.length
+    });
+  });
 
   // Handle adding all products to cart
   const handleAddAllToCart = async () => {
@@ -118,7 +129,7 @@ export default function AnalysisResults({ result, onReset }: AnalysisResultsProp
           const variantId = `gid://shopify/ProductVariant/${product.variants[0].id}`;
           const productInfo = {
             name: product.title,
-            image: product.images[0]?.src || '/placeholder-product.png',
+            image: product.images[0]?.src || 'https://via.placeholder.com/300x300?text=Product',
             price: parseFloat(product.variants[0].price) * 100
           };
           
@@ -151,7 +162,7 @@ export default function AnalysisResults({ result, onReset }: AnalysisResultsProp
       const variantId = `gid://shopify/ProductVariant/${product.variants[0].id}`;
       const productInfo = {
         name: product.title,
-        image: product.images[0]?.src || '/placeholder-product.png',
+        image: product.images[0]?.src || 'https://via.placeholder.com/300x300?text=Product',
         price: parseFloat(product.variants[0].price) * 100
       };
       

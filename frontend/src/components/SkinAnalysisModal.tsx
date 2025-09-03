@@ -48,60 +48,6 @@ interface SkinRoutine {
   addons: Product[];
 }
 
-// Function to fetch real products from Shopify API
-const fetchRealProducts = async (): Promise<Product[]> => {
-  try {
-    const response = await fetch('/api/shopify/storefront');
-    if (!response.ok) {
-      throw new Error('Failed to fetch products');
-    }
-    
-    const data = await response.json();
-    
-    if (!data.success || !data.products || data.products.length === 0) {
-      throw new Error('No products available');
-    }
-    
-    // Transform Shopify products to our Product interface
-    const transformedProducts: Product[] = data.products.map((shopifyProduct: any, index: number) => {
-      const firstVariant = shopifyProduct.variants[0];
-      const firstImage = shopifyProduct.images[0];
-      
-      // Generate random skin-related data for demonstration
-      const skinTypes = ['Normal/Combination', 'Oily', 'Dry and/or Sensitive'];
-      const skinConcerns = ['Fine Lines & Wrinkles', 'Dehydration', 'Dark Spots & Uneven Tone', 'Acne & Blemishes', 'Dark Circles / Eye Bags'];
-      const steps = ['cleanse', 'moisturise', 'protect', 'addon'];
-      const usages = ['morning', 'evening', 'both'];
-      
-      return {
-        id: shopifyProduct.id || `product-${index}`,
-        name: shopifyProduct.title || 'Skincare Product',
-        brand: shopifyProduct.vendor || 'Skincare Brand',
-        image: firstImage?.src || 'https://via.placeholder.com/300x300?text=Product',
-        price: parseFloat(firstVariant?.price || '0'),
-        size: '30ml', // Default size
-        description: shopifyProduct.description || 'A premium skincare product designed for your skin needs.',
-        tags: shopifyProduct.tags ? shopifyProduct.tags.split(',').map((tag: string) => tag.trim()) : [],
-        usage: usages[Math.floor(Math.random() * usages.length)] as 'morning' | 'evening' | 'both',
-        step: steps[Math.floor(Math.random() * steps.length)] as 'cleanse' | 'moisturise' | 'protect' | 'addon',
-        skinTypes: [skinTypes[Math.floor(Math.random() * skinTypes.length)]],
-        skinConcerns: [skinConcerns[Math.floor(Math.random() * skinConcerns.length)]],
-        shopifyProductId: shopifyProduct.id,
-        shopifyVariantId: firstVariant?.id,
-        inStock: firstVariant?.inventory_quantity > 0 || true,
-        rating: 4.0 + Math.random() * 1.0, // Random rating between 4.0-5.0
-        reviewCount: Math.floor(Math.random() * 200) + 10 // Random review count between 10-210
-      };
-    });
-    
-    return transformedProducts;
-  } catch (error) {
-    console.error('Error fetching real products:', error);
-    // Return empty array if API fails
-    return [];
-  }
-};
-
 // Function to get 3 random products
 const getRandomProducts = (products: Product[], count: number = 3): Product[] => {
   if (products.length <= count) {
@@ -157,20 +103,19 @@ const createRoutineFromProducts = (products: Product[]): SkinRoutine => {
 
 // API functions - replace these with actual API calls
 const getProducts = async (): Promise<Product[]> => {
-  return await fetchRealProducts();
+  // This function is no longer used as products are fetched directly from analysisData
+  return [];
 };
 
-const getRoutine = async (skinType: string, concerns: string[], ageGroup: string): Promise<SkinRoutine> => {
-  const products = await fetchRealProducts();
-  return createRoutineFromProducts(products);
-};
+  const getRoutine = async (skinType: string, concerns: string[], ageGroup: string): Promise<SkinRoutine> => {
+    // This function is no longer used as routine is derived from analysisData
+    const products: Product[] = []; // Placeholder, as products are not fetched here
+    return createRoutineFromProducts(products);
+  };
 
 const getRecommendedProducts = async (concerns: string[], skinType: string): Promise<Product[]> => {
-  const products = await fetchRealProducts();
-  return products.filter((product: Product) => 
-    product.skinTypes.includes(skinType) || 
-    product.skinConcerns.some((concern: string) => concerns.includes(concern))
-  );
+  // This function is no longer used as products are not fetched here
+  return [];
 };
 
 // Shopify cart integration functions
@@ -384,42 +329,38 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false }:
 
   // Load routine when entering results step
   useEffect(() => {
-    if (currentStep === 'results' && selectedSkinType && selectedConcerns.length > 0) {
-      loadRoutine();
+    if (currentStep === 'results' && analysisData) {
+      // Use the analysis data directly instead of fetching from Shopify
+      const transformedResult = transformAnalysisResult(analysisData);
+      setRoutine(transformedResult.routine);
     }
-  }, [currentStep, selectedSkinType, selectedConcerns]);
+  }, [currentStep, analysisData]);
 
-  // Fetch real products when modal opens
-  useEffect(() => {
-    if (isOpen && realProducts.length === 0) {
-      const loadProducts = async () => {
-        try {
-          const products = await fetchRealProducts();
-          setRealProducts(products);
-        } catch (error) {
-          console.error('Failed to load products:', error);
-        }
-      };
-      loadProducts();
-    }
-  }, [isOpen, realProducts.length]);
+  // Remove the fetchRealProducts useEffect since we're using analysis data directly
+  // useEffect(() => {
+  //   if (isOpen && realProducts.length === 0) {
+  //     const loadProducts = async () => {
+  //       try {
+  //         const products = await fetchRealProducts();
+  //         setRealProducts(products);
+  //       } catch (error) {
+  //         console.error('Failed to load products:', error);
+  //       }
+  //     };
+  //     loadProducts();
+  //   }
+  // }, [isOpen, realProducts.length]);
 
   const loadRoutine = async () => {
     setLoading(true);
     try {
-      // Use real products if available, otherwise fetch them
-      let products = realProducts;
-      if (products.length === 0) {
-        products = await fetchRealProducts();
-        setRealProducts(products);
+      // Use the analysis data directly instead of fetching products
+      if (analysisData) {
+        const transformedResult = transformAnalysisResult(analysisData);
+        setRoutine(transformedResult.routine);
+      } else {
+        console.log('No analysis data available');
       }
-      
-      if (products.length === 0) {
-        throw new Error('No products available');
-      }
-      
-      const routineData = createRoutineFromProducts(products);
-      setRoutine(routineData);
     } catch (error) {
       console.error('Failed to load routine:', error);
     } finally {
@@ -560,9 +501,9 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false }:
           
           cart.items.forEach((item: any) => {
             // Find product by variant ID
-            const allProducts = routine ? 
+            const allProducts: Product[] = routine ? 
               routine[routineType].flatMap(step => step.products) : 
-              realProducts;
+              []; // No realProducts available here
             
             const product = allProducts.find(p => 
               p.shopifyVariantId === item.variant_id?.toString() ||
@@ -587,9 +528,9 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false }:
           
           cart.items.forEach((item: any) => {
             // Find product by variant ID
-            const allProducts = routine ? 
+            const allProducts: Product[] = routine ? 
               routine[routineType].flatMap(step => step.products) : 
-              realProducts;
+              []; // No realProducts available here
             
             const product = allProducts.find(p => 
               p.shopifyVariantId === item.variant_id?.toString() ||
@@ -611,7 +552,7 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false }:
     return () => {
       window.removeEventListener('message', handleCartUpdate);
     };
-  }, [routine, routineType, realProducts]);
+  }, [routine, routineType]);
 
   // Auto-scroll to skin type after 2 concerns selected
   useEffect(() => {
@@ -889,9 +830,27 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false }:
 
   // Helper function to transform API response to expected format
   const transformAnalysisResult = (apiResponse: any) => {
+    console.log('=== SKIN ANALYSIS MODAL DEBUG ===');
+    console.log('1. Raw API Response:', apiResponse);
+    console.log('2. Recommendations:', apiResponse.recommendations);
+    console.log('3. Skincare Routine:', apiResponse.recommendations?.skincare_routine);
+    
     // If we have recommendations from the API, use them
     if (apiResponse.recommendations?.skincare_routine) {
-      return {
+      console.log('4. Number of categories:', apiResponse.recommendations.skincare_routine.length);
+      
+      apiResponse.recommendations.skincare_routine.forEach((cat: any, catIndex: number) => {
+        console.log(`5. Category ${catIndex + 1}:`, cat.category);
+        console.log(`6. Modules in category ${catIndex + 1}:`, cat.modules.length);
+        
+        cat.modules.forEach((module: any, moduleIndex: number) => {
+          console.log(`7. Module ${moduleIndex + 1}:`, module.module);
+          console.log(`8. Main product:`, module.main_product);
+          console.log(`9. Alternative products count:`, module.alternative_products?.length || 0);
+        });
+      });
+      
+      const transformedRoutine = {
         routine: {
           essential: apiResponse.recommendations.skincare_routine.filter((cat: any) => 
             cat.category === 'Skincare'
@@ -916,8 +875,15 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false }:
           addons: []
         }
       };
+      
+      console.log('10. Transformed Routine:', transformedRoutine);
+      console.log('11. Essential steps count:', transformedRoutine.routine.essential.length);
+      console.log('12. Expert steps count:', transformedRoutine.routine.expert.length);
+      
+      return transformedRoutine;
     }
     
+    console.log('13. No recommendations found, using fallback');
     // Fallback to existing logic
     return { 
       routine: {
@@ -1563,13 +1529,21 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false }:
                           </div>
 
                           {/* Routine Steps */}
-                          {loading ? (
-                            <div className="flex items-center justify-center py-8">
-                              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
-                              <span className="ml-2 text-gray-600">Loading your routine...</span>
-                            </div>
-                          ) : routine ? (
-                            <div className="space-y-4">
+                          {(() => {
+                            console.log('14. Routine state:', routine);
+                            console.log('15. Routine type:', routineType);
+                            console.log('16. Current routine:', routine?.[routineType]);
+                            
+                            if (loading) {
+                              return (
+                                <div className="flex items-center justify-center py-8">
+                                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+                                  <span className="ml-2 text-gray-600">Loading your routine...</span>
+                                </div>
+                              );
+                            } else if (routine) {
+                              return (
+                                <div className="space-y-4">
                               {routine[routineType].map((step, index) => (
                                 <RoutineProductCard
                                   key={step.step}
@@ -1602,11 +1576,16 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false }:
                                 />
                               ))}
                             </div>
-                          ) : (
-                            <div className="text-center py-8 text-gray-500">
-                              No routine available. Please try again.
-                            </div>
-                          )}
+                            );
+                            } else {
+                              console.log('17. No routine available');
+                              return (
+                                <div className="text-center py-8 text-gray-500">
+                                  No routine available. Please try again.
+                                </div>
+                              );
+                            }
+                          })()}
                         </div>
                       </div>
                     )}

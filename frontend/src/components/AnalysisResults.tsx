@@ -52,23 +52,23 @@ export default function AnalysisResults({ result, onReset }: AnalysisResultsProp
     if (!apiProduct) return null;
     
     return {
-      id: apiProduct.product_id || Math.random(),
+      id: apiProduct.shopify_product_id || apiProduct.product_id || Math.random(),
       title: apiProduct.product_name || 'Product',
       vendor: apiProduct.brand || 'Brand',
       product_type: apiProduct.category || 'Skincare',
       tags: apiProduct.tags || '',
       variants: [{
         id: apiProduct.shopify_product_id || apiProduct.variant_id || Math.random(),
-        title: apiProduct.variant_title || 'Default',
-        price: apiProduct.best_price?.toString() || apiProduct.price?.toString() || '0.00',
-        inventory_quantity: apiProduct.inventory_quantity || 10
+        title: 'Default',
+        price: apiProduct.best_price?.toString() || '0.00',
+        inventory_quantity: 10
       }],
       images: [{
         id: 1,
         src: apiProduct.image_url || 'https://via.placeholder.com/300x300?text=Product',
         alt: apiProduct.product_name || 'Product'
       }],
-      body_html: apiProduct.info || apiProduct.description || '',
+      body_html: apiProduct.info || '',
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     };
@@ -101,21 +101,49 @@ export default function AnalysisResults({ result, onReset }: AnalysisResultsProp
 
   const routineSteps = getRoutineSteps();
 
-  // Debug logging to see what products we're getting
-  console.log('Analysis Results - Product Recommendations:', result.productRecommendations);
-  console.log('Analysis Results - Routine Steps:', routineSteps);
-  console.log('Analysis Results - Number of steps:', routineSteps.length);
+  // Comprehensive debug logging to see what products we're getting
+  console.log('=== ANALYSIS RESULTS DEBUG ===');
+  console.log('1. Raw result object:', result);
+  console.log('2. Product Recommendations:', result.productRecommendations);
+  console.log('3. Skincare Routine:', result.productRecommendations?.skincare_routine);
+  
+  if (result.productRecommendations?.skincare_routine) {
+    console.log('4. Number of categories:', result.productRecommendations.skincare_routine.length);
+    
+    result.productRecommendations.skincare_routine.forEach((category: any, categoryIndex: number) => {
+      console.log(`5. Category ${categoryIndex + 1}:`, category.category);
+      console.log(`6. Modules in category ${categoryIndex + 1}:`, category.modules.length);
+      
+      category.modules.forEach((module: any, moduleIndex: number) => {
+        console.log(`7. Module ${moduleIndex + 1}:`, module.module);
+        console.log(`8. Main product:`, module.main_product);
+        console.log(`9. Alternative products count:`, module.alternative_products?.length || 0);
+        
+        if (module.alternative_products) {
+          module.alternative_products.forEach((altProduct: any, altIndex: number) => {
+            console.log(`10. Alternative product ${altIndex + 1}:`, altProduct);
+          });
+        }
+      });
+    });
+  }
+  
+  console.log('11. Transformed routine steps:', routineSteps);
+  console.log('12. Number of routine steps:', routineSteps.length);
   
   // Log each step individually
   routineSteps.forEach((step: any, index: number) => {
-    console.log(`Step ${index + 1}:`, {
+    console.log(`13. Step ${index + 1}:`, {
       stepNumber: step.stepNumber,
       stepTitle: step.stepTitle,
       category: step.category,
       mainProduct: step.mainProduct,
-      alternativeProductsCount: step.alternativeProducts.length
+      alternativeProductsCount: step.alternativeProducts.length,
+      alternativeProducts: step.alternativeProducts
     });
   });
+  
+  console.log('=== END DEBUG ===');
 
   // Handle adding all products to cart
   const handleAddAllToCart = async () => {
@@ -345,8 +373,8 @@ export default function AnalysisResults({ result, onReset }: AnalysisResultsProp
         </motion.div>
       </div>
 
-      {/* Product Recommendations Section */}
-      {routineSteps.length > 0 && (
+             {/* Product Recommendations Section */}
+       {routineSteps.length > 0 && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -357,10 +385,16 @@ export default function AnalysisResults({ result, onReset }: AnalysisResultsProp
             <h3 className="text-2xl font-bold text-gray-900 mb-2">
               Your Personalized Skincare Routine
             </h3>
-            <p className="text-gray-600">
-              Based on your skin analysis, here are the products we recommend for your routine
-            </p>
-          </div>
+                         <p className="text-gray-600">
+               Based on your skin analysis, here are the products we recommend for your routine
+             </p>
+             <div className="mt-4 p-4 bg-blue-50 rounded-lg">
+               <p className="text-sm text-blue-700">
+                 Found {routineSteps.length} main products and{' '}
+                 {routineSteps.reduce((total: number, step: any) => total + step.alternativeProducts.length, 0)} alternative products
+               </p>
+             </div>
+           </div>
 
           <div className="space-y-8">
             {routineSteps.map((step: any, index: number) => (
@@ -407,7 +441,7 @@ export default function AnalysisResults({ result, onReset }: AnalysisResultsProp
                     >
                       <div className="aspect-square overflow-hidden">
                         <img
-                          src={product.images[0]?.src || '/placeholder-product.png'}
+                          src={product.images[0]?.src || 'https://via.placeholder.com/300x300?text=Product'}
                           alt={product.title}
                           className="w-full h-full object-cover"
                         />

@@ -1,9 +1,11 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { CheckCircle, AlertTriangle, Info, ArrowLeft, Share2, Download, Heart } from 'lucide-react';
+import { CheckCircle, AlertTriangle, Info, ArrowLeft, Share2, Download, Heart, ShoppingCart } from 'lucide-react';
 import { AnalysisResult, SkinConcern } from './SkinAnalysis';
 import SkinAnalysisImage from './SkinAnalysisImage';
+import RoutineProductCard from './RoutineProductCard';
+import { useCart } from './CartContext';
 
 interface AnalysisResultsProps {
   result: AnalysisResult;
@@ -11,6 +13,8 @@ interface AnalysisResultsProps {
 }
 
 export default function AnalysisResults({ result, onReset }: AnalysisResultsProps) {
+  const { addToCart, state } = useCart();
+
   const getSeverityColor = (severity: string) => {
     switch (severity) {
       case 'high':
@@ -41,6 +45,124 @@ export default function AnalysisResults({ result, onReset }: AnalysisResultsProp
     if (score >= 80) return 'text-green-600';
     if (score >= 60) return 'text-yellow-600';
     return 'text-red-600';
+  };
+
+  // Transform API product to our Product interface
+  const transformApiProduct = (apiProduct: any) => {
+    if (!apiProduct) return null;
+    
+    return {
+      id: apiProduct.product_id || Math.random(),
+      title: apiProduct.product_name || 'Product',
+      vendor: apiProduct.brand || 'Brand',
+      product_type: apiProduct.category || 'Skincare',
+      tags: apiProduct.tags || '',
+      variants: [{
+        id: apiProduct.variant_id || Math.random(),
+        title: apiProduct.variant_title || 'Default',
+        price: apiProduct.price?.toString() || '0.00',
+        inventory_quantity: apiProduct.inventory_quantity || 10
+      }],
+      images: [{
+        id: 1,
+        src: apiProduct.image_url || '/placeholder-product.png',
+        alt: apiProduct.product_name || 'Product'
+      }],
+      body_html: apiProduct.description || '',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+  };
+
+  // Get routine steps from API response
+  const getRoutineSteps = () => {
+    if (!result.productRecommendations?.skincare_routine) return [];
+    
+    return result.productRecommendations.skincare_routine.map((category: any, categoryIndex: number) => {
+      return category.modules.map((module: any, moduleIndex: number) => {
+        const mainProduct = transformApiProduct(module.main_product);
+        const alternativeProducts = (module.alternative_products || []).map(transformApiProduct).filter(Boolean);
+        
+        return {
+          stepNumber: categoryIndex * category.modules.length + moduleIndex + 1,
+          stepTitle: `STEP ${categoryIndex * category.modules.length + moduleIndex + 1}: ${module.module?.toUpperCase() || 'SKINCARE STEP'}`,
+          category: category.category,
+          mainProduct,
+          alternativeProducts,
+          allProducts: [mainProduct, ...alternativeProducts].filter(Boolean)
+        };
+      });
+    }).flat();
+  };
+
+  const routineSteps = getRoutineSteps();
+
+  // Handle adding all products to cart
+  const handleAddAllToCart = async () => {
+    const allProducts = routineSteps
+      .map((step: any) => step.mainProduct)
+      .filter(Boolean);
+
+    for (const product of allProducts) {
+      if (product && product.variants[0]) {
+        try {
+          const variantId = `gid://shopify/ProductVariant/${product.variants[0].id}`;
+          const productInfo = {
+            name: product.title,
+            image: product.images[0]?.src || '/placeholder-product.png',
+            price: parseFloat(product.variants[0].price) * 100
+          };
+          
+          await addToCart(variantId, 1, [
+            {
+              key: 'source',
+              value: 'dermaself_recommendation'
+            },
+            {
+              key: 'recommendation_type',
+              value: 'skin_analysis_routine'
+            },
+            {
+              key: 'added_at',
+              value: new Date().toISOString()
+            }
+          ], productInfo);
+        } catch (error) {
+          console.error('Failed to add product to cart:', error);
+        }
+      }
+    }
+  };
+
+  // Handle adding alternative product to cart
+  const handleAddAlternativeToCart = async (product: any) => {
+    if (!product || !product.variants[0]) return;
+
+    try {
+      const variantId = `gid://shopify/ProductVariant/${product.variants[0].id}`;
+      const productInfo = {
+        name: product.title,
+        image: product.images[0]?.src || '/placeholder-product.png',
+        price: parseFloat(product.variants[0].price) * 100
+      };
+      
+      await addToCart(variantId, 1, [
+        {
+          key: 'source',
+          value: 'dermaself_recommendation'
+        },
+        {
+          key: 'recommendation_type',
+          value: 'skin_analysis_alternative'
+        },
+        {
+          key: 'added_at',
+          value: new Date().toISOString()
+        }
+      ], productInfo);
+    } catch (error) {
+      console.error('Failed to add alternative product to cart:', error);
+    }
   };
 
   return (
@@ -179,7 +301,7 @@ export default function AnalysisResults({ result, onReset }: AnalysisResultsProp
             )}
           </div>
 
-          {/* Recommendations */}
+          {/* Text Recommendations */}
           <div className="card">
             <h3 className="text-xl font-semibold text-gray-900 mb-4">
               Personalized Recommendations
@@ -202,6 +324,104 @@ export default function AnalysisResults({ result, onReset }: AnalysisResultsProp
           </div>
         </motion.div>
       </div>
+
+      {/* Product Recommendations Section */}
+      {routineSteps.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5 }}
+          className="space-y-6"
+        >
+          <div className="text-center">
+            <h3 className="text-2xl font-bold text-gray-900 mb-2">
+              Your Personalized Skincare Routine
+            </h3>
+            <p className="text-gray-600">
+              Based on your skin analysis, here are the products we recommend for your routine
+            </p>
+          </div>
+
+          <div className="space-y-8">
+            {routineSteps.map((step: any, index: number) => (
+              <motion.div
+                key={`${step.category}-${index}`}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.6 + index * 0.1 }}
+              >
+                {step.mainProduct && (
+                  <RoutineProductCard
+                    product={step.mainProduct}
+                    stepNumber={step.stepNumber}
+                    stepTitle={step.stepTitle}
+                    isLastStep={index === routineSteps.length - 1}
+                    showAddAllButton={index === routineSteps.length - 1}
+                    onAddAllToCart={handleAddAllToCart}
+                  />
+                )}
+              </motion.div>
+            ))}
+          </div>
+
+          {/* Alternative Products Section */}
+          {routineSteps.some((step: any) => step.alternativeProducts.length > 0) && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.8 }}
+              className="card"
+            >
+              <h4 className="text-xl font-semibold text-gray-900 mb-4">
+                Alternative Products
+              </h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {routineSteps.map((step: any, stepIndex: number) => 
+                  step.alternativeProducts.map((product: any, productIndex: number) => (
+                    <motion.div
+                      key={`alt-${stepIndex}-${productIndex}`}
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: 0.9 + (stepIndex + productIndex) * 0.1 }}
+                      className="bg-white rounded-lg shadow-md overflow-hidden"
+                    >
+                      <div className="aspect-square overflow-hidden">
+                        <img
+                          src={product.images[0]?.src || '/placeholder-product.png'}
+                          alt={product.title}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <div className="p-4">
+                        <h5 className="font-semibold text-gray-900 mb-1">{product.title}</h5>
+                        <p className="text-sm text-gray-600 mb-2">{product.vendor}</p>
+                        <p className="text-lg font-bold text-gray-900 mb-3">
+                          {new Intl.NumberFormat('en-US', {
+                            style: 'currency',
+                            currency: 'USD',
+                          }).format(parseFloat(product.variants[0]?.price || '0'))}
+                        </p>
+                        <button 
+                          onClick={() => handleAddAlternativeToCart(product)}
+                          disabled={state.loading}
+                          className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {state.loading ? (
+                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                          ) : (
+                            <ShoppingCart className="w-4 h-4" />
+                          )}
+                          <span>{state.loading ? 'Adding...' : 'Add to Cart'}</span>
+                        </button>
+                      </div>
+                    </motion.div>
+                  ))
+                )}
+              </div>
+            </motion.div>
+          )}
+        </motion.div>
+      )}
 
       {/* Action Buttons */}
       <motion.div

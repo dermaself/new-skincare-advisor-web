@@ -850,31 +850,35 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false }:
         });
       });
       
-      const transformedRoutine = {
-        routine: {
-          essential: apiResponse.recommendations.skincare_routine.filter((cat: any) => 
-            cat.category === 'Skincare'
-          ).map((cat: any) => ({
-            step: cat.modules[0]?.module || 'Step',
-            title: cat.modules[0]?.module || 'Step',
-            products: [
-              cat.modules[0]?.main_product,
-              ...cat.modules[0]?.alternative_products || []
-            ].filter(Boolean).map(transformProduct)
-          })),
-          expert: apiResponse.recommendations.skincare_routine.filter((cat: any) => 
-            cat.category === 'Makeup'
-          ).map((cat: any) => ({
-            step: cat.modules[0]?.module || 'Step',
-            title: cat.modules[0]?.module || 'Step',
-            products: [
-              cat.modules[0]?.main_product,
-              ...cat.modules[0]?.alternative_products || []
-            ].filter(Boolean).map(transformProduct)
-          })),
-          addons: []
-        }
-      };
+             const transformedRoutine = {
+         routine: {
+           essential: apiResponse.recommendations.skincare_routine
+             .filter((cat: any) => cat.category === 'Skincare')
+             .flatMap((cat: any) => 
+               cat.modules.map((module: any) => ({
+                 step: module.module || 'Step',
+                 title: `STEP ${module.module || 'Step'}`,
+                 products: [
+                   module.main_product,
+                   ...module.alternative_products || []
+                 ].filter(Boolean).map(transformProduct)
+               }))
+             ),
+           expert: apiResponse.recommendations.skincare_routine
+             .filter((cat: any) => cat.category === 'Makeup')
+             .flatMap((cat: any) => 
+               cat.modules.map((module: any) => ({
+                 step: module.module || 'Step',
+                 title: `STEP ${module.module || 'Step'}`,
+                 products: [
+                   module.main_product,
+                   ...module.alternative_products || []
+                 ].filter(Boolean).map(transformProduct)
+               }))
+             ),
+           addons: []
+         }
+       };
       
       console.log('10. Transformed Routine:', transformedRoutine);
       console.log('11. Essential steps count:', transformedRoutine.routine.essential.length);

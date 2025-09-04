@@ -10,6 +10,7 @@ const cache = require('../shared/cache');
 const { computeAcneMetrics } = require('../shared/acneMetrics');
 const { enrichWithRecommendations } = require('../shared/recommendations');
 const { computeRednessMetrics } = require('../shared/rednessMetrics');
+const { computeWrinklesMetrics } = require('../shared/wrinklesMetrics');
 const { v4: uuidv4 } = require('uuid');
 
 const logger = createLogger('infer');
@@ -88,6 +89,28 @@ const roboflowBreaker = cache.createCircuitBreaker(callRoboflowAPI, {
       image: { width: 0, height: 0 },
       fallback: true,
       message: 'Servizio temporaneamente non disponibile'
+    };
+  }
+});
+
+// Circuit breaker per Wrinkles API
+const wrinklesBreaker = cache.createCircuitBreaker(callWrinklesAPI, {
+  timeout: config.wrinkles.timeout,
+  errorThresholdPercentage: 50,
+  resetTimeout: 30000,
+  name: 'WrinklesAPI',
+  fallback: async (imageUrl) => {
+    logger.warn('Wrinkles circuit breaker open, returning fallback response');
+    const cached = await cache.get(`wrinkles:${imageUrl}`);
+    if (cached) return cached;
+    
+    return {
+      inference_id: uuidv4(),
+      predictions: [],
+      image: { width: 0, height: 0 },
+      time: 0,
+      fallback: true,
+      message: 'Wrinkles detection service temporarily unavailable'
     };
   }
 });
@@ -277,20 +300,25 @@ module.exports = async function (context, req) {
       return;
     }
 
-    // Esegui chiamate a Roboflow e Redness API in parallelo
+    // Esegui chiamate a Roboflow, Redness e Wrinkles API in parallelo
     const base64Image = await imageUrlToBase64(imageUrl);
     
-    const [roboflowResult, rednessResult] = await Promise.all([
+    const [roboflowResult, rednessResult, wrinklesResult] = await Promise.all([
       pRetry(() => roboflowBreaker.fire(imageUrl), {
         retries: config.roboflow.maxRetries,
         onFailedAttempt: error => logger.warn(`Roboflow attempt ${error.attemptNumber} failed. Retries left: ${error.retriesLeft}`)
       }),
-      callRednessAPI(base64Image)
+      callRednessAPI(base64Image),
+      pRetry(() => wrinklesBreaker.fire(imageUrl), {
+        retries: 3,
+        onFailedAttempt: error => logger.warn(`Wrinkles attempt ${error.attemptNumber} failed. Retries left: ${error.retriesLeft}`)
+      })
     ]);
     
-    // Calcola metriche per acne e rossore
+    // Calcola metriche per acne, rossore e rughe
     const acneMetrics = computeAcneMetrics(roboflowResult.predictions || []);
     const rednessMetrics = computeRednessMetrics(rednessResult);
+    const wrinklesMetrics = computeWrinklesMetrics(wrinklesResult.predictions || []);
 
     // Aggiorna i dati utente con il rilevamento dell'eritema
     const updatedUserData = { ...userData, erythema: rednessMetrics.erythema };
@@ -300,7 +328,17 @@ module.exports = async function (context, req) {
       inference_id: uuidv4(),
       ...roboflowResult,
       acne: acneMetrics,
-      redness: rednessMetrics
+      redness: {
+        ...rednessMetrics,
+        predictions: rednessResult // Include raw redness data for UI rendering
+      },
+      wrinkles: {
+        ...wrinklesMetrics,
+        predictions: wrinklesResult.predictions || [], // Include raw wrinkles predictions for UI rendering
+        image: wrinklesResult.image || { width: 0, height: 0 },
+        time: wrinklesResult.time || 0,
+        inference_id: wrinklesResult.inference_id || null
+      }
     };
     
     if (includeRecommendations) {
@@ -332,6 +370,9 @@ module.exports = async function (context, req) {
       acneSeverity: acneMetrics.severity,
       acneClassification: acneMetrics.classification,
       rednessPercentage: rednessMetrics.redness_perc,
+      wrinklesSeverity: wrinklesMetrics.severity,
+      wrinklesPredictions: wrinklesMetrics.total_predictions,
+      wrinklesProcessingTime: wrinklesResult.time || 0,
       cached: false,
       metadata: metadata || null
     });
@@ -342,6 +383,11 @@ module.exports = async function (context, req) {
       acneSeverity: acneMetrics.severity,
       acneClassification: acneMetrics.classification,
       rednessPercentage: rednessMetrics.redness_perc,
+      wrinklesSeverity: wrinklesMetrics.severity,
+      wrinklesPredictions: wrinklesMetrics.total_predictions,
+      wrinklesHasForehead: wrinklesMetrics.has_forehead_wrinkles,
+      wrinklesHasExpression: wrinklesMetrics.has_expression_lines,
+      wrinklesHasUnderEye: wrinklesMetrics.has_under_eye_concerns,
       cached: false,
       metadata: metadata || null
     }, { duration });
@@ -547,6 +593,63 @@ async function callRednessAPI(base64Image) {
       analysis_width: 0,
       analysis_height: 0,
       error: 'Redness API call failed'
+    };
+  }
+}
+
+/**
+ * Chiama l'API di wrinkles detection.
+ * @param {string} imageUrl - L'URL dell'immagine.
+ * @returns {Promise<Object>} Il risultato dall'API di wrinkles.
+ */
+async function callWrinklesAPI(imageUrl) {
+  const apiUrl = await config.wrinkles.getApiUrl();
+  const apiKey = await config.wrinkles.getApiKey();
+  
+  // Construct the full URL based on Azure Function pattern
+  const fullUrl = apiKey ? `${apiUrl}?code=${apiKey}` : apiUrl;
+
+  try {
+    logger.info('Calling Wrinkles API', {
+      imageUrl,
+      apiUrl: fullUrl
+    });
+
+    const response = await axios.post(fullUrl, 
+      { imageUrl }, // Following the pattern from the example output
+      { 
+        timeout: config.wrinkles.timeout,
+        headers: { 
+          'Content-Type': 'application/json',
+          'User-Agent': 'Dermaself-Inference/1.0'
+        }
+      }
+    );
+    
+    logger.info('Wrinkles API call successful', {
+      status: response.status,
+      predictionsCount: response.data.predictions?.length || 0,
+      inferenceId: response.data.inference_id,
+      processingTime: response.data.time
+    });
+    
+    return response.data;
+  } catch (error) {
+    logger.error('Wrinkles API call failed', { 
+      error: error.message,
+      status: error.response?.status,
+      statusText: error.response?.statusText,
+      data: error.response?.data,
+      url: fullUrl
+    });
+    
+    // Return fallback object to not block main flow
+    return {
+      inference_id: uuidv4(),
+      predictions: [],
+      image: { width: 0, height: 0 },
+      time: 0,
+      error: 'Wrinkles API call failed'
     };
   }
 }

@@ -68,6 +68,11 @@ const config = {
     getApiKey: () => getSecret('RednessApiKey', 'REDNESS_API_KEY'),
     timeout: parseInt(process.env.REDNESS_API_TIMEOUT || '15000')
   },
+  wrinkles: {
+    getApiUrl: () => getSecret('WrinklesApiUrl', 'WRINKLES_API_URL'),
+    getApiKey: () => getSecret('WrinklesApiKey', 'WRINKLES_API_KEY'),
+    timeout: parseInt(process.env.WRINKLES_API_TIMEOUT || '15000')
+  },
   redis: {
     getConnectionString: () => getSecret('RedisConnection', 'REDIS_CONNECTION_STRING')
   },

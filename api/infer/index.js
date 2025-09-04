@@ -99,11 +99,9 @@ const wrinklesBreaker = cache.createCircuitBreaker(callWrinklesAPI, {
   errorThresholdPercentage: 50,
   resetTimeout: 30000,
   name: 'WrinklesAPI',
-  fallback: async (imageUrl) => {
+  fallback: async (base64Image) => {
     logger.warn('Wrinkles circuit breaker open, returning fallback response');
-    const cached = await cache.get(`wrinkles:${imageUrl}`);
-    if (cached) return cached;
-    
+    // Note: We can't cache by base64Image as it's too large, so we skip cache for fallback
     return {
       inference_id: uuidv4(),
       predictions: [],
@@ -309,7 +307,7 @@ module.exports = async function (context, req) {
         onFailedAttempt: error => logger.warn(`Roboflow attempt ${error.attemptNumber} failed. Retries left: ${error.retriesLeft}`)
       }),
       callRednessAPI(base64Image),
-      pRetry(() => wrinklesBreaker.fire(imageUrl), {
+      pRetry(() => wrinklesBreaker.fire(base64Image), {
         retries: 3,
         onFailedAttempt: error => logger.warn(`Wrinkles attempt ${error.attemptNumber} failed. Retries left: ${error.retriesLeft}`)
       })
@@ -599,30 +597,22 @@ async function callRednessAPI(base64Image) {
 
 /**
  * Chiama l'API di wrinkles detection.
- * @param {string} imageUrl - L'URL dell'immagine.
+ * @param {string} base64Image - L'immagine in formato base64.
  * @returns {Promise<Object>} Il risultato dall'API di wrinkles.
  */
-async function callWrinklesAPI(imageUrl) {
+async function callWrinklesAPI(base64Image) {
   const apiUrl = await config.wrinkles.getApiUrl();
   const apiKey = await config.wrinkles.getApiKey();
   
   // Construct the full URL based on Azure Function pattern
-  const fullUrl = apiKey ? `${apiUrl}?code=${apiKey}` : apiUrl;
+  const fullUrl = `${apiUrl}?code=${apiKey}`;
 
   try {
-    logger.info('Calling Wrinkles API', {
-      imageUrl,
-      apiUrl: fullUrl
-    });
-
     const response = await axios.post(fullUrl, 
-      { imageUrl }, // Following the pattern from the example output
+      { base64image: base64Image, code: apiKey },
       { 
         timeout: config.wrinkles.timeout,
-        headers: { 
-          'Content-Type': 'application/json',
-          'User-Agent': 'Dermaself-Inference/1.0'
-        }
+        headers: { 'Content-Type': 'application/json' }
       }
     );
     

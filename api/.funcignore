@@ -1,0 +1,32 @@
+node_modules/
+local.settings.json
+test/
+tests/
+coverage/
+.vscode
+.git
+.env
+*.log
+*.test.js
+*.spec.js
+__mocks__
+
+# Development files
+README.md
+*.md
+.github/
+.vscode/
+.eslintrc.*
+.prettierrc.*
+jest.config.*
+.nyc_output/
+
+# Build artifacts
+dist/
+build/
+tmp/
+temp/
+
+# Large dependencies (se non usate)
+*.map
+*.d.ts

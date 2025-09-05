@@ -1,0 +1,31 @@
+# Frontend - ESCLUDI TUTTO
+frontend/
+node_modules/
+package-lock.json
+package.json
+README.md
+.git/
+.github/
+.vscode/
+
+# Root files
+*.md
+.env
+.env.*
+*.log
+
+# Build artifacts
+dist/
+build/
+tmp/
+temp/
+
+# Development files
+.eslintrc.*
+.prettierrc.*
+jest.config.*
+.nyc_output/
+
+# Large files
+*.map
+*.d.ts

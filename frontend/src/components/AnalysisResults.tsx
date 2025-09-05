@@ -4,8 +4,10 @@ import { motion } from 'framer-motion';
 import { CheckCircle, AlertTriangle, Info, ArrowLeft, Share2, Download, Heart, ShoppingCart } from 'lucide-react';
 import { AnalysisResult, SkinConcern } from './SkinAnalysis';
 import SkinAnalysisImage from './SkinAnalysisImage';
-import RoutineProductCard from './RoutineProductCard';
+import SkincareRoutineCard from './SkincareRoutineCard';
 import { useCart } from './CartContext';
+import { fetchProductsByVariantIds, TransformedProduct } from '../lib/shopify-product-fetcher';
+import { useState, useEffect } from 'react';
 
 interface AnalysisResultsProps {
   result: AnalysisResult;
@@ -14,6 +16,8 @@ interface AnalysisResultsProps {
 
 export default function AnalysisResults({ result, onReset }: AnalysisResultsProps) {
   const { addToCart, state } = useCart();
+  const [routineSteps, setRoutineSteps] = useState<any[]>([]);
+  const [isLoadingProducts, setIsLoadingProducts] = useState(false);
 
   const getSeverityColor = (severity: string) => {
     switch (severity) {
@@ -47,102 +51,108 @@ export default function AnalysisResults({ result, onReset }: AnalysisResultsProp
     return 'text-red-600';
   };
 
-  // Transform API product to our Product interface
-  const transformApiProduct = (apiProduct: any) => {
-    if (!apiProduct) return null;
-    
-    return {
-      id: apiProduct.shopify_product_id || apiProduct.product_id || Math.random(),
-      title: apiProduct.product_name || 'Product',
-      vendor: apiProduct.brand || 'Brand',
-      product_type: apiProduct.category || 'Skincare',
-      tags: apiProduct.tags || '',
-      variants: [{
-        id: apiProduct.shopify_product_id || apiProduct.variant_id || Math.random(),
-        title: 'Default',
-        price: apiProduct.best_price?.toString() || '0.00',
-        inventory_quantity: 10
-      }],
-      images: [{
-        id: 1,
-        src: apiProduct.image_url || 'https://via.placeholder.com/300x300?text=Product',
-        alt: apiProduct.product_name || 'Product'
-      }],
-      body_html: apiProduct.info || '',
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
+  // Fetch products from Shopify and build routine steps
+  useEffect(() => {
+    const fetchRoutineProducts = async () => {
+      if (!result.productRecommendations?.skincare_routine) {
+        setRoutineSteps([]);
+        return;
+      }
+
+      setIsLoadingProducts(true);
+      
+      try {
+        // Collect all variant IDs from main and alternative products
+        const allVariantIds: string[] = [];
+        const productMapping: { [variantId: string]: { type: 'main' | 'alternative', categoryIndex: number, moduleIndex: number, productIndex?: number } } = {};
+
+        result.productRecommendations.skincare_routine.forEach((category: any, categoryIndex: number) => {
+          category.modules.forEach((module: any, moduleIndex: number) => {
+            // Main product
+            if (module.main_product?.shopify_product_id) {
+              const variantId = module.main_product.shopify_product_id;
+              allVariantIds.push(variantId);
+              productMapping[variantId] = { type: 'main', categoryIndex, moduleIndex };
+            }
+
+            // Alternative products
+            if (module.alternative_products) {
+              module.alternative_products.forEach((altProduct: any, productIndex: number) => {
+                if (altProduct.shopify_product_id) {
+                  const variantId = altProduct.shopify_product_id;
+                  allVariantIds.push(variantId);
+                  productMapping[variantId] = { type: 'alternative', categoryIndex, moduleIndex, productIndex };
+                }
+              });
+            }
+          });
+        });
+
+        // Fetch all products from Shopify
+        const shopifyProducts = await fetchProductsByVariantIds(allVariantIds);
+        
+        // Build routine steps with fetched products
+        let globalStepNumber = 1;
+        const steps: any[] = [];
+
+        result.productRecommendations.skincare_routine.forEach((category: any, categoryIndex: number) => {
+          category.modules.forEach((module: any, moduleIndex: number) => {
+            // Find main product
+            const mainProductVariantId = module.main_product?.shopify_product_id;
+            const mainProduct = mainProductVariantId 
+              ? shopifyProducts.find(p => p.variants.some(v => v.id === mainProductVariantId))
+              : null;
+
+            // Find alternative products
+            const alternativeProducts: TransformedProduct[] = [];
+            if (module.alternative_products) {
+              module.alternative_products.forEach((altProduct: any) => {
+                if (altProduct.shopify_product_id) {
+                  const altShopifyProduct = shopifyProducts.find(p => 
+                    p.variants.some(v => v.id === altProduct.shopify_product_id)
+                  );
+                  if (altShopifyProduct) {
+                    alternativeProducts.push(altShopifyProduct);
+                  }
+                }
+              });
+            }
+
+            if (mainProduct) {
+              const step = {
+                stepNumber: globalStepNumber,
+                stepTitle: `STEP ${globalStepNumber}: ${module.module?.toUpperCase() || 'SKINCARE STEP'}`,
+                category: category.category, // Use category from JSON for section title
+                mainProduct,
+                alternativeProducts,
+                allProducts: [mainProduct, ...alternativeProducts].filter(Boolean)
+              };
+              
+              steps.push(step);
+              globalStepNumber++;
+            }
+          });
+        });
+
+        setRoutineSteps(steps);
+      } catch (error) {
+        console.error('Failed to fetch routine products:', error);
+        setRoutineSteps([]);
+      } finally {
+        setIsLoadingProducts(false);
+      }
     };
-  };
 
-  // Get routine steps from API response
-  const getRoutineSteps = () => {
-    if (!result.productRecommendations?.skincare_routine) return [];
-    
-    let globalStepNumber = 1;
-    return result.productRecommendations.skincare_routine.map((category: any, categoryIndex: number) => {
-      return category.modules.map((module: any, moduleIndex: number) => {
-        const mainProduct = transformApiProduct(module.main_product);
-        const alternativeProducts = (module.alternative_products || []).map(transformApiProduct).filter(Boolean);
-        
-        const step = {
-          stepNumber: globalStepNumber,
-          stepTitle: `STEP ${globalStepNumber}: ${module.module?.toUpperCase() || 'SKINCARE STEP'}`,
-          category: category.category,
-          mainProduct,
-          alternativeProducts,
-          allProducts: [mainProduct, ...alternativeProducts].filter(Boolean)
-        };
-        
-        globalStepNumber++;
-        return step;
-      });
-    }).flat();
-  };
+    fetchRoutineProducts();
+  }, [result.productRecommendations]);
 
-  const routineSteps = getRoutineSteps();
-
-  // Comprehensive debug logging to see what products we're getting
+  // Debug logging for routine steps
   console.log('=== ANALYSIS RESULTS DEBUG ===');
   console.log('1. Raw result object:', result);
   console.log('2. Product Recommendations:', result.productRecommendations);
-  console.log('3. Skincare Routine:', result.productRecommendations?.skincare_routine);
-  
-  if (result.productRecommendations?.skincare_routine) {
-    console.log('4. Number of categories:', result.productRecommendations.skincare_routine.length);
-    
-    result.productRecommendations.skincare_routine.forEach((category: any, categoryIndex: number) => {
-      console.log(`5. Category ${categoryIndex + 1}:`, category.category);
-      console.log(`6. Modules in category ${categoryIndex + 1}:`, category.modules.length);
-      
-      category.modules.forEach((module: any, moduleIndex: number) => {
-        console.log(`7. Module ${moduleIndex + 1}:`, module.module);
-        console.log(`8. Main product:`, module.main_product);
-        console.log(`9. Alternative products count:`, module.alternative_products?.length || 0);
-        
-        if (module.alternative_products) {
-          module.alternative_products.forEach((altProduct: any, altIndex: number) => {
-            console.log(`10. Alternative product ${altIndex + 1}:`, altProduct);
-          });
-        }
-      });
-    });
-  }
-  
-  console.log('11. Transformed routine steps:', routineSteps);
-  console.log('12. Number of routine steps:', routineSteps.length);
-  
-  // Log each step individually
-  routineSteps.forEach((step: any, index: number) => {
-    console.log(`13. Step ${index + 1}:`, {
-      stepNumber: step.stepNumber,
-      stepTitle: step.stepTitle,
-      category: step.category,
-      mainProduct: step.mainProduct,
-      alternativeProductsCount: step.alternativeProducts.length,
-      alternativeProducts: step.alternativeProducts
-    });
-  });
-  
+  console.log('3. Routine steps:', routineSteps);
+  console.log('4. Number of routine steps:', routineSteps.length);
+  console.log('5. Loading products:', isLoadingProducts);
   console.log('=== END DEBUG ===');
 
   // Handle adding all products to cart
@@ -374,7 +384,7 @@ export default function AnalysisResults({ result, onReset }: AnalysisResultsProp
       </div>
 
              {/* Product Recommendations Section */}
-       {routineSteps.length > 0 && (
+       {(routineSteps.length > 0 || isLoadingProducts) && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -385,15 +395,24 @@ export default function AnalysisResults({ result, onReset }: AnalysisResultsProp
             <h3 className="text-2xl font-bold text-gray-900 mb-2">
               Your Personalized Skincare Routine
             </h3>
-                         <p className="text-gray-600">
-               Based on your skin analysis, here are the products we recommend for your routine
-             </p>
-             <div className="mt-4 p-4 bg-blue-50 rounded-lg">
-               <p className="text-sm text-blue-700">
-                 Found {routineSteps.length} main products and{' '}
-                 {routineSteps.reduce((total: number, step: any) => total + step.alternativeProducts.length, 0)} alternative products
-               </p>
-             </div>
+            <p className="text-gray-600">
+              Based on your skin analysis, here are the products we recommend for your routine
+            </p>
+            {isLoadingProducts ? (
+              <div className="mt-4 p-4 bg-blue-50 rounded-lg">
+                <div className="flex items-center justify-center space-x-2">
+                  <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                  <p className="text-sm text-blue-700">Loading products from Shopify...</p>
+                </div>
+              </div>
+            ) : (
+              <div className="mt-4 p-4 bg-blue-50 rounded-lg">
+                <p className="text-sm text-blue-700">
+                  Found {routineSteps.length} main products and{' '}
+                  {routineSteps.reduce((total: number, step: any) => total + step.alternativeProducts.length, 0)} alternative products
+                </p>
+              </div>
+            )}
            </div>
 
           <div className="space-y-8">
@@ -405,10 +424,11 @@ export default function AnalysisResults({ result, onReset }: AnalysisResultsProp
                 transition={{ delay: 0.6 + index * 0.1 }}
               >
                 {step.mainProduct && (
-                  <RoutineProductCard
-                    product={step.mainProduct}
+                  <SkincareRoutineCard
+                    categoryTitle={step.category}
+                    mainProduct={step.mainProduct}
+                    alternativeProducts={step.alternativeProducts}
                     stepNumber={step.stepNumber}
-                    stepTitle={step.stepTitle}
                     isLastStep={index === routineSteps.length - 1}
                     showAddAllButton={index === routineSteps.length - 1}
                     onAddAllToCart={handleAddAllToCart}

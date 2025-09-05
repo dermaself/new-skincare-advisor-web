@@ -35,6 +35,7 @@ interface RoutineProductCardProps {
   product: Product;
   stepNumber: number;
   stepTitle: string;
+  categoryTitle?: string;
   isLastStep?: boolean;
   showAddAllButton?: boolean;
   onAddAllToCart?: () => void;
@@ -44,6 +45,7 @@ export default function RoutineProductCard({
   product, 
   stepNumber, 
   stepTitle, 
+  categoryTitle,
   isLastStep = false,
   showAddAllButton = false,
   onAddAllToCart 
@@ -181,7 +183,7 @@ export default function RoutineProductCard({
   return (
     <section className="routine-steps">
       <h1 className="heading-1 step-name">
-        <span>STEP {stepNumber}:</span> {stepTitle}
+        <span>STEP {stepNumber}:</span> {categoryTitle || stepTitle}
       </h1>
       
       <div className="step-content">

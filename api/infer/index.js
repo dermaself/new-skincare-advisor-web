@@ -318,6 +318,22 @@ module.exports = async function (context, req) {
     const rednessMetrics = computeRednessMetrics(rednessResult);
     const wrinklesMetrics = computeWrinklesMetrics(wrinklesResult.predictions || []);
 
+    // Calcola fattori di scaling per standardizzazione risoluzioni
+    const originalWidth = roboflowResult.image?.width || 0;
+    const originalHeight = roboflowResult.image?.height || 0;
+    
+    // Calcola fattori di scaling per redness
+    const rednessScalingFactors = {
+      x: originalWidth > 0 ? originalWidth / (rednessResult.analysis_width || 1) : 1,
+      y: originalHeight > 0 ? originalHeight / (rednessResult.analysis_height || 1) : 1
+    };
+
+    // Calcola fattori di scaling per wrinkles
+    const wrinklesScalingFactors = {
+      x: originalWidth > 0 ? originalWidth / (wrinklesResult.image?.width || 1) : 1,
+      y: originalHeight > 0 ? originalHeight / (wrinklesResult.image?.height || 1) : 1
+    };
+
     // Aggiorna i dati utente con il rilevamento dell'eritema
     const updatedUserData = { ...userData, erythema: rednessMetrics.erythema };
 
@@ -328,14 +344,17 @@ module.exports = async function (context, req) {
       acne: acneMetrics,
       redness: {
         ...rednessMetrics,
-        predictions: rednessResult // Include raw redness data for UI rendering
+        scaling_factors: rednessScalingFactors,
+        original_resolution: { width: originalWidth, height: originalHeight }
       },
       wrinkles: {
         ...wrinklesMetrics,
         predictions: wrinklesResult.predictions || [], // Include raw wrinkles predictions for UI rendering
         image: wrinklesResult.image || { width: 0, height: 0 },
         time: wrinklesResult.time || 0,
-        inference_id: wrinklesResult.inference_id || null
+        inference_id: wrinklesResult.inference_id || null,
+        scaling_factors: wrinklesScalingFactors,
+        original_resolution: { width: originalWidth, height: originalHeight }
       }
     };
     

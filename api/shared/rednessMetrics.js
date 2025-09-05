@@ -42,9 +42,13 @@ function computeRednessMetrics(rednessResult) {
   if (totalImageArea === 0) {
       logger.warn('Total image area is zero, cannot compute percentage.');
       return {
-        ...rednessResult,
+        num_polygons: rednessResult.num_polygons || 0,
+        polygons: rednessResult.polygons || [],
+        analysis_width: 0,
+        analysis_height: 0,
         erythema: false,
         redness_perc: 0,
+        error: 'Zero image area'
       };
   }
 
@@ -56,10 +60,14 @@ function computeRednessMetrics(rednessResult) {
 
   logger.info('Redness metrics calculated', { totalPolygonArea, totalImageArea, redness_perc, erythema });
 
+  // Restituisci solo i dati elaborati senza duplicazioni
   return {
-    ...rednessResult,
+    num_polygons: rednessResult.num_polygons || 0,
+    polygons: rednessResult.polygons || [],
+    analysis_width,
+    analysis_height,
     erythema,
-    redness_perc: parseFloat(redness_perc.toFixed(2)), // Arrotonda a 2 decimali
+    redness_perc: parseFloat(redness_perc.toFixed(2)),
   };
 }
 

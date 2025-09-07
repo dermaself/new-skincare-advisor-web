@@ -413,12 +413,11 @@ export default function SkinAnalysisImage({
                           
                           return (
                             <g key={prediction.detection_id}>
-                              {/* Filled Detection Area */}
-                              <motion.rect
-                                x={scaled.x}
-                                y={scaled.y}
-                                width={scaled.width}
-                                height={scaled.height}
+                              {/* Filled Detection Area - Circle */}
+                              <motion.circle
+                                cx={scaled.x + scaled.width / 2}
+                                cy={scaled.y + scaled.height / 2}
+                                r={Math.max(scaled.width, scaled.height) / 2}
                                 fill={color}
                                 fillOpacity={isHovered ? 0.8 : 0.6}
                                 stroke={color}
@@ -434,11 +433,10 @@ export default function SkinAnalysisImage({
                               
                               {/* Border highlight on hover */}
                               {isHovered && (
-                                <motion.rect
-                                  x={scaled.x - 2}
-                                  y={scaled.y - 2}
-                                  width={scaled.width + 4}
-                                  height={scaled.height + 4}
+                                <motion.circle
+                                  cx={scaled.x + scaled.width / 2}
+                                  cy={scaled.y + scaled.height / 2}
+                                  r={Math.max(scaled.width, scaled.height) / 2 + 3}
                                   fill="none"
                                   stroke="white"
                                   strokeWidth="2"

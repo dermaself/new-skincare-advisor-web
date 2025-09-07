@@ -116,10 +116,25 @@ export default function SkincareRoutineCard({
       
       {isExpanded && (
         <div className="collapsible-content">
+          {/* Debug info */}
+          <div style={{ fontSize: '12px', color: '#666', marginBottom: '10px', padding: '5px', backgroundColor: '#f0f0f0' }}>
+            <div>Product: {mainProduct.title}</div>
+            <div>Images count: {mainProduct.images?.length || 0}</div>
+            <div>First image src: {mainProduct.images?.[0]?.src || 'No image'}</div>
+            <div>Image URL type: {typeof mainProduct.images?.[0]?.src}</div>
+          </div>
+          
           <img 
             src={mainProduct.images[0]?.src || 'https://via.placeholder.com/300x300?text=Product'} 
             alt="Immagine Prodotto" 
             className="main-product-img"
+            onError={(e) => {
+              console.error('Image failed to load:', mainProduct.images[0]?.src);
+              e.currentTarget.src = 'https://via.placeholder.com/300x300?text=Failed+to+Load';
+            }}
+            onLoad={() => {
+              console.log('Image loaded successfully:', mainProduct.images[0]?.src);
+            }}
           />
           
           <div className="main-product-info">

@@ -159,9 +159,14 @@ export async function fetchProductByVariantId(variantId: string): Promise<Transf
       }),
       images: product.images.edges.map((imageEdge: any, index: number) => {
         const imageNode = imageEdge.node;
+        // Transform image URL to ensure it's accessible
+        let imageUrl = imageNode.url;
+        if (imageUrl && !imageUrl.startsWith('http')) {
+          imageUrl = `https:${imageUrl}`;
+        }
         return {
           id: index + 1,
-          src: imageNode.url,
+          src: imageUrl,
           alt: imageNode.altText || product.title
         };
       }),

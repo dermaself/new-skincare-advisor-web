@@ -146,14 +146,6 @@ export default function AnalysisResults({ result, onReset }: AnalysisResultsProp
     fetchRoutineProducts();
   }, [result.productRecommendations]);
 
-  // Debug logging for routine steps
-  console.log('=== ANALYSIS RESULTS DEBUG ===');
-  console.log('1. Raw result object:', result);
-  console.log('2. Product Recommendations:', result.productRecommendations);
-  console.log('3. Routine steps:', routineSteps);
-  console.log('4. Number of routine steps:', routineSteps.length);
-  console.log('5. Loading products:', isLoadingProducts);
-  console.log('=== END DEBUG ===');
 
   // Handle adding all products to cart
   const handleAddAllToCart = async () => {

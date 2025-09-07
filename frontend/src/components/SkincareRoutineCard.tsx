@@ -106,6 +106,7 @@ export default function SkincareRoutineCard({
     }).format(parseFloat(price));
   };
 
+
   return (
     <section className="card-section module-card collapsible expanded">
       <div className="collapsible-header" onClick={() => setIsExpanded(!isExpanded)}>
@@ -179,6 +180,10 @@ export default function SkincareRoutineCard({
                       src={product.images[0]?.src || 'https://via.placeholder.com/150x150?text=Product'} 
                       alt={product.title}
                       className="w-full h-32 object-cover rounded mb-2"
+                      onError={(e) => {
+                        console.error('Alternative image failed to load:', product.images[0]?.src);
+                        e.currentTarget.src = 'https://via.placeholder.com/150x150?text=Product+Not+Found';
+                      }}
                     />
                     <h5 className="font-medium text-sm mb-1">{product.title}</h5>
                     <p className="text-xs text-gray-600 mb-1">{product.vendor}</p>
@@ -265,6 +270,8 @@ export default function SkincareRoutineCard({
           object-fit: cover;
           border-radius: 8px;
           margin-bottom: 16px;
+          display: block;
+          background-color: #f3f4f6;
         }
 
         .main-product-info h3 {

@@ -66,30 +66,52 @@ export default function AnalysisResults({ result, onReset }: AnalysisResultsProp
         const allVariantIds: string[] = [];
         const productMapping: { [variantId: string]: { type: 'main' | 'alternative', categoryIndex: number, moduleIndex: number, productIndex?: number } } = {};
 
+        console.log('=== ANALYSIS RESULTS - EXTRACTING VARIANT IDS ===');
+        console.log('Raw skincare_routine:', result.productRecommendations.skincare_routine);
+
         result.productRecommendations.skincare_routine.forEach((category: any, categoryIndex: number) => {
+          console.log(`Category ${categoryIndex}:`, category.category);
           category.modules.forEach((module: any, moduleIndex: number) => {
+            console.log(`Module ${moduleIndex}:`, module.module);
+            console.log('Main product:', module.main_product);
+            
             // Main product
             if (module.main_product?.shopify_product_id) {
               const variantId = module.main_product.shopify_product_id;
+              console.log('Found main product variant ID:', variantId);
               allVariantIds.push(variantId);
               productMapping[variantId] = { type: 'main', categoryIndex, moduleIndex };
+            } else {
+              console.log('No shopify_product_id found for main product');
             }
 
             // Alternative products
             if (module.alternative_products) {
+              console.log('Alternative products:', module.alternative_products);
               module.alternative_products.forEach((altProduct: any, productIndex: number) => {
+                console.log(`Alternative product ${productIndex}:`, altProduct);
                 if (altProduct.shopify_product_id) {
                   const variantId = altProduct.shopify_product_id;
+                  console.log('Found alternative product variant ID:', variantId);
                   allVariantIds.push(variantId);
                   productMapping[variantId] = { type: 'alternative', categoryIndex, moduleIndex, productIndex };
+                } else {
+                  console.log(`No shopify_product_id found for alternative product ${productIndex}`);
                 }
               });
             }
           });
         });
 
+        console.log('All variant IDs collected:', allVariantIds);
+        console.log('Product mapping:', productMapping);
+
         // Fetch all products from Shopify
         const shopifyProducts = await fetchProductsByVariantIds(allVariantIds);
+        
+        console.log('=== SHOPIFY PRODUCTS FETCHED ===');
+        console.log('Number of products fetched:', shopifyProducts.length);
+        console.log('Fetched products:', shopifyProducts);
         
         // Build routine steps with fetched products
         let globalStepNumber = 1;
@@ -97,11 +119,20 @@ export default function AnalysisResults({ result, onReset }: AnalysisResultsProp
 
         result.productRecommendations.skincare_routine.forEach((category: any, categoryIndex: number) => {
           category.modules.forEach((module: any, moduleIndex: number) => {
+            console.log(`\n=== PROCESSING MODULE ${moduleIndex} ===`);
+            console.log('Module:', module.module);
+            console.log('Main product variant ID:', module.main_product?.shopify_product_id);
+            
             // Find main product
             const mainProductVariantId = module.main_product?.shopify_product_id;
             const mainProduct = mainProductVariantId 
               ? shopifyProducts.find(p => p.variants.some(v => v.id === mainProductVariantId))
               : null;
+
+            console.log('Found main product:', mainProduct);
+            if (mainProduct) {
+              console.log('Main product images:', mainProduct.images);
+            }
 
             // Find alternative products
             const alternativeProducts: TransformedProduct[] = [];
@@ -118,6 +149,8 @@ export default function AnalysisResults({ result, onReset }: AnalysisResultsProp
               });
             }
 
+            console.log('Alternative products found:', alternativeProducts.length);
+
             if (mainProduct) {
               const step = {
                 stepNumber: globalStepNumber,
@@ -130,6 +163,9 @@ export default function AnalysisResults({ result, onReset }: AnalysisResultsProp
               
               steps.push(step);
               globalStepNumber++;
+              console.log('Step created successfully');
+            } else {
+              console.log('No main product found, skipping step');
             }
           });
         });

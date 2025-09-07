@@ -141,14 +141,6 @@ export async function fetchProductByVariantId(variantId: string): Promise<Transf
 
     const product = variant.product;
     
-    // Debug logging
-    console.log('=== SHOPIFY PRODUCT FETCHER DEBUG ===');
-    console.log('Product title:', product.title);
-    console.log('Product images:', product.images);
-    console.log('First image edge:', product.images.edges[0]);
-    console.log('First image node:', product.images.edges[0]?.node);
-    console.log('First image URL:', product.images.edges[0]?.node?.url);
-    
     // Transform the Shopify product to our expected format
     return {
       id: product.id.split('/').pop() || product.id,
@@ -169,11 +161,9 @@ export async function fetchProductByVariantId(variantId: string): Promise<Transf
         const imageNode = imageEdge.node;
         // Transform image URL to ensure it's accessible
         let imageUrl = imageNode.url;
-        console.log(`Image ${index + 1} - Original URL:`, imageUrl);
         if (imageUrl && !imageUrl.startsWith('http')) {
           imageUrl = `https:${imageUrl}`;
         }
-        console.log(`Image ${index + 1} - Transformed URL:`, imageUrl);
         return {
           id: index + 1,
           src: imageUrl,

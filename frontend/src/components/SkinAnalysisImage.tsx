@@ -16,6 +16,17 @@ interface Prediction {
   detection_id: string;
 }
 
+interface WrinklesPrediction {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  confidence: number;
+  class: string;
+  detection_id?: string;
+  points?: Array<{ x: number; y: number }>;
+}
+
 type RednessPolygon = Array<[number, number]>;
 
 interface AnalysisData {
@@ -27,6 +38,19 @@ interface AnalysisData {
     analysis_height: number;
     erythema: boolean;
     redness_perc: number;
+    scaling_factors: { x: number; y: number }; 
+    original_resolution: { width: number; height: number };
+  };
+  wrinkles?: {
+    predictions: WrinklesPrediction[];
+    image: { width: number; height: number };
+    scaling_factors?: { x: number; y: number };
+    original_resolution?: { width: number; height: number };
+    counts?: Record<string, number>;
+    severity?: string;
+    has_forehead_wrinkles?: boolean;
+    has_expression_lines?: boolean;
+    has_under_eye_concerns?: boolean;
   };
   image: {
     width: number;
@@ -58,12 +82,31 @@ const ACNE_COLORS = {
 const REDNESS_COLOR = '#FF4757';
 const REDNESS_OPACITY = 0.8;
 
+// NEW: Wrinkles color mapping
+const WRINKLES_COLORS = {
+  'forehead': '#9900ff',
+  'crows_feet': '#ff6600', 
+  'nasolabial_fold': '#00ccff',
+  'frown': '#ff0066',
+  'tear_through': '#66ff00',
+  'mental_crease': '#ffcc00',
+  'bunny_line': '#ff9900',
+  'droppy_eyelid': '#cc00ff',
+  'marionette_line': '#00ffcc',
+  'neck_lines': '#ffff00',
+  'purse_string': '#ff00cc'
+};
+
+const getWrinkleColor = (className: string) => {
+  return WRINKLES_COLORS[className as keyof typeof WRINKLES_COLORS] || '#ffffff';
+};
+
 export default function SkinAnalysisImage({ 
   imageUrl, 
   analysisData, 
   className = '' 
 }: SkinAnalysisImageProps) {
-  const [currentView, setCurrentView] = useState<'acne' | 'redness'>('acne');
+  const [currentView, setCurrentView] = useState<'acne' | 'redness' | 'wrinkles'>('acne');
   const [showOverlays, setShowOverlays] = useState(true);
   const [hoveredDetection, setHoveredDetection] = useState<string | null>(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -81,7 +124,8 @@ export default function SkinAnalysisImage({
   // Create multiple images for carousel (analysis versions only)
   const carouselImages = [
     { url: imageUrl, label: 'Acne Analysis', view: 'acne' as const },
-    { url: imageUrl, label: 'Redness Analysis', view: 'redness' as const }
+    { url: imageUrl, label: 'Redness Analysis', view: 'redness' as const },
+    { url: imageUrl, label: 'Wrinkles Analysis', view: 'wrinkles' as const }
   ];
 
   useEffect(() => {
@@ -127,16 +171,24 @@ export default function SkinAnalysisImage({
   const handleImageLoad = () => {
     setImageLoaded(true);
     
-    // Debug: Log the actual image dimensions
     if (imageRef.current) {
       const img = imageRef.current;
-      console.log('=== IMAGE DISPLAY ===');
-      console.log('SkinAnalysisImage - Captured dimensions (natural):', img.naturalWidth, 'x', img.naturalHeight);
-      console.log('SkinAnalysisImage - Displayed dimensions (rendered):', img.offsetWidth, 'x', img.offsetHeight);
-      console.log('SkinAnalysisImage - Analysis data image dimensions:', analysisData.image.width, 'x', analysisData.image.height);
-      console.log('SkinAnalysisImage - Dimensions match:', img.naturalWidth === analysisData.image.width && img.naturalHeight === analysisData.image.height);
+      console.log('=== IMAGE RENDERING DEBUG ===');
+      console.log('1. Captured dimensions (natural):', img.naturalWidth, 'x', img.naturalHeight);
+      console.log('2. Analysis dimensions from API:', analysisData.image.width, 'x', analysisData.image.height);
+      console.log('3. Redness scaling factors:', analysisData.redness.scaling_factors);
+      console.log('4. Wrinkles scaling factors:', analysisData.wrinkles?.scaling_factors);
       
-      // Force a re-render after image loads to ensure proper scaling
+      // Verify dimensions match
+      const dimensionsMatch = img.naturalWidth === analysisData.image.width && 
+                            img.naturalHeight === analysisData.image.height;
+      console.log('5. Dimensions match:', dimensionsMatch);
+      
+      if (!dimensionsMatch) {
+        console.warn('⚠️ Image dimensions mismatch - annotations may not align correctly');
+      }
+      
+      // Force re-render with proper scaling
       setTimeout(() => {
         if (containerRef.current) {
           const container = containerRef.current;
@@ -151,6 +203,7 @@ export default function SkinAnalysisImage({
           });
           
           setCalculatedHeight(calculatedHeight);
+          console.log('6. Final scaling setup complete');
         }
       }, 100);
     }
@@ -158,29 +211,16 @@ export default function SkinAnalysisImage({
 
   const scaleCoordinates = (x: number, y: number, width: number, height: number) => {
     if (!imageDimensions.width || !imageDimensions.height || !containerRef.current) {
-      console.warn('Scale coordinates: Missing dimensions', { imageDimensions, containerRef: !!containerRef.current });
+      console.warn('Scale coordinates: Missing dimensions');
       return { x: 0, y: 0, width: 0, height: 0 };
     }
     
-    // Scale coordinates from image dimensions to container dimensions
+    // Scale from original image dimensions to displayed container dimensions
     const containerWidth = containerRef.current.offsetWidth;
-    const containerHeight = calculatedHeight; // Use calculated height instead of container height
+    const containerHeight = calculatedHeight;
     
     const scaleX = containerWidth / imageDimensions.width;
     const scaleY = containerHeight / imageDimensions.height;
-    
-    console.log('Scale coordinates:', {
-      original: { x, y, width, height },
-      imageDimensions,
-      containerDimensions: { width: containerWidth, height: containerHeight },
-      scale: { scaleX, scaleY },
-      result: {
-        x: x * scaleX,
-        y: y * scaleY,
-        width: width * scaleX,
-        height: height * scaleY
-      }
-    });
     
     return {
       x: x * scaleX,
@@ -190,20 +230,58 @@ export default function SkinAnalysisImage({
     };
   };
 
-  const scalePolygon = (polygon: [number, number][]) => {
+  // NEW: Enhanced polygon scaling with support for scaling_factors
+  const scalePolygon = (polygon: [number, number][], scalingFactors?: { x: number; y: number }) => {
     if (!imageDimensions.width || !imageDimensions.height || !containerRef.current) {
       console.warn('Scale polygon: Missing dimensions');
       return [];
     }
     
-    // Scale coordinates from image dimensions to container dimensions
     const containerWidth = containerRef.current.offsetWidth;
-    const containerHeight = calculatedHeight; // Use calculated height instead of container height
+    const containerHeight = calculatedHeight;
     
+    // First, scale from API resolution to original image resolution if needed
+    let adjustedPolygon = polygon;
+    if (scalingFactors && (scalingFactors.x !== 1 || scalingFactors.y !== 1)) {
+      adjustedPolygon = polygon.map(([x, y]) => [
+        x * scalingFactors.x,
+        y * scalingFactors.y
+      ]);
+    }
+    
+    // Then scale from original image to display container
     const scaleX = containerWidth / imageDimensions.width;
     const scaleY = containerHeight / imageDimensions.height;
     
-    return polygon.map(([x, y]) => [x * scaleX, y * scaleY]);
+    return adjustedPolygon.map(([x, y]) => [x * scaleX, y * scaleY]);
+  };
+
+  // NEW: Scale wrinkles points with support for detailed point arrays
+  const scaleWrinklePoints = (points: Array<{ x: number; y: number }>, scalingFactors?: { x: number; y: number }) => {
+    if (!imageDimensions.width || !imageDimensions.height || !containerRef.current) {
+      return [];
+    }
+    
+    const containerWidth = containerRef.current.offsetWidth;
+    const containerHeight = calculatedHeight;
+    
+    // First, scale from API resolution to original image resolution if needed
+    let adjustedPoints = points;
+    if (scalingFactors && (scalingFactors.x !== 1 || scalingFactors.y !== 1)) {
+      adjustedPoints = points.map(point => ({
+        x: point.x * scalingFactors.x,
+        y: point.y * scalingFactors.y
+      }));
+    }
+    
+    // Then scale from original image to display container
+    const scaleX = containerWidth / imageDimensions.width;
+    const scaleY = containerHeight / imageDimensions.height;
+    
+    return adjustedPoints.map(point => ({
+      x: point.x * scaleX,
+      y: point.y * scaleY
+    }));
   };
 
   const getAcneColor = (className: string) => {
@@ -280,7 +358,9 @@ export default function SkinAnalysisImage({
             transition={{ duration: 0.3 }}
           >
             <h3 className="text-sm font-semibold text-gray-900 mb-3">
-              {currentView === 'acne' ? 'Acne Detection Legend' : 'Redness Detection Legend'}
+              {currentView === 'acne' ? 'Acne Detection Legend' : 
+               currentView === 'redness' ? 'Redness Detection Legend' : 
+               'Wrinkles Detection Legend'}
             </h3>
             
             {currentView === 'acne' ? (
@@ -297,16 +377,43 @@ export default function SkinAnalysisImage({
                   </div>
                 ))}
               </div>
-            ) : (
-              <div className="flex items-center space-x-2">
-                <div 
-                  className="w-4 h-4 rounded-sm border border-gray-300"
-                  style={{ backgroundColor: REDNESS_COLOR }}
-                />
-                <span className="text-xs text-gray-700 font-medium">
-                  Redness Areas (Erythema)
-                </span>
+            ) : currentView === 'redness' ? (
+              <div className="space-y-2">
+                <div className="flex items-center space-x-2">
+                  <div 
+                    className="w-4 h-4 rounded-sm border border-gray-300"
+                    style={{ backgroundColor: REDNESS_COLOR }}
+                  />
+                  <span className="text-xs text-gray-700 font-medium">Redness Areas (Erythema)</span>
+                </div>
+                <div className="text-xs text-gray-600">
+                  Coverage: {analysisData.redness.redness_perc}% • 
+                  Erythema: {analysisData.redness.erythema ? 'Detected' : 'Not detected'}
+                </div>
               </div>
+            ) : (
+              /* NEW: Wrinkles legend */
+              analysisData.wrinkles && (
+                <div className="space-y-3">
+                  <div className="grid grid-cols-2 gap-2">
+                    {Object.entries(WRINKLES_COLORS).map(([className, color]) => (
+                      <div key={className} className="flex items-center space-x-2">
+                        <div 
+                          className="w-4 h-1 border border-gray-300"
+                          style={{ backgroundColor: color }}
+                        />
+                        <span className="text-xs text-gray-700 font-medium">
+                          {className.replace(/_/g, ' ').replace(/([A-Z])/g, ' $1').trim()}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="text-xs text-gray-600 mt-2">
+                    Severity: {analysisData.wrinkles.severity || 'Unknown'} • 
+                    Total: {analysisData.wrinkles.predictions?.length || 0} detections
+                  </div>
+                </div>
+              )
             )}
           </motion.div>
         )}
@@ -354,15 +461,17 @@ export default function SkinAnalysisImage({
                     {/* Redness Polygons - only show in redness view */}
                     {currentView === 'redness' && analysisData.redness.polygons && 
                       analysisData.redness.polygons.map((polygon, index) => {
+                        // Use the new scaling function with scaling_factors
+                        const scaledPolygon = scalePolygon(polygon, analysisData.redness.scaling_factors);
+                        
                         if (polygon.length === 1) {
-                          const [x, y] = polygon[0];
-                          const scaled = scaleCoordinates(x, y, 4, 4);
-                          
+                          // Single point
+                          const [x, y] = scaledPolygon[0];
                           return (
                             <g key={`redness-point-${index}`}>
                               <motion.circle
-                                cx={scaled.x + scaled.width / 2}
-                                cy={scaled.y + scaled.height / 2}
+                                cx={x}
+                                cy={y}
                                 r="3"
                                 fill={REDNESS_COLOR}
                                 fillOpacity={REDNESS_OPACITY}
@@ -375,9 +484,8 @@ export default function SkinAnalysisImage({
                             </g>
                           );
                         } else if (polygon.length >= 3) {
-                          const scaledPolygon = scalePolygon(polygon);
+                          // Polygon
                           const points = scaledPolygon.map(([x, y]) => `${x},${y}`).join(' ');
-                          
                           return (
                             <g key={`redness-polygon-${index}`}>
                               <motion.polygon
@@ -451,6 +559,82 @@ export default function SkinAnalysisImage({
                         })}
                       </>
                     )}
+
+                    {/* NEW: Wrinkles Detection - only show in wrinkles view */}
+                    {currentView === 'wrinkles' && analysisData.wrinkles?.predictions && 
+                      analysisData.wrinkles.predictions.map((prediction, index) => {
+                        const color = getWrinkleColor(prediction.class);
+                        
+                        if (prediction.points && prediction.points.length > 0) {
+                          // Render detailed wrinkle lines using points
+                          const scaledPoints = scaleWrinklePoints(prediction.points, analysisData.wrinkles?.scaling_factors);
+                          const pointsString = scaledPoints.map(point => `${point.x},${point.y}`).join(' ');
+                          
+                          return (
+                            <g key={`wrinkle-line-${index}`}>
+                              <motion.polyline
+                                points={pointsString}
+                                fill="none"
+                                stroke={color}
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                className="pointer-events-auto cursor-pointer"
+                                onMouseEnter={() => setHoveredDetection(prediction.detection_id || `wrinkle-${index}`)}
+                                onMouseLeave={() => setHoveredDetection(null)}
+                                initial={{ pathLength: 0 }}
+                                animate={{ pathLength: 1 }}
+                                transition={{ duration: 0.8, delay: index * 0.1 }}
+                              />
+                              {/* Add confidence indicator for wrinkles */}
+                              {scaledPoints.length > 0 && (
+                                <motion.circle
+                                  cx={scaledPoints[0].x}
+                                  cy={scaledPoints[0].y}
+                                  r="4"
+                                  fill={color}
+                                  stroke="white"
+                                  strokeWidth="1"
+                                  className="pointer-events-auto cursor-pointer"
+                                  initial={{ opacity: 0, scale: 0 }}
+                                  animate={{ opacity: 0.9, scale: 1 }}
+                                  transition={{ duration: 0.3, delay: index * 0.1 + 0.5 }}
+                                />
+                              )}
+                            </g>
+                          );
+                        } else {
+                          // Fallback: render bounding box for wrinkles without detailed points
+                          const scaled = scaleCoordinates(
+                            prediction.x - prediction.width / 2,
+                            prediction.y - prediction.height / 2,
+                            prediction.width,
+                            prediction.height
+                          );
+                          
+                          return (
+                            <g key={`wrinkle-bbox-${index}`}>
+                              <motion.rect
+                                x={scaled.x}
+                                y={scaled.y}
+                                width={scaled.width}
+                                height={scaled.height}
+                                fill="none"
+                                stroke={color}
+                                strokeWidth="2"
+                                strokeDasharray="5,5"
+                                className="pointer-events-auto cursor-pointer"
+                                onMouseEnter={() => setHoveredDetection(prediction.detection_id || `wrinkle-${index}`)}
+                                onMouseLeave={() => setHoveredDetection(null)}
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 0.8 }}
+                                transition={{ duration: 0.3, delay: index * 0.1 }}
+                              />
+                            </g>
+                          );
+                        }
+                      })
+                    }
                   </svg>
                 )}
               </motion.div>
@@ -612,12 +796,58 @@ export default function SkinAnalysisImage({
           </div>
         </motion.div>
 
+        {/* NEW: Wrinkles Analysis Card */}
+        {analysisData.wrinkles && (
+          <motion.div 
+            className="bg-gradient-to-br from-indigo-50 to-indigo-100 border border-indigo-200 rounded-xl p-4"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+          >
+            <div className="flex items-center space-x-3 mb-3">
+              <div className="w-8 h-8 bg-indigo-500 rounded-lg flex items-center justify-center">
+                <Zap className="w-4 h-4 text-white" />
+              </div>
+              <div>
+                <h4 className="font-semibold text-indigo-900">Wrinkles Analysis</h4>
+                <p className="text-xs text-indigo-600">Age-related Changes</p>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <div className="flex justify-between">
+                <span className="text-sm text-indigo-700">Severity:</span>
+                <span className="text-sm font-semibold text-indigo-900">
+                  {analysisData.wrinkles.severity || 'Unknown'}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-sm text-indigo-700">Total:</span>
+                <span className="text-sm font-semibold text-indigo-900">
+                  {analysisData.wrinkles.predictions?.length || 0}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-sm text-indigo-700">Forehead:</span>
+                <span className={`text-sm font-semibold ${analysisData.wrinkles.has_forehead_wrinkles ? 'text-indigo-900' : 'text-gray-500'}`}>
+                  {analysisData.wrinkles.has_forehead_wrinkles ? 'Detected' : 'None'}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-sm text-indigo-700">Eye Area:</span>
+                <span className={`text-sm font-semibold ${analysisData.wrinkles.has_under_eye_concerns ? 'text-indigo-900' : 'text-gray-500'}`}>
+                  {analysisData.wrinkles.has_under_eye_concerns ? 'Detected' : 'None'}
+                </span>
+              </div>
+            </div>
+          </motion.div>
+        )}
+
         {/* Image Info Card */}
         <motion.div 
           className="bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 rounded-xl p-4"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
+          transition={{ delay: 0.4 }}
         >
           <div className="flex items-center space-x-3 mb-3">
             <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">
@@ -651,6 +881,12 @@ export default function SkinAnalysisImage({
               <span className="text-sm text-blue-700">Redness Areas:</span>
               <span className="text-sm font-semibold text-blue-900">
                 {analysisData.redness.polygons?.length || 0}
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-sm text-blue-700">Wrinkles:</span>
+              <span className="text-sm font-semibold text-blue-900">
+                {analysisData.wrinkles?.predictions?.length || 0}
               </span>
             </div>
           </div>

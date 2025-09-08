@@ -84,6 +84,29 @@ export interface AnalysisResponse {
     analysis_height: number;
     erythema: boolean;
     redness_perc: number;
+    scaling_factors?: { x: number; y: number };
+    original_resolution?: { width: number; height: number };
+  };
+  
+  wrinkles?: {
+    predictions: Array<{
+      x: number;
+      y: number;
+      width: number;
+      height: number;
+      confidence: number;
+      class: string;
+      detection_id?: string;
+      points?: Array<{ x: number; y: number }>;
+    }>;
+    image: { width: number; height: number };
+    scaling_factors?: { x: number; y: number };
+    original_resolution?: { width: number; height: number };
+    counts?: Record<string, number>;
+    severity?: string;
+    has_forehead_wrinkles?: boolean;
+    has_expression_lines?: boolean;
+    has_under_eye_concerns?: boolean;
   };
   
   // Product recommendations

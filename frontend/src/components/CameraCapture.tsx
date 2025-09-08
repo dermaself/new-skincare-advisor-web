@@ -576,8 +576,19 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
     canvas.width = originalWidth;
     canvas.height = originalHeight;
     
-    // Draw the video at original size
-    ctx.drawImage(video, 0, 0, originalWidth, originalHeight);
+    // Handle mirroring for front-facing camera
+    // Front-facing cameras are mirrored by default, so we need to flip the image
+    // to match what the user sees on their iPhone
+    if (currentCamera === 'front') {
+      // Flip horizontally for front camera to match iPhone behavior
+      ctx.save();
+      ctx.scale(-1, 1);
+      ctx.drawImage(video, -originalWidth, 0, originalWidth, originalHeight);
+      ctx.restore();
+    } else {
+      // Back camera doesn't need flipping
+      ctx.drawImage(video, 0, 0, originalWidth, originalHeight);
+    }
     
     // Log both original and displayed dimensions
     console.log('Original video dimensions:', video.videoWidth, 'x', video.videoHeight);
@@ -860,11 +871,12 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
                 autoPlay
                 playsInline
                 muted
-                className="w-full h-full object-cover"
+                className={`w-full h-full object-cover ${currentCamera === 'front' ? 'scale-x-[-1]' : ''}`}
                 style={{
                   width: '100%',
                   height: '100%',
-                  display: 'block'
+                  display: 'block',
+                  transform: currentCamera === 'front' ? 'scaleX(-1)' : 'none'
                 }}
                 onLoadedMetadata={() => {
                   console.log('Video metadata loaded');

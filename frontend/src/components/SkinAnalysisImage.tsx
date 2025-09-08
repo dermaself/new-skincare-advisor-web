@@ -315,20 +315,20 @@ export default function SkinAnalysisImage({
       currentView
     });
     setCurrentView(carouselImages[currentImageIndex].view);
-    // Reset image loaded state when image changes to ensure proper scaling
-    setImageLoaded(false);
   }, [currentImageIndex]);
 
-  // Ensure acne view is set on first load
   useEffect(() => {
     if (analysisData && analysisData.predictions && analysisData.predictions.length > 0) {
       console.log('Setting acne view on first load:', {
         predictionsCount: analysisData.predictions.length,
-        currentView
+        currentView,
+        currentImageIndex
       });
-      setCurrentView('acne');
+      if (currentImageIndex === 0) {
+        setCurrentView('acne');
+      }
     }
-  }, [analysisData]);
+  }, [analysisData, currentImageIndex]);
 
   return (
     <div className={`relative ${className}`}>
@@ -421,6 +421,25 @@ export default function SkinAnalysisImage({
 
       {/* Image Carousel */}
       <div className="relative mb-6">
+        {/* Carousel Navigation */}
+        <div className="flex justify-center mb-4">
+          <div className="flex space-x-2 bg-white rounded-lg p-1 shadow-sm border">
+            {carouselImages.map((image, index) => (
+              <button
+                key={index}
+                onClick={() => goToImage(index)}
+                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                  currentImageIndex === index
+                    ? 'bg-blue-500 text-white'
+                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                }`}
+              >
+                {image.label}
+              </button>
+            ))}
+          </div>
+        </div>
+        
         <div className="relative overflow-hidden bg-gray-100">
           {/* Carousel Images */}
           <div 

@@ -304,6 +304,7 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
   const [cartItems, setCartItems] = useState<{ [productId: string]: number }>({});
   const [cartLoading, setCartLoading] = useState<{ [productId: string]: boolean }>({});
   const [isShopify, setIsShopify] = useState(false);
+  const [consentGiven, setConsentGiven] = useState(false);
   
 
 
@@ -1004,15 +1005,15 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className={`${embedded ? 'relative w-full h-full' : 'fixed inset-0 z-50 flex items-center justify-center p-4'}`}
+        className={`${embedded ? 'relative w-full h-full' : 'fixed inset-0 z-50 flex items-center justify-center p-0 md:p-4'}`}
       >
-        {/* Backdrop */}
+        {/* Backdrop - Only show on desktop */}
         {!embedded && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm hidden md:block"
             onClick={handleClose}
           />
         )}
@@ -1024,74 +1025,37 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
           exit={{ scale: 0.95, opacity: 0 }}
           transition={{ type: "spring", damping: 25, stiffness: 300 }}
           className={`kiko-modal kiko-card relative w-full overflow-hidden flex flex-col h-full ${
-            embedded ? 'w-full h-full' : 'max-w-[540px]'
+            embedded 
+              ? 'w-full h-full' 
+              : 'md:max-w-[540px] w-full h-full md:h-auto'
           }`}
         >
-          {/* Header */}
-          <div className="kiko-modal-header">
-            {currentStep === 'onboarding' && (
-              <React.Fragment key="onboarding-header">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
-                      <Camera className="w-5 h-5 text-white" />
-                    </div>
-                    <div>
-                      <h2 className="kiko-modal-title">Skincare Pro Advisor</h2>
-                      <p className="kiko-modal-subtitle">AI Skin Analysis by KIKO Milano</p>
-                    </div>
+          {/* Header - Only show for non-onboarding steps */}
+          {currentStep !== 'onboarding' && (
+            <div className="kiko-modal-header">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
+                    <Camera className="w-5 h-5 text-white" />
                   </div>
-                  <button
-                    onClick={handleClose}
-                    className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center hover:bg-white/30 transition-colors"
-                    aria-label="Close modal"
-                    title="Close modal"
-                  >
-                    <X className="w-5 h-5 text-white" />
-                  </button>
+                  <div>
+                    <h2 className="kiko-modal-title">DermaSelf Skin Analyzer</h2>
+                    <p className="kiko-modal-subtitle">AI-Powered Skin Analysis</p>
+                  </div>
                 </div>
-                <div>
-                  <img
-                    src="https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80"
-                    alt="Skin Analysis"
-                    className="w-full h-64 object-cover"
-                  />
-                </div>
-              </React.Fragment>
-            )}
-
-          </div>
-
-          {/* Progress Steps */}
-          <div className="kiko-modal-content">
-            {currentStep !== 'onboarding' && (
-              <div className="flex items-center justify-between mb-6">
-                <button 
-                  onClick={handleRestart}
-                  className="kiko-button-secondary p-2"
-                  aria-label="Restart analysis"
-                  title="Restart analysis"
-                >
-                  <RotateCcw className="w-4 h-4" />
-                </button>
-                <button 
+                <button
                   onClick={handleClose}
-                  className="kiko-button-secondary p-2"
+                  className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center hover:bg-white/30 transition-colors"
                   aria-label="Close modal"
                   title="Close modal"
                 >
-                  <X className="w-4 h-4" />
+                  <X className="w-5 h-5 text-white" />
                 </button>
-                <div className="kiko-progress-bar">
-                  <div className={`kiko-progress-dot ${currentStep === 'quiz' ? 'active' : 'completed'}`}></div>
-                  <div className={`kiko-progress-dot ${currentStep === 'scan' ? 'active' : currentStep === 'loading' || currentStep === 'results' ? 'completed' : ''}`}></div>
-                  <div className={`kiko-progress-dot ${currentStep === 'loading' ? 'active' : currentStep === 'results' ? 'completed' : ''}`}></div>
-                  <div className={`kiko-progress-dot ${currentStep === 'results' ? 'active' : ''}`}></div>
-                </div>
               </div>
-            )}
-          </div>
+            </div>
+          )}
 
+         
           {/* Content */}
           <div className="kiko-step-content flex-1 overflow-y-auto">
             <AnimatePresence key="content-steps" mode="wait">
@@ -1102,60 +1066,77 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -20 }}
                   transition={{ duration: 0.3 }}
-                  className="text-center p-4 flex flex-col h-full min-h-[fit-content]"
+                  className="bg-white p-8 flex flex-col h-full"
                 >
-                  <h3 className="kiko-modal-title mb-4">
-                    Il Consulente Skincare di KIKO Milano ti aiuta a trovare i prodotti giusti per la tua pelle!
-                  </h3>
-                  
-                  <p className="text-lg text-gray-600 mb-8 leading-relaxed">
-                    Rivoluziona la tua routine con Skincare Pro Advisor! Questo strumento alimentato da intelligenza artificiale ti mostrerà in pochi secondi qual è la routine Skin Care più adatta alle tue esigenze!
-                  </p>
-
-                  <div className="mt-6 flex items-center justify-around space-x-4">
-                    <div key={steps[0].id} className="flex flex-col items-center">
-                      <div className="flex flex-col items-center">
-                          <div
-                            className={`w-16 h-16 flex items-center justify-center text-sm font-semibold transition-all duration text-gray-900`}
-                          >
-                            <img src={steps[0].icon} alt={steps[0].title} className="w-12 h-12" />
-                          </div>
-                          <p className="text-xs text-gray-900 mt-1 font-medium">{steps[0].title}</p>
-                        </div>
-                    </div>
-                    <div className="w-12 h-0.5 mx-2 transition-all duration-200 bg-gray-900" />
-                    <div key={steps[1].id} className="flex flex-col items-center">
-                      <div className="flex flex-col items-center">
-                          <div
-                            className={`w-16 h-16 flex items-center justify-center text-sm font-semibold transition-all duration text-gray-900`}
-                          >
-                            <img src={steps[1].icon} alt={steps[1].title} className="w-12 h-12" />
-                          </div>
-                          <p className="text-xs text-gray-900 mt-1 font-medium">{steps[1].title}</p>
-                        </div>
-                    </div>
-                    <div className="w-12 h-0.5 mx-2 transition-all duration-200 bg-gray-900" />
-                    <div key={steps[2].id} className="flex flex-col items-center">
-                      <div className="flex flex-col items-center">
-                          <div
-                            className={`w-16 h-16 flex items-center justify-center text-sm font-semibold transition-all duration text-gray-900`}
-                          >
-                            <img src={steps[2].icon} alt={steps[2].title} className="w-12 h-12" />
-                          </div>
-                          <p className="text-xs text-gray-900 mt-1 font-medium">{steps[2].title}</p>
-                        </div>
-                    </div>
-
+                  {/* Close button for onboarding */}
+                  <div className="flex justify-end mb-4">
+                    <button
+                      onClick={handleClose}
+                      className="w-8 h-8 flex items-center justify-center hover:bg-gray-100 rounded-full transition-colors"
+                      aria-label="Close modal"
+                      title="Close modal"
+                    >
+                      <X className="w-5 h-5 text-gray-600" />
+                    </button>
                   </div>
 
-                  <motion.button
-                    onClick={handleNext}
-                    className="kiko-button mt-6 mx-auto px-8 py-4 text-lg"
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                  >
-                    SCOPRI LA MIA ROUTINE
-                  </motion.button>
+                  {/* Main content */}
+                  <div className="flex-1 flex flex-col justify-center text-center">
+                    <h1 className="text-2xl font-bold text-gray-900 mb-6 leading-tight">
+                      Discover Your Perfect Skincare Routine with AI-Powered Analysis
+                    </h1>
+                    
+                    <p className="text-sm text-gray-600 mb-8 leading-relaxed">
+                      By using this service, you agree to our <a href="https://dermaself-dev.myshopify.com/pages/privacy-policy" target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">Privacy Policy</a>. Your consent is voluntary and can be withdrawn at any time.
+                    </p>
+
+                    {/* Consent checkbox */}
+                    <div className="mb-8">
+                      <label className="flex items-start space-x-3 cursor-pointer">
+                        <div className="flex-shrink-0 mt-1">
+                          <input
+                            type="checkbox"
+                            className="w-4 h-4 text-pink-600 border-gray-300 rounded focus:ring-pink-500"
+                            checked={consentGiven}
+                            onChange={(e) => setConsentGiven(e.target.checked)}
+                          />
+                        </div>
+                        <span className="text-sm text-gray-700 leading-relaxed">
+                          I consent to the use of the DermaSelf Skin Analyzer service: to analyze my image and provide personalized skincare recommendations through AI technology, including skin analysis based on photos and related skincare guidance through the use of the DermaSelf Skin Analyzer service.
+                        </span>
+                      </label>
+                    </div>
+
+                    {/* Start button */}
+                    <motion.button
+                      onClick={handleNext}
+                      disabled={!consentGiven}
+                      className={`font-semibold py-4 px-8 rounded-lg transition-colors duration-200 mx-auto flex items-center space-x-2 ${
+                        consentGiven 
+                          ? 'bg-pink-600 hover:bg-pink-700 text-white' 
+                          : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                      }`}
+                      whileHover={consentGiven ? { scale: 1.02 } : {}}
+                      whileTap={consentGiven ? { scale: 0.98 } : {}}
+                    >
+                      <CheckCircle className="w-5 h-5" />
+                      <span>Start Analysis</span>
+                    </motion.button>
+                  </div>
+
+                  {/* Progress indicator */}
+                  <div className="flex justify-center space-x-2 mt-8">
+                    <div className="w-2 h-2 bg-pink-600 rounded-full"></div>
+                    <div className="w-2 h-2 bg-gray-300 rounded-full"></div>
+                    <div className="w-2 h-2 bg-gray-300 rounded-full"></div>
+                    <div className="w-2 h-2 bg-gray-300 rounded-full"></div>
+                    <div className="w-2 h-2 bg-gray-300 rounded-full"></div>
+                    <div className="w-2 h-2 bg-gray-300 rounded-full"></div>
+                    <div className="w-2 h-2 bg-gray-300 rounded-full"></div>
+                    <div className="w-2 h-2 bg-gray-300 rounded-full"></div>
+                    <div className="w-2 h-2 bg-gray-300 rounded-full"></div>
+                    <div className="w-2 h-2 bg-gray-300 rounded-full"></div>
+                  </div>
                 </motion.div>
               )}
 

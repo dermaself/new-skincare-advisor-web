@@ -451,59 +451,78 @@ body {
   animation: spin 1s linear infinite;
 }
 
-/* KIKO Milano Design System */
+/* DermaSelf Design System */
 :root {
-  /* KIKO Color Palette */
-  --kiko-primary: #ff6b9d;
-  --kiko-primary-light: #ff8fab;
-  --kiko-primary-dark: #e55a8a;
-  --kiko-secondary: #2c2c2c;
-  --kiko-accent: #ffb3d1;
-  --kiko-background: #ffffff;
-  --kiko-surface: #fafafa;
-  --kiko-border: #e0e0e0;
-  --kiko-text-primary: #2c2c2c;
-  --kiko-text-secondary: #666666;
-  --kiko-text-light: #999999;
+  /* DermaSelf Color Palette */
+  --dermaself-primary: #ff6b9d;
+  --dermaself-primary-light: #ff8fab;
+  --dermaself-primary-dark: #e55a8a;
+  --dermaself-secondary: #2c2c2c;
+  --dermaself-accent: #ffb3d1;
+  --dermaself-background: #ffffff;
+  --dermaself-surface: #fafafa;
+  --dermaself-border: #e0e0e0;
+  --dermaself-text-primary: #2c2c2c;
+  --dermaself-text-secondary: #666666;
+  --dermaself-text-light: #999999;
   
   /* Typography */
-  --kiko-font-family: 'KIKO', 'Helvetica Neue', 'Arial', sans-serif;
-  --kiko-font-size-xs: 0.75rem;
-  --kiko-font-size-sm: 0.875rem;
-  --kiko-font-size-base: 1rem;
-  --kiko-font-size-lg: 1.125rem;
-  --kiko-font-size-xl: 1.25rem;
-  --kiko-font-size-2xl: 1.5rem;
-  --kiko-font-size-3xl: 1.875rem;
+  --dermaself-font-family: 'DermaSelf', 'Helvetica Neue', 'Arial', sans-serif;
+  --dermaself-font-size-xs: 0.75rem;
+  --dermaself-font-size-sm: 0.875rem;
+  --dermaself-font-size-base: 1rem;
+  --dermaself-font-size-lg: 1.125rem;
+  --dermaself-font-size-xl: 1.25rem;
+  --dermaself-font-size-2xl: 1.5rem;
+  --dermaself-font-size-3xl: 1.875rem;
   
   /* Spacing */
-  --kiko-space-1: 0.25rem;
-  --kiko-space-2: 0.5rem;
-  --kiko-space-3: 0.75rem;
-  --kiko-space-4: 1rem;
-  --kiko-space-5: 1.25rem;
-  --kiko-space-6: 1.5rem;
-  --kiko-space-8: 2rem;
-  --kiko-space-10: 2.5rem;
-  --kiko-space-12: 3rem;
+  --dermaself-space-1: 0.25rem;
+  --dermaself-space-2: 0.5rem;
+  --dermaself-space-3: 0.75rem;
+  --dermaself-space-4: 1rem;
+  --dermaself-space-5: 1.25rem;
+  --dermaself-space-6: 1.5rem;
+  --dermaself-space-8: 2rem;
+  --dermaself-space-10: 2.5rem;
+  --dermaself-space-12: 3rem;
   
   /* Border Radius */
-  --kiko-radius-sm: 0.375rem;
-  --kiko-radius-md: 0.5rem;
-  --kiko-radius-lg: 0.75rem;
-  --kiko-radius-xl: 1rem;
+  --dermaself-radius-sm: 0.375rem;
+  --dermaself-radius-md: 0.5rem;
+  --dermaself-radius-lg: 0.75rem;
+  --dermaself-radius-xl: 1rem;
   
   /* Shadows */
-  --kiko-shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  --kiko-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  --kiko-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-  --kiko-shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  --dermaself-shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --dermaself-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --dermaself-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --dermaself-shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
 }
 
 /* KIKO Modal Styles */
 .kiko-modal {
   font-family: var(--kiko-font-family);
   color: var(--kiko-text-primary);
+}
+
+/* Mobile Fullscreen Modal */
+@media (max-width: 768px) {
+  .kiko-modal {
+    height: 100vh !important;
+    max-height: 100vh !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+  
+  .kiko-modal.kiko-card {
+    border-radius: 0 !important;
+  }
+  
+  /* Remove padding from modal container on mobile */
+  .fixed.inset-0 {
+    padding: 0 !important;
+  }
 }
 
 .kiko-modal-header {

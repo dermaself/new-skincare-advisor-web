@@ -5,6 +5,7 @@ import SkinAnalysisModal from '@/components/SkinAnalysisModal';
 
 export default function EmbedPage() {
   const [showModal, setShowModal] = useState(true); // Always show modal in embed mode
+  const [isModalReady, setIsModalReady] = useState(false); // Track when modal is ready
 
   // Listen for messages from parent Shopify page
   useEffect(() => {
@@ -19,6 +20,18 @@ export default function EmbedPage() {
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
   }, []);
+
+  // Handle modal ready state
+  const handleModalReady = () => {
+    setIsModalReady(true);
+  };
+
+  // Reset modal ready state when modal closes
+  useEffect(() => {
+    if (!showModal) {
+      setIsModalReady(false);
+    }
+  }, [showModal]);
 
   const handleCloseModal = () => {
     setShowModal(false);
@@ -35,11 +48,24 @@ export default function EmbedPage() {
   return (
     <div className="w-full h-screen bg-black/20 backdrop-blur-sm flex items-center justify-center p-4">
       <div className="w-full max-w-[540px] h-[95vh] max-h-[800px] bg-white rounded-xl shadow-2xl overflow-hidden border border-gray-200">
-        <SkinAnalysisModal 
-          isOpen={showModal} 
-          onClose={handleCloseModal} 
-          embedded={true} 
-        />
+        {!isModalReady ? (
+          // Loading state while modal initializes
+          <div className="w-full h-full flex items-center justify-center">
+            <div className="flex flex-col items-center space-y-4">
+              <div className="loader__wrapper">
+                <div className="loader">&nbsp;</div>
+              </div>
+              <p className="text-gray-600 text-sm">Loading skin analysis...</p>
+            </div>
+          </div>
+        ) : (
+          <SkinAnalysisModal 
+            isOpen={showModal} 
+            onClose={handleCloseModal} 
+            embedded={true}
+            onReady={handleModalReady}
+          />
+        )}
       </div>
     </div>
   );

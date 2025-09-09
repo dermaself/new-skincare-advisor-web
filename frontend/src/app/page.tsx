@@ -6,6 +6,7 @@ import SkinAnalysisModal from '@/components/SkinAnalysisModal';
 export default function Home() {
   const [showModal, setShowModal] = useState(false);
   const [isEmbedded, setIsEmbedded] = useState(false);
+  const [isModalReady, setIsModalReady] = useState(false);
 
   // Check if we're embedded in Shopify
   useEffect(() => {
@@ -36,6 +37,18 @@ export default function Home() {
     return () => window.removeEventListener('message', handleMessage);
   }, []);
 
+  // Handle modal ready state
+  const handleModalReady = () => {
+    setIsModalReady(true);
+  };
+
+  // Reset modal ready state when modal closes
+  useEffect(() => {
+    if (!showModal) {
+      setIsModalReady(false);
+    }
+  }, [showModal]);
+
   const handleCloseModal = () => {
     setShowModal(false);
     
@@ -52,11 +65,24 @@ export default function Home() {
   if (isEmbedded) {
     return (
       <div className="w-full h-full">
-        <SkinAnalysisModal 
-          isOpen={showModal} 
-          onClose={handleCloseModal} 
-          embedded={true} 
-        />
+        {!isModalReady ? (
+          // Loading state while modal initializes
+          <div className="w-full h-full flex items-center justify-center bg-white">
+            <div className="flex flex-col items-center space-y-4">
+              <div className="loader__wrapper">
+                <div className="loader">&nbsp;</div>
+              </div>
+              <p className="text-gray-600 text-sm">Loading skin analysis...</p>
+            </div>
+          </div>
+        ) : (
+          <SkinAnalysisModal 
+            isOpen={showModal} 
+            onClose={handleCloseModal} 
+            embedded={true}
+            onReady={handleModalReady}
+          />
+        )}
       </div>
     );
   }

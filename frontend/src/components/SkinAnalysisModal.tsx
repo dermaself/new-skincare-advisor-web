@@ -11,6 +11,7 @@ interface SkinAnalysisModalProps {
   isOpen: boolean;
   onClose: () => void;
   embedded?: boolean;
+  onReady?: () => void;
 }
 
 type Step = 'onboarding' | 'quiz' | 'scan' | 'loading' | 'results';
@@ -265,7 +266,7 @@ const steps = [
   { id: 'results', title: 'RESULTS', icon: 'https://production-cdn.holitionbeauty.com/cms/client/110/file/ea856bc1-0ac0-4d32-9796-c588ac0d26bb-ecd99ac8-c52a-45fc-9a01-dc2f136d45b1-shade-finder-2.svg' }
 ];
 
-export default function SkinAnalysisModal({ isOpen, onClose, embedded = false }: SkinAnalysisModalProps) {
+export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, onReady }: SkinAnalysisModalProps) {
   // Prevent body scrolling when modal is open
   useEffect(() => {
     if (isOpen) {
@@ -335,6 +336,21 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false }:
       setRoutine(transformedResult.routine);
     }
   }, [currentStep, analysisData]);
+
+  // Notify when modal is ready
+  useEffect(() => {
+    if (isOpen && onReady) {
+      // Use requestAnimationFrame to ensure DOM is fully rendered
+      const timer = requestAnimationFrame(() => {
+        // Add a small delay to ensure all components are mounted
+        setTimeout(() => {
+          onReady();
+        }, 100);
+      });
+      
+      return () => cancelAnimationFrame(timer);
+    }
+  }, [isOpen, onReady]);
 
   // Remove the fetchRealProducts useEffect since we're using analysis data directly
   // useEffect(() => {

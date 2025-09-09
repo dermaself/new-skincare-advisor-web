@@ -1,7 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import SkinAnalysisModal from '@/components/SkinAnalysisModal';
+import { useState, useEffect, Suspense, lazy } from 'react';
+
+// Lazy load the modal to reduce initial bundle size
+const SkinAnalysisModal = lazy(() => import('@/components/SkinAnalysisModal'));
 
 export default function Home() {
   const [showModal, setShowModal] = useState(false);
@@ -49,6 +51,18 @@ export default function Home() {
     }
   }, [showModal]);
 
+  // Fallback timeout in case onReady doesn't fire
+  useEffect(() => {
+    if (showModal && !isModalReady) {
+      const fallbackTimer = setTimeout(() => {
+        console.log('Modal ready fallback triggered');
+        setIsModalReady(true);
+      }, 2000); // 2 second fallback
+
+      return () => clearTimeout(fallbackTimer);
+    }
+  }, [showModal, isModalReady]);
+
   const handleCloseModal = () => {
     setShowModal(false);
     
@@ -64,10 +78,9 @@ export default function Home() {
   // If embedded, show only the modal
   if (isEmbedded) {
     return (
-      <div className="w-full h-full">
-        {!isModalReady ? (
-          // Loading state while modal initializes
-          <div className="w-full h-full flex items-center justify-center bg-white">
+      <div className="w-full h-full relative">
+        <Suspense fallback={
+          <div className="w-full h-full flex items-center justify-center">
             <div className="flex flex-col items-center space-y-4">
               <div className="loader__wrapper">
                 <div className="loader">&nbsp;</div>
@@ -75,13 +88,25 @@ export default function Home() {
               <p className="text-gray-600 text-sm">Loading skin analysis...</p>
             </div>
           </div>
-        ) : (
+        }>
           <SkinAnalysisModal 
             isOpen={showModal} 
             onClose={handleCloseModal} 
             embedded={true}
             onReady={handleModalReady}
           />
+        </Suspense>
+        
+        {/* Loading overlay */}
+        {!isModalReady && (
+          <div className="absolute inset-0 bg-white flex items-center justify-center z-50">
+            <div className="flex flex-col items-center space-y-4">
+              <div className="loader__wrapper">
+                <div className="loader">&nbsp;</div>
+              </div>
+              <p className="text-gray-600 text-sm">Loading skin analysis...</p>
+            </div>
+          </div>
         )}
       </div>
     );

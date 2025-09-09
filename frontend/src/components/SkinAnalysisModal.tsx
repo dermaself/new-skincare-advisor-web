@@ -1,10 +1,12 @@
 "use client";
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, Suspense, lazy } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Camera, FileText, Sparkles, Heart, CheckCircle, ArrowLeft, Info, RotateCcw } from 'lucide-react';
-import CameraCapture from './CameraCapture';
-import RoutineProductCard from './RoutineProductCard';
-import SkinAnalysisImage from './SkinAnalysisImage';
+
+// Lazy load heavy components that are only used in specific steps
+const CameraCapture = lazy(() => import('./CameraCapture'));
+const RoutineProductCard = lazy(() => import('./RoutineProductCard'));
+const SkinAnalysisImage = lazy(() => import('./SkinAnalysisImage'));
 
 
 interface SkinAnalysisModalProps {
@@ -344,8 +346,9 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
       const timer = requestAnimationFrame(() => {
         // Add a small delay to ensure all components are mounted
         setTimeout(() => {
+          console.log('Modal ready callback triggered');
           onReady();
-        }, 100);
+        }, 200); // Increased delay to ensure all components are ready
       });
       
       return () => cancelAnimationFrame(timer);
@@ -976,11 +979,19 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
               embedded ? 'w-full h-full' : 'max-w-[540px] h-[95vh]'
             }`}
           >
-            <CameraCapture
-              onCapture={handleImageCapture}
-              onClose={handleCameraClose}
-              embedded={true}
-            />
+            <Suspense fallback={
+              <div className="flex items-center justify-center h-full">
+                <div className="loader__wrapper">
+                  <div className="loader">&nbsp;</div>
+                </div>
+              </div>
+            }>
+              <CameraCapture
+                onCapture={handleImageCapture}
+                onClose={handleCameraClose}
+                embedded={true}
+              />
+            </Suspense>
           </motion.div>
         </motion.div>
       </AnimatePresence>
@@ -1454,22 +1465,30 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
                           
                           {/* Enhanced Image Analysis */}
                           {capturedImage && analysisData ? (
-                            <SkinAnalysisImage
-                              imageUrl={capturedImage}
-                              analysisData={{
-                                predictions: analysisData.predictions || [],
-                                redness: analysisData.redness || {
-                                  num_polygons: 0,
-                                  polygons: [],
-                                  analysis_width: 0,
-                                  analysis_height: 0,
-                                  erythema: false,
-                                  redness_perc: 0
-                                },
-                                image: analysisData.image || { width: 0, height: 0 }
-                              }}
-                              className="text-black"
-                            />
+                            <Suspense fallback={
+                              <div className="flex items-center justify-center h-64">
+                                <div className="loader__wrapper">
+                                  <div className="loader">&nbsp;</div>
+                                </div>
+                              </div>
+                            }>
+                              <SkinAnalysisImage
+                                imageUrl={capturedImage}
+                                analysisData={{
+                                  predictions: analysisData.predictions || [],
+                                  redness: analysisData.redness || {
+                                    num_polygons: 0,
+                                    polygons: [],
+                                    analysis_width: 0,
+                                    analysis_height: 0,
+                                    erythema: false,
+                                    redness_perc: 0
+                                  },
+                                  image: analysisData.image || { width: 0, height: 0 }
+                                }}
+                                className="text-black"
+                              />
+                            </Suspense>
                           ) : (
                             /* Fallback Radar Chart Placeholder */
                             <div className="relative w-64 h-64 mx-auto mb-4">
@@ -1565,35 +1584,42 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
                               return (
                                 <div className="space-y-4">
                               {routine[routineType].map((step, index) => (
-                                <RoutineProductCard
-                                  key={step.step}
-                                  product={{
-                                    id: parseInt(step.products[0].id) || 1,
-                                    title: step.products[0].name,
-                                    vendor: step.products[0].brand,
-                                    product_type: 'skincare',
-                                    tags: step.products[0].tags.join(', '),
-                                    variants: [{
-                                      id: step.products[0].shopifyVariantId?.split('/').pop() || '1',
-                                      title: 'Default',
-                                      price: step.products[0].price.toString(),
-                                      inventory_quantity: step.products[0].inStock ? 10 : 0
-                                    }],
-                                    images: [{
-                                      id: 1,
-                                      src: step.products[0].image,
-                                      alt: step.products[0].name
-                                    }],
-                                    body_html: step.products[0].description,
-                                    created_at: new Date().toISOString(),
-                                    updated_at: new Date().toISOString()
-                                  }}
-                                  stepNumber={index + 1}
-                                  stepTitle={step.title.split(': ')[1] || step.title}
-                                  isLastStep={index === routine[routineType].length - 1}
-                                  showAddAllButton={index === routine[routineType].length - 1}
-                                  onAddAllToCart={handleAddRoutineToCart}
-                                />
+                                <Suspense key={step.step} fallback={
+                                  <div className="flex items-center justify-center py-4">
+                                    <div className="loader__wrapper">
+                                      <div className="loader">&nbsp;</div>
+                                    </div>
+                                  </div>
+                                }>
+                                  <RoutineProductCard
+                                    product={{
+                                      id: parseInt(step.products[0].id) || 1,
+                                      title: step.products[0].name,
+                                      vendor: step.products[0].brand,
+                                      product_type: 'skincare',
+                                      tags: step.products[0].tags.join(', '),
+                                      variants: [{
+                                        id: step.products[0].shopifyVariantId?.split('/').pop() || '1',
+                                        title: 'Default',
+                                        price: step.products[0].price.toString(),
+                                        inventory_quantity: step.products[0].inStock ? 10 : 0
+                                      }],
+                                      images: [{
+                                        id: 1,
+                                        src: step.products[0].image,
+                                        alt: step.products[0].name
+                                      }],
+                                      body_html: step.products[0].description,
+                                      created_at: new Date().toISOString(),
+                                      updated_at: new Date().toISOString()
+                                    }}
+                                    stepNumber={index + 1}
+                                    stepTitle={step.title.split(': ')[1] || step.title}
+                                    isLastStep={index === routine[routineType].length - 1}
+                                    showAddAllButton={index === routine[routineType].length - 1}
+                                    onAddAllToCart={handleAddRoutineToCart}
+                                  />
+                                </Suspense>
                               ))}
                             </div>
                             );

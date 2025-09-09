@@ -1023,31 +1023,31 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.95, opacity: 0 }}
           transition={{ type: "spring", damping: 25, stiffness: 300 }}
-          className={`relative w-full bg-white shadow-xl overflow-hidden flex flex-col h-full ${
+          className={`kiko-modal kiko-card relative w-full overflow-hidden flex flex-col h-full ${
             embedded ? 'w-full h-full' : 'max-w-[540px]'
           }`}
         >
           {/* Header */}
-          <div className="relative bg-primary-600">
+          <div className="kiko-modal-header">
             {currentStep === 'onboarding' && (
               <React.Fragment key="onboarding-header">
-                <div className="flex items-center justify-between p-4">
-                  <div className="flex items-center space-x-2">
-                    <div className="w-8 h-8 bg-white/20 flex items-center justify-center">
-                      <Camera className="w-4 h-4 text-white" />
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
+                      <Camera className="w-5 h-5 text-white" />
                     </div>
                     <div>
-                      <h2 className="text-white font-semibold text-base">DermaSelf</h2>
-                      <p className="text-white/80 text-xs">AI Skin Analysis</p>
+                      <h2 className="kiko-modal-title">Skincare Pro Advisor</h2>
+                      <p className="kiko-modal-subtitle">AI Skin Analysis by KIKO Milano</p>
                     </div>
                   </div>
                   <button
                     onClick={handleClose}
-                    className="w-6 h-6 bg-white/20 flex items-center justify-center hover:bg-white/30 transition-colors"
+                    className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center hover:bg-white/30 transition-colors"
                     aria-label="Close modal"
                     title="Close modal"
                   >
-                    <X className="w-3 h-3 text-white" />
+                    <X className="w-5 h-5 text-white" />
                   </button>
                 </div>
                 <div>
@@ -1063,63 +1063,37 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
           </div>
 
           {/* Progress Steps */}
-          <div>
+          <div className="kiko-modal-content">
             {currentStep !== 'onboarding' && (
-              <div className="progress flex items-center px-4 py-2 justify-center" style={{ gridTemplateColumns: 'auto' }}>
+              <div className="flex items-center justify-between mb-6">
                 <button 
                   onClick={handleRestart}
-                  className="absolute left-4 p-2 hover:bg-gray-100 rounded-full transition-colors"
+                  className="kiko-button-secondary p-2"
                   aria-label="Restart analysis"
                   title="Restart analysis"
                 >
-                  <RotateCcw className="w-5 h-5 text-gray-600" />
+                  <RotateCcw className="w-4 h-4" />
                 </button>
                 <button 
                   onClick={handleClose}
-                  className="absolute right-4 p-2 hover:bg-gray-100 rounded-full transition-colors"
+                  className="kiko-button-secondary p-2"
                   aria-label="Close modal"
                   title="Close modal"
                 >
-                  <X className="w-5 h-5 text-gray-600" />
+                  <X className="w-4 h-4" />
                 </button>
-                <div className="steps flex items-center">
-                  <div className="steps__wrapper flex items-center">
-                    <img 
-                      className="steps__icon w-8 h-8" 
-                      src="https://production-cdn.holitionbeauty.com/cms/client/110/file/30c8b3b0-3fc0-4185-aa05-9e996dd118f7-steps-1-full.svg"
-                    />
-                    <div style={{ width: '50px' }}>
-                      <div style={{ width: '50px', background: 'rgb(231, 61, 110)', height: '1px' }}></div>
-                    </div>
-                  </div>
-                  <div className="steps__wrapper flex items-center">
-                    <img 
-                      className="steps__icon w-8 h-8" 
-                      src={currentStep === 'quiz' ? 
-                        "https://production-cdn.holitionbeauty.com/cms/client/110/file/53595ac0-e529-44b6-84d3-1f877a444b02-steps-2.svg" : 
-                        "https://production-cdn.holitionbeauty.com/cms/client/110/file/2ee49d0a-c87c-425c-94fb-fb43adec3f34-steps-2-full.svg"
-                      }
-                    />
-                    <div style={{ width: '50px' }}>
-                      <div style={{ width: '50px', background: 'rgb(231, 61, 110)', height: '1px' }}></div>
-                    </div>
-                  </div>
-                  <div className="steps__wrapper flex items-center">
-                    <img 
-                      className="steps__icon w-8 h-8" 
-                      src={currentStep === 'results' ? 
-                        "https://production-cdn.holitionbeauty.com/cms/client/110/file/a972dbee-053c-46c8-b083-9e7979214cbf-steps-4-full.svg" : 
-                        "https://production-cdn.holitionbeauty.com/cms/client/110/file/9a5e16c4-71cf-44c2-acac-8f20e14e643c-steps-4.svg"
-                      }
-                    />
-                  </div>
+                <div className="kiko-progress-bar">
+                  <div className={`kiko-progress-dot ${currentStep === 'quiz' ? 'active' : 'completed'}`}></div>
+                  <div className={`kiko-progress-dot ${currentStep === 'scan' ? 'active' : currentStep === 'loading' || currentStep === 'results' ? 'completed' : ''}`}></div>
+                  <div className={`kiko-progress-dot ${currentStep === 'loading' ? 'active' : currentStep === 'results' ? 'completed' : ''}`}></div>
+                  <div className={`kiko-progress-dot ${currentStep === 'results' ? 'active' : ''}`}></div>
                 </div>
               </div>
             )}
           </div>
 
           {/* Content */}
-          <div className="modal-content py-4 h-full overflow-y-auto">
+          <div className="kiko-step-content flex-1 overflow-y-auto">
             <AnimatePresence key="content-steps" mode="wait">
               {currentStep === 'onboarding' && (
                 <motion.div
@@ -1130,13 +1104,12 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
                   transition={{ duration: 0.3 }}
                   className="text-center p-4 flex flex-col h-full min-h-[fit-content]"
                 >
-                  <h3 className="text-2xl font-bold text-gray-900 mb-4">
-                    Get Your Virtual Skincare Consultation
+                  <h3 className="kiko-modal-title mb-4">
+                    Il Consulente Skincare di KIKO Milano ti aiuta a trovare i prodotti giusti per la tua pelle!
                   </h3>
                   
-                  <p className="text-gray-600 mb-8 leading-relaxed">
-                    Complete a short assessment, take a photo, and receive personalized 
-                    skincare recommendations powered by AI technology.
+                  <p className="text-lg text-gray-600 mb-8 leading-relaxed">
+                    Rivoluziona la tua routine con Skincare Pro Advisor! Questo strumento alimentato da intelligenza artificiale ti mostrerà in pochi secondi qual è la routine Skin Care più adatta alle tue esigenze!
                   </p>
 
                   <div className="mt-6 flex items-center justify-around space-x-4">
@@ -1177,11 +1150,11 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
 
                   <motion.button
                     onClick={handleNext}
-                    className="btn-primary mt-6 mx-auto"
+                    className="kiko-button mt-6 mx-auto px-8 py-4 text-lg"
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                   >
-                    ACCEPT TO START
+                    SCOPRI LA MIA ROUTINE
                   </motion.button>
                 </motion.div>
               )}

@@ -446,9 +446,292 @@ body {
   width: 40px;
   height: 40px;
   border: 4px solid #f3f3f3;
-  border-top: 4px solid #3498db;
+  border-top: 4px solid #ff6b9d;
   border-radius: 50%;
   animation: spin 1s linear infinite;
+}
+
+/* KIKO Milano Design System */
+:root {
+  /* KIKO Color Palette */
+  --kiko-primary: #ff6b9d;
+  --kiko-primary-light: #ff8fab;
+  --kiko-primary-dark: #e55a8a;
+  --kiko-secondary: #2c2c2c;
+  --kiko-accent: #ffb3d1;
+  --kiko-background: #ffffff;
+  --kiko-surface: #fafafa;
+  --kiko-border: #e0e0e0;
+  --kiko-text-primary: #2c2c2c;
+  --kiko-text-secondary: #666666;
+  --kiko-text-light: #999999;
+  
+  /* Typography */
+  --kiko-font-family: 'KIKO', 'Helvetica Neue', 'Arial', sans-serif;
+  --kiko-font-size-xs: 0.75rem;
+  --kiko-font-size-sm: 0.875rem;
+  --kiko-font-size-base: 1rem;
+  --kiko-font-size-lg: 1.125rem;
+  --kiko-font-size-xl: 1.25rem;
+  --kiko-font-size-2xl: 1.5rem;
+  --kiko-font-size-3xl: 1.875rem;
+  
+  /* Spacing */
+  --kiko-space-1: 0.25rem;
+  --kiko-space-2: 0.5rem;
+  --kiko-space-3: 0.75rem;
+  --kiko-space-4: 1rem;
+  --kiko-space-5: 1.25rem;
+  --kiko-space-6: 1.5rem;
+  --kiko-space-8: 2rem;
+  --kiko-space-10: 2.5rem;
+  --kiko-space-12: 3rem;
+  
+  /* Border Radius */
+  --kiko-radius-sm: 0.375rem;
+  --kiko-radius-md: 0.5rem;
+  --kiko-radius-lg: 0.75rem;
+  --kiko-radius-xl: 1rem;
+  
+  /* Shadows */
+  --kiko-shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --kiko-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --kiko-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --kiko-shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+/* KIKO Modal Styles */
+.kiko-modal {
+  font-family: var(--kiko-font-family);
+  color: var(--kiko-text-primary);
+}
+
+.kiko-modal-header {
+  background: linear-gradient(135deg, var(--kiko-primary) 0%, var(--kiko-primary-light) 100%);
+  color: white;
+  padding: var(--kiko-space-6);
+  text-align: center;
+  position: relative;
+}
+
+.kiko-modal-title {
+  font-size: var(--kiko-font-size-2xl);
+  font-weight: 700;
+  margin: 0;
+  line-height: 1.2;
+}
+
+.kiko-modal-subtitle {
+  font-size: var(--kiko-font-size-sm);
+  opacity: 0.9;
+  margin-top: var(--kiko-space-2);
+  margin-bottom: 0;
+}
+
+.kiko-modal-content {
+  padding: var(--kiko-space-8);
+  background: var(--kiko-background);
+}
+
+.kiko-card {
+  background: var(--kiko-background);
+  border: 1px solid var(--kiko-border);
+  border-radius: var(--kiko-radius-lg);
+  box-shadow: var(--kiko-shadow-md);
+  overflow: hidden;
+}
+
+.kiko-button {
+  background: var(--kiko-primary);
+  color: white;
+  border: none;
+  border-radius: var(--kiko-radius-md);
+  padding: var(--kiko-space-3) var(--kiko-space-6);
+  font-size: var(--kiko-font-size-base);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--kiko-space-2);
+}
+
+.kiko-button:hover {
+  background: var(--kiko-primary-dark);
+  transform: translateY(-1px);
+  box-shadow: var(--kiko-shadow-lg);
+}
+
+.kiko-button:disabled {
+  background: var(--kiko-text-light);
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.kiko-button-secondary {
+  background: transparent;
+  color: var(--kiko-primary);
+  border: 2px solid var(--kiko-primary);
+}
+
+.kiko-button-secondary:hover {
+  background: var(--kiko-primary);
+  color: white;
+}
+
+.kiko-progress-bar {
+  display: flex;
+  gap: var(--kiko-space-2);
+  margin: var(--kiko-space-6) 0;
+}
+
+.kiko-progress-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--kiko-border);
+  transition: all 0.3s ease;
+}
+
+.kiko-progress-dot.active {
+  background: var(--kiko-primary);
+  transform: scale(1.2);
+}
+
+.kiko-progress-dot.completed {
+  background: var(--kiko-primary);
+}
+
+.kiko-step-content {
+  min-height: 400px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.kiko-form-group {
+  margin-bottom: var(--kiko-space-6);
+}
+
+.kiko-form-label {
+  display: block;
+  font-size: var(--kiko-font-size-sm);
+  font-weight: 600;
+  color: var(--kiko-text-primary);
+  margin-bottom: var(--kiko-space-2);
+}
+
+.kiko-form-input {
+  width: 100%;
+  padding: var(--kiko-space-3) var(--kiko-space-4);
+  border: 2px solid var(--kiko-border);
+  border-radius: var(--kiko-radius-md);
+  font-size: var(--kiko-font-size-base);
+  transition: border-color 0.2s ease;
+}
+
+.kiko-form-input:focus {
+  outline: none;
+  border-color: var(--kiko-primary);
+  box-shadow: 0 0 0 3px rgba(255, 107, 157, 0.1);
+}
+
+.kiko-option-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: var(--kiko-space-4);
+  margin-top: var(--kiko-space-4);
+}
+
+.kiko-option-card {
+  padding: var(--kiko-space-4);
+  border: 2px solid var(--kiko-border);
+  border-radius: var(--kiko-radius-md);
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: var(--kiko-background);
+}
+
+.kiko-option-card:hover {
+  border-color: var(--kiko-primary);
+  transform: translateY(-2px);
+  box-shadow: var(--kiko-shadow-md);
+}
+
+.kiko-option-card.selected {
+  border-color: var(--kiko-primary);
+  background: rgba(255, 107, 157, 0.05);
+}
+
+.kiko-option-icon {
+  width: 48px;
+  height: 48px;
+  margin: 0 auto var(--kiko-space-2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--kiko-surface);
+  border-radius: var(--kiko-radius-md);
+}
+
+.kiko-option-text {
+  font-size: var(--kiko-font-size-sm);
+  font-weight: 600;
+  color: var(--kiko-text-primary);
+}
+
+.kiko-results-section {
+  background: linear-gradient(135deg, var(--kiko-primary) 0%, var(--kiko-primary-light) 100%);
+  color: white;
+  padding: var(--kiko-space-8);
+  margin: var(--kiko-space-6) 0;
+  border-radius: var(--kiko-radius-lg);
+}
+
+.kiko-results-title {
+  font-size: var(--kiko-font-size-xl);
+  font-weight: 700;
+  margin-bottom: var(--kiko-space-4);
+  text-align: center;
+}
+
+.kiko-product-card {
+  background: var(--kiko-background);
+  border-radius: var(--kiko-radius-lg);
+  padding: var(--kiko-space-6);
+  margin-bottom: var(--kiko-space-4);
+  box-shadow: var(--kiko-shadow-md);
+  border: 1px solid var(--kiko-border);
+}
+
+.kiko-product-image {
+  width: 80px;
+  height: 80px;
+  object-fit: cover;
+  border-radius: var(--kiko-radius-md);
+  margin-right: var(--kiko-space-4);
+}
+
+.kiko-product-info h3 {
+  font-size: var(--kiko-font-size-lg);
+  font-weight: 600;
+  margin: 0 0 var(--kiko-space-2) 0;
+  color: var(--kiko-text-primary);
+}
+
+.kiko-product-info p {
+  font-size: var(--kiko-font-size-sm);
+  color: var(--kiko-text-secondary);
+  margin: 0 0 var(--kiko-space-3) 0;
+}
+
+.kiko-product-price {
+  font-size: var(--kiko-font-size-lg);
+  font-weight: 700;
+  color: var(--kiko-primary);
 }
 
 .loading-pulse {

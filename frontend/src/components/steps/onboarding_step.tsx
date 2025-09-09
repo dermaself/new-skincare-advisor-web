@@ -1,0 +1,81 @@
+"use client";
+import React, { useState } from 'react';
+import { motion } from 'framer-motion';
+import { CheckCircle } from 'lucide-react';
+
+interface OnboardingStepProps {
+  onNext: () => void;
+  onClose: () => void;
+}
+
+export default function OnboardingStep({ onNext, onClose }: OnboardingStepProps) {
+  const [consentGiven, setConsentGiven] = useState(false);
+
+  return (
+    <motion.div
+      key="onboarding"
+      initial={{ opacity: 0, x: 20 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: -20 }}
+      transition={{ duration: 0.3 }}
+      className="bg-white flex flex-col h-full"
+    >
+      {/* Main content */}
+      <div className="flex-1 flex flex-col justify-center text-center p-8">
+        <h1 className="text-2xl font-bold text-gray-900 mb-6 leading-tight">
+          Discover Your Perfect Skincare Routine with AI-Powered Analysis
+        </h1>
+        
+        <div className="text-gray-600 mb-8 space-y-4">
+          <p className="text-sm leading-relaxed">
+            By using this service, you agree to our{' '}
+            <a 
+              href="https://dermaself-dev.myshopify.com/pages/privacy-policy" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-pink-600 hover:text-pink-700 underline"
+            >
+              Privacy Policy
+            </a>
+            . Your data will be processed securely and used only to provide personalized skincare recommendations.
+          </p>
+        </div>
+
+        {/* Consent checkbox */}
+        <div className="mb-8">
+          <label className="flex items-start space-x-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={consentGiven}
+              onChange={(e) => setConsentGiven(e.target.checked)}
+              className="mt-1 w-4 h-4 text-pink-600 border-gray-300 rounded focus:ring-pink-500"
+            />
+            <span className="text-sm text-gray-700">
+              I consent to the processing of my personal data for the purpose of receiving personalized skincare recommendations.
+            </span>
+          </label>
+        </div>
+
+        {/* Start button */}
+        <motion.button
+          onClick={() => {
+            if (consentGiven) {
+              onNext();
+            }
+          }}
+          disabled={!consentGiven}
+          className={`font-semibold py-4 px-8 rounded-lg transition-colors duration-200 mx-auto flex items-center space-x-2 ${
+            consentGiven 
+              ? 'bg-pink-600 hover:bg-pink-700 text-white' 
+              : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+          }`}
+          whileHover={consentGiven ? { scale: 1.02 } : {}}
+          whileTap={consentGiven ? { scale: 0.98 } : {}}
+        >
+          <CheckCircle className="w-5 h-5" />
+          <span>Start Analysis</span>
+        </motion.button>
+      </div>
+    </motion.div>
+  );
+}

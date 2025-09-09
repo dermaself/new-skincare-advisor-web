@@ -506,6 +506,7 @@ body {
   color: var(--kiko-text-primary);
 }
 
+
 /* Mobile Fullscreen Modal */
 @media (max-width: 768px) {
   .kiko-modal {
@@ -523,6 +524,7 @@ body {
   .fixed.inset-0 {
     padding: 0 !important;
   }
+  
 }
 
 .kiko-modal-header {
@@ -623,11 +625,10 @@ body {
   background: var(--kiko-primary);
 }
 
-.kiko-step-content {
+.derma-step-content {
   min-height: 400px;
   display: flex;
   flex-direction: column;
-  justify-content: center;
 }
 
 .kiko-form-group {

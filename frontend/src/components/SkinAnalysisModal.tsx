@@ -7,6 +7,9 @@ import { X, Camera } from 'lucide-react';
 import {
   OnboardingStep,
   SkinTypeStep,
+  SkinConcernsStep,
+  GenderStep,
+  AgeStep,
   ScanStep,
   LoadingStep,
   ResultsStep,
@@ -20,7 +23,7 @@ interface SkinAnalysisModalProps {
   onReady?: () => void;
 }
 
-type Step = 'onboarding' | 'skin-type' | 'scan' | 'loading' | 'results';
+type Step = 'onboarding' | 'skin-type' | 'skin-concerns' | 'gender' | 'age' | 'scan' | 'loading' | 'results';
 
 // Product data interfaces
 interface Product {
@@ -86,6 +89,9 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
   // State management
   const [currentStep, setCurrentStep] = useState<Step>('onboarding');
   const [selectedSkinType, setSelectedSkinType] = useState<string>('');
+  const [selectedConcerns, setSelectedConcerns] = useState<string[]>([]);
+  const [selectedGender, setSelectedGender] = useState<string>('');
+  const [selectedAge, setSelectedAge] = useState<string>('');
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [imageMetadata, setImageMetadata] = useState<any>(null);
   const [analysisData, setAnalysisData] = useState<any>(null);
@@ -110,6 +116,9 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
     if (!isOpen) {
       setCurrentStep('onboarding');
       setSelectedSkinType('');
+      setSelectedConcerns([]);
+      setSelectedGender('');
+      setSelectedAge('');
       setCapturedImage(null);
       setImageMetadata(null);
       setAnalysisData(null);
@@ -147,7 +156,7 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
 
   // Step navigation
   const handleNext = () => {
-    const stepOrder: Step[] = ['onboarding', 'skin-type', 'scan', 'loading', 'results'];
+    const stepOrder: Step[] = ['onboarding', 'skin-type', 'skin-concerns', 'gender', 'age', 'scan', 'loading', 'results'];
     const currentIndex = stepOrder.indexOf(currentStep);
     if (currentIndex < stepOrder.length - 1) {
       setCurrentStep(stepOrder[currentIndex + 1]);
@@ -155,7 +164,7 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
   };
 
   const handleBack = () => {
-    const stepOrder: Step[] = ['onboarding', 'skin-type', 'scan', 'loading', 'results'];
+    const stepOrder: Step[] = ['onboarding', 'skin-type', 'skin-concerns', 'gender', 'age', 'scan', 'loading', 'results'];
     const currentIndex = stepOrder.indexOf(currentStep);
     if (currentIndex > 0) {
       setCurrentStep(stepOrder[currentIndex - 1]);
@@ -169,6 +178,9 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
   const handleRestart = () => {
     setCurrentStep('onboarding');
     setSelectedSkinType('');
+    setSelectedConcerns([]);
+    setSelectedGender('');
+    setSelectedAge('');
     setOpenInfo(null);
     setLoading(false);
     setRealProducts([]);
@@ -179,7 +191,7 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
 
   // Get current step number for progress indicator
   const getCurrentStepNumber = () => {
-    const stepOrder = ['onboarding', 'skin-type', 'scan', 'loading', 'results'];
+    const stepOrder = ['onboarding', 'skin-type', 'skin-concerns', 'gender', 'age', 'scan', 'loading', 'results'];
     return stepOrder.indexOf(currentStep) + 1;
   };
 
@@ -313,11 +325,7 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.95 }}
         transition={{ duration: 0.2 }}
-        className={`relative w-full bg-white overflow-hidden flex flex-col h-full ${
-          embedded 
-            ? 'w-full h-full' 
-            : 'md:max-w-[540px] w-full h-full md:max-h-[95vh]'
-        }`}
+        className="relative w-full bg-white overflow-hidden flex flex-col h-full md:max-w-[540px] w-full h-full md:max-h-[95vh]"
       >
         {/* Fixed Header inside Modal */}
         <div className="bg-black px-4 py-3 flex items-center justify-between border-b border-gray-700">
@@ -358,7 +366,7 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
         </div>
 
           {/* Content */}
-        <div className="derma-step-content flex-1 overflow-y-auto">
+        <div className="derma-step-content flex-1 overflow-y-auto overflow-x-clip">
             <AnimatePresence key="content-steps" mode="wait">
               {currentStep === 'onboarding' && (
               <OnboardingStep
@@ -371,6 +379,39 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
               <SkinTypeStep
                 selectedSkinType={selectedSkinType}
                 onSkinTypeSelect={setSelectedSkinType}
+                onNext={handleNext}
+                onBack={handleBack}
+              />
+            )}
+
+            {currentStep === 'skin-concerns' && (
+              <SkinConcernsStep
+                selectedConcerns={selectedConcerns}
+                onConcernToggle={(concernId) => {
+                  setSelectedConcerns(prev => 
+                    prev.includes(concernId) 
+                      ? prev.filter(id => id !== concernId)
+                      : [...prev, concernId]
+                  );
+                }}
+                onNext={handleNext}
+                onBack={handleBack}
+              />
+            )}
+
+            {currentStep === 'gender' && (
+              <GenderStep
+                selectedGender={selectedGender}
+                onGenderSelect={setSelectedGender}
+                onNext={handleNext}
+                onBack={handleBack}
+              />
+            )}
+
+            {currentStep === 'age' && (
+              <AgeStep
+                selectedAge={selectedAge}
+                onAgeSelect={setSelectedAge}
                 onNext={handleNext}
                 onBack={handleBack}
               />
@@ -402,7 +443,7 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
         {/* Fixed Footer */}
         <ModalFooter
           currentStep={getCurrentStepNumber()}
-          totalSteps={5}
+          totalSteps={8}
         />
       </motion.div>
     </div>

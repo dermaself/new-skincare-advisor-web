@@ -18,10 +18,10 @@ export default function OnboardingStep({ onNext, onClose }: OnboardingStepProps)
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -20 }}
       transition={{ duration: 0.3 }}
-      className="bg-white flex flex-col h-full"
+      className="bg-[url('/assets/images/backgrounds/bg-main.jpg')] bg-cover bg-center flex flex-col h-full"
     >
       {/* Main content */}
-      <div className="flex-1 flex flex-col justify-center text-center p-8">
+      <div className="flex flex-col justify-center text-center m-8 mt-auto bg-white/50 backdrop-blur-sm rounded-lg p-8 overflow-y-auto h-fit">
         <h1 className="text-2xl font-bold text-gray-900 mb-6 leading-tight">
           Discover Your Perfect Skincare Routine with AI-Powered Analysis
         </h1>
@@ -64,7 +64,7 @@ export default function OnboardingStep({ onNext, onClose }: OnboardingStepProps)
             }
           }}
           disabled={!consentGiven}
-          className={`font-semibold py-4 px-8 rounded-lg transition-colors duration-200 mx-auto flex items-center space-x-2 ${
+          className={`py-3 px-8 rounded-lg transition-colors duration-200 w-full md:w-auto mx-auto ${
             consentGiven 
               ? 'bg-pink-600 hover:bg-pink-700 text-white' 
               : 'bg-gray-300 text-gray-500 cursor-not-allowed'
@@ -72,7 +72,6 @@ export default function OnboardingStep({ onNext, onClose }: OnboardingStepProps)
           whileHover={consentGiven ? { scale: 1.02 } : {}}
           whileTap={consentGiven ? { scale: 0.98 } : {}}
         >
-          <CheckCircle className="w-5 h-5" />
           <span>Start Analysis</span>
         </motion.button>
       </div>

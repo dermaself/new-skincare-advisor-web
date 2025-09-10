@@ -56,6 +56,16 @@ export default function ResultsStep({
 }: ResultsStepProps) {
   const [activeTab, setActiveTab] = useState<'results' | 'routine'>('results');
 
+  // Debug routine data
+  React.useEffect(() => {
+    console.log('ResultsStep - Routine data:', routine);
+    console.log('ResultsStep - Routine type:', routineType);
+    if (routine) {
+      console.log('ResultsStep - Essential routine:', routine.essential);
+      console.log('ResultsStep - Expert routine:', routine.expert);
+    }
+  }, [routine, routineType]);
+
   return (
     <motion.div
       key="results"
@@ -177,25 +187,32 @@ export default function ResultsStep({
 
             {/* Routine Steps */}
             <div className="space-y-4">
-              {routine[routineType]?.map((step, index) => (
-                <div key={step.step} className="bg-white rounded-xl border border-gray-200 p-4">
-                  <h4 className="font-semibold text-gray-900 mb-3">{step.title}</h4>
-                  <div className="space-y-3">
-                    {step.products.map((product) => (
-                      <Suspense key={product.id} fallback={
-                        <div className="animate-pulse bg-gray-200 h-20 rounded-lg"></div>
-                      }>
-                        <RoutineProductCard
-                          product={product as any}
-                          stepNumber={index + 1}
-                          stepTitle={step.title}
-                          categoryTitle={step.step}
-                        />
-                      </Suspense>
-                    ))}
+              {routine[routineType] && routine[routineType].length > 0 ? (
+                routine[routineType].map((step, index) => (
+                  <div key={step.step} className="bg-white rounded-xl border border-gray-200 p-4">
+                    <h4 className="font-semibold text-gray-900 mb-3">{step.title}</h4>
+                    <div className="space-y-3">
+                      {step.products.map((product) => (
+                        <Suspense key={product.id} fallback={
+                          <div className="animate-pulse bg-gray-200 h-20 rounded-lg"></div>
+                        }>
+                          <RoutineProductCard
+                            product={product as any}
+                            stepNumber={index + 1}
+                            stepTitle={step.title}
+                            categoryTitle={step.step}
+                          />
+                        </Suspense>
+                      ))}
+                    </div>
                   </div>
+                ))
+              ) : (
+                <div className="bg-white rounded-xl border border-gray-200 p-6 text-center">
+                  <p className="text-gray-500">No routine data available</p>
+                  <p className="text-sm text-gray-400 mt-2">Please try the analysis again</p>
                 </div>
-              ))}
+              )}
             </div>
           </div>
         )}

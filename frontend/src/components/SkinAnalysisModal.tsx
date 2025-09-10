@@ -184,9 +184,9 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
   };
 
   // Image capture handler
-  const handleImageCapture = async (imageData: string, metadata: any) => {
+  const handleImageCapture = async (imageData: string) => {
     setCapturedImage(imageData);
-    setImageMetadata(metadata);
+    setImageMetadata({ timestamp: new Date().toISOString() }); // Default metadata
     setShowCamera(false);
     
     // Set default skin type if empty to ensure proper flow
@@ -298,14 +298,14 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
 
     return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
-          {/* Backdrop */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
+      {/* Backdrop */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
         className="absolute inset-0 bg-black bg-opacity-50"
-            onClick={handleClose}
-          />
+        onClick={handleClose}
+      />
 
       {/* Modal Container */}
         <motion.div
@@ -321,29 +321,46 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
       >
         {/* Fixed Header inside Modal */}
         <div className="bg-black px-4 py-3 flex items-center justify-between border-b border-gray-700">
-          <div className="flex items-center space-x-3">
-            <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
-                      <Camera className="w-4 h-4 text-white" />
-                    </div>
-                    <div>
-              <h2 className="text-lg font-semibold text-white">DermaSelf Skin Analyzer</h2>
-              <p className="text-xs text-white/70">AI-Powered Skin Analysis</p>
-                    </div>
-                  </div>
-                  <button
-                    onClick={handleClose}
-            className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center hover:bg-white/30 transition-colors"
-                    aria-label="Close modal"
-                    title="Close modal"
-                  >
-            <X className="w-5 h-5 text-white" />
-                  </button>
+          {/* Back Button */}
+          <div className="flex items-center">
+            {currentStep !== 'onboarding' && (
+              <button
+                onClick={handleBack}
+                className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center hover:bg-white/30 transition-colors"
+                aria-label="Go back"
+                title="Go back"
+              >
+                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+              </button>
+            )}
           </div>
 
-        {/* Content */}
+          {/* Centered Title */}
+          <div className="flex-1 text-center">
+            <h2 className={`text-lg font-semibold text-white ${currentStep === 'onboarding' && 'pl-8'}`}>
+              Dermaself - AI Skin Analysis
+            </h2>
+          </div>
+
+          {/* Close Button */}
+          <div className="flex items-center">
+            <button
+              onClick={handleClose}
+              className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center hover:bg-white/30 transition-colors"
+              aria-label="Close modal"
+              title="Close modal"
+            >
+              <X className="w-5 h-5 text-white" />
+            </button>
+          </div>
+        </div>
+
+          {/* Content */}
         <div className="derma-step-content flex-1 overflow-y-auto">
-          <AnimatePresence key="content-steps" mode="wait">
-            {currentStep === 'onboarding' && (
+            <AnimatePresence key="content-steps" mode="wait">
+              {currentStep === 'onboarding' && (
               <OnboardingStep
                 onNext={handleNext}
                 onClose={handleClose}
@@ -366,7 +383,7 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
               />
             )}
 
-            {currentStep === 'loading' && (
+              {currentStep === 'loading' && (
               <LoadingStep />
             )}
 
@@ -387,7 +404,7 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
           currentStep={getCurrentStepNumber()}
           totalSteps={5}
         />
-        </motion.div>
+      </motion.div>
     </div>
   );
 }

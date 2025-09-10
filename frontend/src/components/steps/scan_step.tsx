@@ -1,14 +1,14 @@
 "use client";
 import React, { Suspense, lazy } from 'react';
 import { motion } from 'framer-motion';
-import { Camera, ArrowLeft } from 'lucide-react';
+import { Camera } from 'lucide-react';
 
 // Lazy load CameraCapture component
 const CameraCapture = lazy(() => import('../CameraCapture'));
 
 interface ScanStepProps {
   onBack: () => void;
-  onImageCapture: (imageData: string, metadata: any) => void;
+  onImageCapture: (imageData: string) => void;
 }
 
 export default function ScanStep({ onBack, onImageCapture }: ScanStepProps) {
@@ -21,22 +21,6 @@ export default function ScanStep({ onBack, onImageCapture }: ScanStepProps) {
       transition={{ duration: 0.3 }}
       className="h-full flex flex-col"
     >
-      {/* Header */}
-      <div className="px-4 py-4 border-b border-gray-200">
-        <div className="flex items-center justify-between">
-          <motion.button
-            onClick={onBack}
-            className="flex items-center space-x-2 text-gray-600 hover:text-gray-800 transition-colors"
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-          >
-            <ArrowLeft className="w-4 h-4" />
-            <span>Back</span>
-          </motion.button>
-          <h2 className="text-lg font-semibold text-gray-900">Take Photo</h2>
-          <div className="w-16"></div> {/* Spacer for centering */}
-        </div>
-      </div>
 
       {/* Camera Component */}
       <div className="flex-1 relative">
@@ -48,7 +32,7 @@ export default function ScanStep({ onBack, onImageCapture }: ScanStepProps) {
             </div>
           </div>
         }>
-          <CameraCapture onImageCapture={onImageCapture} />
+          <CameraCapture onCapture={onImageCapture} onClose={onBack} />
         </Suspense>
       </div>
 

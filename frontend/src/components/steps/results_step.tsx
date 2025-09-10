@@ -127,7 +127,13 @@ export default function ResultsStep({
                         <strong>Concerns:</strong> {analysisData.concerns?.join(', ') || 'None detected'}
                       </div>
                       <div className="text-sm text-gray-700">
-                        <strong>Recommendations:</strong> {analysisData.recommendations || 'Personalized routine suggested'}
+                        <strong>Recommendations:</strong> {
+                          typeof analysisData.recommendations === 'string' 
+                            ? analysisData.recommendations 
+                            : analysisData.recommendations?.skincare_routine 
+                              ? 'Personalized routine generated' 
+                              : 'Personalized routine suggested'
+                        }
                       </div>
                     </div>
                   )}

@@ -232,6 +232,39 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
       
       setAnalysisData(analysisResult);
       setRecommendationSource('ai');
+      
+      // Process skincare routine data
+      if (analysisResult.recommendations?.skincare_routine) {
+        const processedRoutine = {
+          essential: analysisResult.recommendations.skincare_routine.map((category: any) => ({
+            step: category.category.toLowerCase().replace(/\s+/g, '-'),
+            title: category.category,
+            products: category.modules.map((module: any) => ({
+              id: module.main_product.product_id.toString(),
+              name: module.main_product.product_name,
+              brand: module.main_product.brand,
+              image: module.main_product.image_url || 'https://via.placeholder.com/300x300?text=Product',
+              price: module.main_product.best_price,
+              size: 'Standard',
+              description: module.main_product.info || 'Product description not available',
+              tags: [category.category, module.module],
+              usage: 'both' as const,
+              step: category.category.toLowerCase().replace(/\s+/g, '-') as any,
+              skinTypes: ['all'],
+              shopifyProductId: module.main_product.shopify_product_id?.toString(),
+              shopifyVariantId: module.main_product.shopify_product_id?.toString(),
+              inStock: true,
+              rating: 4.5,
+              reviewCount: 100
+            }))
+          })),
+          expert: [], // For now, same as essential
+          addons: []
+        };
+        
+        setRoutine(processedRoutine);
+      }
+      
       setCurrentStep('results');
     } catch (error) {
       console.error('Analysis failed:', error);

@@ -45,6 +45,7 @@ interface ResultsStepProps {
   routineType: 'essential' | 'expert';
   onRoutineTypeChange: (type: 'essential' | 'expert') => void;
   onRestart: () => void;
+  capturedImage: string | null;
 }
 
 export default function ResultsStep({
@@ -52,7 +53,8 @@ export default function ResultsStep({
   routine,
   routineType,
   onRoutineTypeChange,
-  onRestart
+  onRestart,
+  capturedImage
 }: ResultsStepProps) {
   const [activeTab, setActiveTab] = useState<'results' | 'routine'>('results');
 
@@ -121,7 +123,7 @@ export default function ResultsStep({
                       <div className="w-32 h-32 bg-gray-200 rounded-full animate-pulse"></div>
                     }>
                       <SkinAnalysisImage 
-                        imageUrl={analysisData?.image_url || ''} 
+                        imageUrl={capturedImage || analysisData?.image_url || ''} 
                         analysisData={analysisData}
                       />
                     </Suspense>

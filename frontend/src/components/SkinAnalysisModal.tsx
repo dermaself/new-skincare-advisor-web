@@ -224,22 +224,25 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
             step: category.category.toLowerCase().replace(/\s+/g, '-'),
             title: category.category,
             products: category.modules.map((module: any) => ({
-              id: module.main_product.product_id.toString(),
-              name: module.main_product.product_name,
-              brand: module.main_product.brand,
-              image: module.main_product.image_url || `https://via.placeholder.com/300x300/cccccc/666666?text=${encodeURIComponent(module.main_product.product_name.substring(0, 20))}`,
-              price: module.main_product.best_price,
-              size: 'Standard',
-              description: module.main_product.info || 'Product description not available',
-              tags: [category.category, module.module],
-              usage: 'both' as const,
-              step: category.category.toLowerCase().replace(/\s+/g, '-') as any,
-              skinTypes: ['all'],
-              shopifyProductId: module.main_product.shopify_product_id?.toString(),
-              shopifyVariantId: module.main_product.shopify_product_id?.toString(),
-              inStock: true,
-              rating: 4.5,
-              reviewCount: 100
+              id: module.main_product.product_id,
+              title: module.main_product.product_name,
+              vendor: module.main_product.brand,
+              product_type: module.module,
+              tags: `${category.category},${module.module}`,
+              variants: [{
+                id: module.main_product.shopify_product_id || module.main_product.product_id,
+                title: 'Default',
+                price: module.main_product.best_price.toString(),
+                inventory_quantity: 100
+              }],
+              images: [{
+                id: 1,
+                src: module.main_product.image_url || `https://via.placeholder.com/300x300/cccccc/666666?text=${encodeURIComponent(module.main_product.product_name.substring(0, 20))}`,
+                alt: module.main_product.product_name
+              }],
+              body_html: module.main_product.info || 'Product description not available',
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
             }))
           })),
           expert: [], // For now, same as essential
@@ -471,6 +474,7 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
                 routineType={routineType}
                 onRoutineTypeChange={setRoutineType}
                 onRestart={handleRestart}
+                capturedImage={capturedImage}
               />
             )}
           </AnimatePresence>

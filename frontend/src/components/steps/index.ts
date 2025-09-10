@@ -1,5 +1,8 @@
 export { default as OnboardingStep } from './onboarding_step';
 export { default as SkinTypeStep } from './skin_type_step';
+export { default as SkinConcernsStep } from './skin_concerns_step';
+export { default as GenderStep } from './gender_step';
+export { default as AgeStep } from './age_step';
 export { default as ScanStep } from './scan_step';
 export { default as LoadingStep } from './loading_step';
 export { default as ResultsStep } from './results_step';

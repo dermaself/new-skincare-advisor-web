@@ -19,29 +19,29 @@ interface SkinTypeStepProps {
 
 const skinTypes: SkinType[] = [
   {
-    name: 'Normale',
+    name: 'Normal',
     image: ASSETS.images.skinTypes.normal,
-    description: 'Grana cutanea regolare che non presenta problemi significativi'
+    description: 'Regular skin texture with no significant problems'
   },
   {
-    name: 'Secca',
+    name: 'Dry',
     image: ASSETS.images.skinTypes.dry,
-    description: 'Spenta, a volta tesa e irritata'
+    description: 'Dull, sometimes tight and irritated'
   },
   {
-    name: 'Grassa',
+    name: 'Oily',
     image: ASSETS.images.skinTypes.oily,
-    description: 'Lucida nella zona T, con pori visibili e punti neri.'
+    description: 'Shiny in the T-zone, with visible pores and blackheads.'
   },
   {
-    name: 'Mista',
+    name: 'Combination',
     image: ASSETS.images.skinTypes.combination,
-    description: 'Grassa nella zona T (fronte, naso e mento) e secca o normale sulle guance.'
+    description: 'Oily in the T-zone (forehead, nose and chin) and dry or normal on the cheeks.'
   },
   {
-    name: 'Non lo so',
+    name: 'I don\'t know',
     image: ASSETS.images.skinTypes.dontKnow,
-    description: 'Scopriamolo!'
+    description: 'Let\'s find out!'
   }
 ];
 
@@ -59,7 +59,7 @@ export default function SkinTypeStep({ selectedSkinType, onSkinTypeSelect, onNex
       <div className="flex flex-col px-4 py-4 overflow-y-auto bg-white/50 backdrop-blur-sm p-4 overflow-y-auto mt-auto mx-4 mb-4 rounded-lg">
         <div className="text-center mb-4">
           <h1 className="text-xl font-bold text-gray-900 mb-2">
-            Qual è il tuo tipo di pelle?
+            What is your skin type?
           </h1>
         </div>
         
@@ -81,7 +81,7 @@ export default function SkinTypeStep({ selectedSkinType, onSkinTypeSelect, onNex
               <div className={`relative rounded-2xl overflow-hidden h-full border-2 transition-all duration-200 ${
                 selectedSkinType === type.name
                   ? 'border-pink-500 shadow-lg shadow-pink-100'
-                  : 'border-pink-200 hover:border-pink-300'
+                  : 'border-transparent hover:border-pink-300'
               }`}>
                 <div className="flex h-16 md:h-full bg-white">
                   <div className="w-16 overflow-hidden flex-shrink-0">
@@ -110,11 +110,11 @@ export default function SkinTypeStep({ selectedSkinType, onSkinTypeSelect, onNex
           <motion.button
             onClick={onNext}
             disabled={!selectedSkinType}
-            className="py-3 px-8 rounded-lg transition-all duration-200 bg-pink-600 text-white hover:bg-pink-700 shadow-lg w-full md:w-auto disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed"
+            className="py-3 px-8 rounded-lg transition-all duration-200 bg-pink-600 text-white hover:bg-pink-700 shadow-lg w-full md:w-48 disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed"
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
           >
-            Avanti
+              Next
           </motion.button>
         </div>
       </div>

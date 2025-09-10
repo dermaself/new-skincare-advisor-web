@@ -64,16 +64,6 @@ const getProducts = async (): Promise<Product[]> => {
   return [];
 };
 
-const transformAnalysisResult = (analysisData: any): { routine: SkinRoutine } => {
-              return {
-    routine: {
-      essential: [],
-      expert: [],
-      addons: []
-    }
-  };
-};
-
 export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, onReady }: SkinAnalysisModalProps) {
   // Prevent body scrolling when modal is open
   useEffect(() => {
@@ -136,14 +126,6 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
       setIsShopify(false);
     }
   }, [isOpen]);
-
-  // Load routine when entering results step
-  useEffect(() => {
-    if (currentStep === 'results' && analysisData) {
-      const transformedResult = transformAnalysisResult(analysisData);
-      setRoutine(transformedResult.routine);
-    }
-  }, [currentStep, analysisData]);
 
   // Notify when modal is ready
   useEffect(() => {

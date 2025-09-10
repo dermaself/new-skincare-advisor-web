@@ -235,6 +235,8 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
       
       // Process skincare routine data
       if (analysisResult.recommendations?.skincare_routine) {
+        console.log('Processing skincare routine:', analysisResult.recommendations.skincare_routine);
+        
         const processedRoutine = {
           essential: analysisResult.recommendations.skincare_routine.map((category: any) => ({
             step: category.category.toLowerCase().replace(/\s+/g, '-'),
@@ -243,7 +245,7 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
               id: module.main_product.product_id.toString(),
               name: module.main_product.product_name,
               brand: module.main_product.brand,
-              image: module.main_product.image_url || 'https://via.placeholder.com/300x300?text=Product',
+              image: module.main_product.image_url || `https://via.placeholder.com/300x300/cccccc/666666?text=${encodeURIComponent(module.main_product.product_name.substring(0, 20))}`,
               price: module.main_product.best_price,
               size: 'Standard',
               description: module.main_product.info || 'Product description not available',
@@ -262,7 +264,10 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
           addons: []
         };
         
+        console.log('Processed routine:', processedRoutine);
         setRoutine(processedRoutine);
+      } else {
+        console.log('No skincare routine found in recommendations:', analysisResult.recommendations);
       }
       
       setCurrentStep('results');

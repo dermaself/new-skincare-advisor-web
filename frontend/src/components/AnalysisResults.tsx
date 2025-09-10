@@ -397,18 +397,34 @@ export default function AnalysisResults({ result, onReset }: AnalysisResultsProp
             </h3>
             
             <div className="space-y-3">
-              {result.recommendations.map((recommendation, index) => (
+              {Array.isArray(result.recommendations) ? (
+                result.recommendations.map((recommendation, index) => (
+                  <motion.div
+                    key={index}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.4 + index * 0.1 }}
+                    className="flex items-start space-x-3 p-3 bg-blue-50 rounded-lg"
+                  >
+                    <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
+                    <p className="text-gray-700">{recommendation}</p>
+                  </motion.div>
+                ))
+              ) : (
                 <motion.div
-                  key={index}
                   initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.4 + index * 0.1 }}
+                  transition={{ delay: 0.4 }}
                   className="flex items-start space-x-3 p-3 bg-blue-50 rounded-lg"
                 >
                   <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
-                  <p className="text-gray-700">{recommendation}</p>
+                  <p className="text-gray-700">
+                    {typeof result.recommendations === 'string' 
+                      ? result.recommendations 
+                      : 'Personalized routine generated based on your analysis'}
+                  </p>
                 </motion.div>
-              ))}
+              )}
             </div>
           </div>
         </motion.div>

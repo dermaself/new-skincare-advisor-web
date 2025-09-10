@@ -10,6 +10,8 @@ import {
   SkinConcernsStep,
   GenderStep,
   AgeStep,
+  PhotoInstructionsStep,
+  CameraCaptureStep,
   ScanStep,
   LoadingStep,
   ResultsStep,
@@ -23,7 +25,7 @@ interface SkinAnalysisModalProps {
   onReady?: () => void;
 }
 
-type Step = 'onboarding' | 'skin-type' | 'skin-concerns' | 'gender' | 'age' | 'scan' | 'loading' | 'results';
+type Step = 'onboarding' | 'skin-type' | 'skin-concerns' | 'gender' | 'age' | 'photo-instructions' | 'camera-capture' | 'scan' | 'loading' | 'results';
 
 // Product data interfaces
 interface Product {
@@ -156,7 +158,7 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
 
   // Step navigation
   const handleNext = () => {
-    const stepOrder: Step[] = ['onboarding', 'skin-type', 'skin-concerns', 'gender', 'age', 'scan', 'loading', 'results'];
+    const stepOrder: Step[] = ['onboarding', 'skin-type', 'skin-concerns', 'gender', 'age', 'photo-instructions', 'camera-capture', 'scan', 'loading', 'results'];
     const currentIndex = stepOrder.indexOf(currentStep);
     if (currentIndex < stepOrder.length - 1) {
       setCurrentStep(stepOrder[currentIndex + 1]);
@@ -164,7 +166,7 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
   };
 
   const handleBack = () => {
-    const stepOrder: Step[] = ['onboarding', 'skin-type', 'skin-concerns', 'gender', 'age', 'scan', 'loading', 'results'];
+    const stepOrder: Step[] = ['onboarding', 'skin-type', 'skin-concerns', 'gender', 'age', 'photo-instructions', 'camera-capture', 'scan', 'loading', 'results'];
     const currentIndex = stepOrder.indexOf(currentStep);
     if (currentIndex > 0) {
       setCurrentStep(stepOrder[currentIndex - 1]);
@@ -191,7 +193,7 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
 
   // Get current step number for progress indicator
   const getCurrentStepNumber = () => {
-    const stepOrder = ['onboarding', 'skin-type', 'skin-concerns', 'gender', 'age', 'scan', 'loading', 'results'];
+    const stepOrder = ['onboarding', 'skin-type', 'skin-concerns', 'gender', 'age', 'photo-instructions', 'camera-capture', 'scan', 'loading', 'results'];
     return stepOrder.indexOf(currentStep) + 1;
   };
 
@@ -417,6 +419,20 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
               />
             )}
 
+            {currentStep === 'photo-instructions' && (
+              <PhotoInstructionsStep
+                onNext={handleNext}
+                onBack={handleBack}
+              />
+            )}
+
+            {currentStep === 'camera-capture' && (
+              <CameraCaptureStep
+                onNext={handleImageCapture}
+                onBack={handleBack}
+              />
+            )}
+
             {currentStep === 'scan' && (
               <ScanStep
                 onBack={handleBack}
@@ -443,7 +459,7 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
         {/* Fixed Footer */}
         <ModalFooter
           currentStep={getCurrentStepNumber()}
-          totalSteps={8}
+          totalSteps={10}
         />
       </motion.div>
     </div>

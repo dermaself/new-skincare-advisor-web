@@ -332,113 +332,9 @@ export default function SkinAnalysisImage({
 
   return (
     <div className={`relative ${className}`}>
-      {/* Header with Color Legend */}
-      <div className="mb-6">
-        {/* Overlay Toggle */}
-        <div className="flex items-center justify-center mb-4">
-          <button
-            onClick={() => setShowOverlays(!showOverlays)}
-            className={`flex w-full mx-4 md:mx-0 md:w-auto items-center justify-center space-x-2 px-3 py-2 rounded-md transition-colors ${
-              showOverlays 
-                ? 'bg-blue-100 text-blue-700 border border-blue-200' 
-                : 'bg-gray-100 text-gray-600 border border-gray-200'
-            }`}
-          >
-            {showOverlays ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
-            <span className="text-sm font-medium">Overlays</span>
-          </button>
-        </div>
-
-        {/* Color Legend Panel */}
-        {showOverlays && (
-          <motion.div 
-            className="bg-white border border-gray-200 rounded-lg p-4 mx-4 md:mx-0"
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3 }}
-          >
-            <h3 className="text-sm font-semibold text-gray-900 mb-3">
-              {currentView === 'acne' ? 'Acne Detection Legend' : 
-               currentView === 'redness' ? 'Redness Detection Legend' : 
-               'Wrinkles Detection Legend'}
-            </h3>
-            
-            {currentView === 'acne' ? (
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                {Object.entries(ACNE_COLORS).map(([className, color]) => (
-                  <div key={className} className="flex items-center space-x-2">
-                    <div 
-                      className="w-4 h-4 rounded-sm border border-gray-300"
-                      style={{ backgroundColor: color }}
-                    />
-                    <span className="text-xs text-gray-700 font-medium">
-                      {className.replace(/([A-Z])/g, ' $1').trim()}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            ) : currentView === 'redness' ? (
-              <div className="space-y-2">
-                <div className="flex items-center space-x-2">
-                  <div 
-                    className="w-4 h-4 rounded-sm border border-gray-300"
-                    style={{ backgroundColor: REDNESS_COLOR }}
-                  />
-                  <span className="text-xs text-gray-700 font-medium">Redness Areas (Erythema)</span>
-                </div>
-                <div className="text-xs text-gray-600">
-                  Coverage: {analysisData.redness.redness_perc}% • 
-                  Erythema: {analysisData.redness.erythema ? 'Detected' : 'Not detected'}
-                </div>
-              </div>
-            ) : (
-              /* NEW: Wrinkles legend */
-              analysisData.wrinkles && (
-                <div className="space-y-3">
-                  <div className="grid grid-cols-2 gap-2">
-                    {Object.entries(WRINKLES_COLORS).map(([className, color]) => (
-                      <div key={className} className="flex items-center space-x-2">
-                        <div 
-                          className="w-4 h-1 border border-gray-300"
-                          style={{ backgroundColor: color }}
-                        />
-                        <span className="text-xs text-gray-700 font-medium">
-                          {className.replace(/_/g, ' ').replace(/([A-Z])/g, ' $1').trim()}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="text-xs text-gray-600 mt-2">
-                    Severity: {analysisData.wrinkles.severity || 'Unknown'} • 
-                    Total: {analysisData.wrinkles.predictions?.length || 0} detections
-                  </div>
-                </div>
-              )
-            )}
-          </motion.div>
-        )}
-      </div>
-
       {/* Image Carousel */}
       <div className="relative mb-6">
         {/* Carousel Navigation */}
-        <div className="flex justify-center mb-4">
-          <div className="flex space-x-2 bg-white rounded-lg p-1 shadow-sm border">
-            {carouselImages.map((image, index) => (
-              <button
-                key={index}
-                onClick={() => goToImage(index)}
-                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                  currentImageIndex === index
-                    ? 'bg-blue-500 text-white'
-                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
-                }`}
-              >
-                {image.label}
-              </button>
-            ))}
-          </div>
-        </div>
         
         <div className="relative overflow-hidden bg-gray-100">
           {/* Carousel Images */}
@@ -680,219 +576,25 @@ export default function SkinAnalysisImage({
               ))}
             </div>
           </div>
+        </div>
 
-          {/* Image Label */}
-          <div className="absolute top-4 left-4">
-            <div className="bg-black/70 text-white px-3 py-1 rounded-full text-sm font-medium">
-              {carouselImages[currentImageIndex].label}
-            </div>
+        <div className="flex justify-center mb-4">
+          <div className="flex space-x-2 bg-white rounded-lg p-1 shadow-sm border">
+            {carouselImages.map((image, index) => (
+              <button
+                key={index}
+                onClick={() => goToImage(index)}
+                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                  currentImageIndex === index
+                    ? 'bg-blue-500 text-white'
+                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                }`}
+              >
+                {image.label}
+              </button>
+            ))}
           </div>
         </div>
-      </div>
-
-      {/* Analysis Summary Cards */}
-      <div className="grid grid-cols-1 gap-4 p-2">
-        {/* Redness Analysis Card */}
-        <motion.div 
-          className="bg-gradient-to-br from-red-50 to-red-100 border border-red-200 rounded-xl p-4"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-        >
-          <div className="flex items-center space-x-3 mb-3">
-            <div className="w-8 h-8 bg-red-500 rounded-lg flex items-center justify-center">
-              <AlertTriangle className="w-4 h-4 text-white" />
-            </div>
-            <div>
-              <h4 className="font-semibold text-red-900">Redness Analysis</h4>
-              <p className="text-xs text-red-600">Erythema Detection</p>
-            </div>
-          </div>
-          <div className="space-y-2">
-            <div className="flex justify-between">
-              <span className="text-sm text-red-700">Coverage:</span>
-              <span className="text-sm font-semibold text-red-900">
-                {Math.round(analysisData.redness.redness_perc * 100)}%
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-sm text-red-700">Areas:</span>
-              <span className="text-sm font-semibold text-red-900">
-                {analysisData.redness.num_polygons}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-sm text-red-700">Erythema:</span>
-              <span className={`text-sm font-semibold ${analysisData.redness.erythema ? 'text-red-900' : 'text-gray-600'}`}>
-                {analysisData.redness.erythema ? 'Detected' : 'Not detected'}
-              </span>
-            </div>
-          </div>
-        </motion.div>
-
-        {/* Acne Detection Card */}
-        <motion.div 
-          className="bg-gradient-to-br from-purple-50 to-purple-100 border border-purple-200 rounded-xl p-4"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-        >
-          <div className="flex items-center space-x-3 mb-3">
-            <div className="w-8 h-8 bg-purple-500 rounded-lg flex items-center justify-center">
-              <Zap className="w-4 h-4 text-white" />
-            </div>
-            <div>
-              <h4 className="font-semibold text-purple-900">Acne Detection</h4>
-              <p className="text-xs text-purple-600">AI-Powered Analysis</p>
-            </div>
-          </div>
-          <div className="space-y-2">
-            <div className="flex justify-between">
-              <span className="text-sm text-purple-700">Total:</span>
-              <span className="text-sm font-semibold text-purple-900">
-                {analysisData.predictions.length}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-sm text-purple-700">Types:</span>
-              <span className="text-sm font-semibold text-purple-900">
-                {new Set(analysisData.predictions.map(p => p.class)).size}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-sm text-purple-700">Avg Confidence:</span>
-              <span className="text-sm font-semibold text-purple-900">
-                {Math.round(
-                  analysisData.predictions.reduce((sum, p) => sum + p.confidence, 0) / 
-                  Math.max(analysisData.predictions.length, 1) * 100
-                )}%
-              </span>
-            </div>
-            {/* Detailed breakdown of detected types */}
-            {analysisData.predictions.length > 0 && (
-              <div className="mt-3 pt-3 border-t border-purple-200">
-                <div className="text-xs text-purple-700 font-medium mb-2">Detected Types:</div>
-                <div className="space-y-1">
-                  {Object.entries(
-                    analysisData.predictions.reduce((acc, p) => {
-                      acc[p.class] = (acc[p.class] || 0) + 1;
-                      return acc;
-                    }, {} as Record<string, number>)
-                  ).map(([className, count]) => (
-                    <div key={className} className="flex justify-between items-center">
-                      <div className="flex items-center space-x-2">
-                        <div 
-                          className="w-3 h-3 rounded-sm border border-gray-300"
-                          style={{ backgroundColor: getAcneColor(className) }}
-                        />
-                        <span className="text-xs text-purple-700">
-                          {className.replace(/([A-Z])/g, ' $1').trim()}
-                        </span>
-                      </div>
-                      <span className="text-xs font-semibold text-purple-900">{count}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        </motion.div>
-
-        {/* NEW: Wrinkles Analysis Card */}
-        {analysisData.wrinkles && (
-          <motion.div 
-            className="bg-gradient-to-br from-indigo-50 to-indigo-100 border border-indigo-200 rounded-xl p-4"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-          >
-            <div className="flex items-center space-x-3 mb-3">
-              <div className="w-8 h-8 bg-indigo-500 rounded-lg flex items-center justify-center">
-                <Zap className="w-4 h-4 text-white" />
-              </div>
-              <div>
-                <h4 className="font-semibold text-indigo-900">Wrinkles Analysis</h4>
-                <p className="text-xs text-indigo-600">Age-related Changes</p>
-              </div>
-            </div>
-            <div className="space-y-2">
-              <div className="flex justify-between">
-                <span className="text-sm text-indigo-700">Severity:</span>
-                <span className="text-sm font-semibold text-indigo-900">
-                  {analysisData.wrinkles.severity || 'Unknown'}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-sm text-indigo-700">Total:</span>
-                <span className="text-sm font-semibold text-indigo-900">
-                  {analysisData.wrinkles.predictions?.length || 0}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-sm text-indigo-700">Forehead:</span>
-                <span className={`text-sm font-semibold ${analysisData.wrinkles.has_forehead_wrinkles ? 'text-indigo-900' : 'text-gray-500'}`}>
-                  {analysisData.wrinkles.has_forehead_wrinkles ? 'Detected' : 'None'}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-sm text-indigo-700">Eye Area:</span>
-                <span className={`text-sm font-semibold ${analysisData.wrinkles.has_under_eye_concerns ? 'text-indigo-900' : 'text-gray-500'}`}>
-                  {analysisData.wrinkles.has_under_eye_concerns ? 'Detected' : 'None'}
-                </span>
-              </div>
-            </div>
-          </motion.div>
-        )}
-
-        {/* Image Info Card */}
-        <motion.div 
-          className="bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 rounded-xl p-4"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-        >
-          <div className="flex items-center space-x-3 mb-3">
-            <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">
-              <Info className="w-4 h-4 text-white" />
-            </div>
-            <div>
-              <h4 className="font-semibold text-blue-900">Image Info</h4>
-              <p className="text-xs text-blue-600">Technical Details</p>
-            </div>
-          </div>
-          <div className="space-y-2">
-            <div className="flex justify-between">
-              <span className="text-sm text-blue-700">Captured:</span>
-              <span className="text-sm font-semibold text-blue-900">
-                {analysisData.image.width} × {analysisData.image.height}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-sm text-blue-700">Displayed:</span>
-              <span className="text-sm font-semibold text-blue-900">
-                {imageLoaded ? `${Math.round(imageDimensions.width)} × ${Math.round(imageDimensions.height)}` : 'Loading...'}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-sm text-blue-700">Status:</span>
-              <span className="text-sm font-semibold text-blue-900">
-                {analysisData.predictions.length > 0 ? 'Completed' : 'Processing'}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-sm text-blue-700">Redness Areas:</span>
-              <span className="text-sm font-semibold text-blue-900">
-                {analysisData.redness.polygons?.length || 0}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-sm text-blue-700">Wrinkles:</span>
-              <span className="text-sm font-semibold text-blue-900">
-                {analysisData.wrinkles?.predictions?.length || 0}
-              </span>
-            </div>
-          </div>
-        </motion.div>
       </div>
     </div>
   );

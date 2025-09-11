@@ -46,6 +46,8 @@ interface ResultsStepProps {
   onRoutineTypeChange: (type: 'essential' | 'expert') => void;
   onRestart: () => void;
   capturedImage: string | null;
+  activeTab: 'results' | 'routine';
+  onTabChange: (tab: 'results' | 'routine') => void;
 }
 
 export default function ResultsStep({
@@ -54,9 +56,10 @@ export default function ResultsStep({
   routineType,
   onRoutineTypeChange,
   onRestart,
-  capturedImage
+  capturedImage,
+  activeTab,
+  onTabChange
 }: ResultsStepProps) {
-  const [activeTab, setActiveTab] = useState<'results' | 'routine'>('results');
 
   // Debug routine data
   React.useEffect(() => {
@@ -76,38 +79,8 @@ export default function ResultsStep({
       exit={{ opacity: 0, x: -20 }}
       className="h-full flex flex-col"
     >
-      {/* Tab Navigation */}
-      <div className="routine-btns w-full flex">
-        <button
-          onClick={() => setActiveTab('results')}
-          className={activeTab === 'results' ? 'w-full flex flex-col items-center justify-center bg-black text-white' : 'w-full flex flex-col items-center justify-center bg-gray-200 text-black'}
-        >
-          <img 
-            src={ASSETS.images.icons.results} 
-            alt=""
-            width={30}
-            height={30}
-            style={{ filter: activeTab === 'results' ? 'invert(1)' : 'invert(0)' }}
-          />
-          <p className="heading-4">RESULTS</p>
-        </button>
-        <button
-          onClick={() => setActiveTab('routine')}
-          className={activeTab === 'routine' ? 'w-full flex flex-col items-center justify-center bg-black text-white' : 'w-full flex flex-col items-center justify-center bg-gray-200 text-black'}
-        >
-          <img 
-            src={ASSETS.images.icons.routine} 
-            alt="" 
-            width={30}
-            height={30}
-            style={{ filter: activeTab === 'routine' ? 'invert(1)' : 'invert(0)' }}
-          />
-          <p className="heading-4">ROUTINE</p>
-        </button>
-      </div>
-
       {/* Tab Content */}
-      <div className="flex-1">
+      <div className="flex-1 py-4">
         {activeTab === 'results' && (
           <div>
             {/* AI Photo Analysis Section */}
@@ -160,30 +133,6 @@ export default function ResultsStep({
 
         {activeTab === 'routine' && routine && (
           <div className="px-4">
-            {/* Routine Type Selector */}
-            <div className="flex mb-6 bg-gray-100 rounded-lg p-1">
-              <button
-                onClick={() => onRoutineTypeChange('essential')}
-                className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
-                  routineType === 'essential'
-                    ? 'bg-white text-gray-900 shadow-sm'
-                    : 'text-gray-600 hover:text-gray-900'
-                }`}
-              >
-                Essential Routine
-              </button>
-              <button
-                onClick={() => onRoutineTypeChange('expert')}
-                className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
-                  routineType === 'expert'
-                    ? 'bg-white text-gray-900 shadow-sm'
-                    : 'text-gray-600 hover:text-gray-900'
-                }`}
-              >
-                Expert Routine
-              </button>
-            </div>
-
             {/* Routine Steps */}
             <div className="space-y-4">
               {routine[routineType] && routine[routineType].length > 0 ? (

@@ -481,6 +481,8 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
                 onRoutineTypeChange={setRoutineType}
                 onRestart={handleRestart}
                 capturedImage={capturedImage}
+                activeTab={activeTab}
+                onTabChange={setActiveTab}
               />
             )}
           </AnimatePresence>
@@ -490,6 +492,9 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
         <ModalFooter
           currentStep={getCurrentStepNumber()}
           totalSteps={10}
+          showTabButtons={currentStep === 'results'}
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
         />
       </motion.div>
     </div>

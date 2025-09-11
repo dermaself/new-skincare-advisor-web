@@ -2,6 +2,19 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Background image utilities */
+.bg-main {
+  background-image: var(--bg-main);
+}
+
+.bg-bg1 {
+  background-image: var(--bg-1);
+}
+
+.bg-bg2 {
+  background-image: var(--bg-2);
+}
+
 /* Embed-specific styles */
 .embed-container {
   width: 100%;
@@ -18,6 +31,10 @@
 
 /* Custom CSS Variables */
 :root {
+  /* Background images */
+  --bg-main: url('/assets/images/backgrounds/bg-main.jpg');
+  --bg-1: url('/assets/images/backgrounds/bg-1.jpg');
+  --bg-2: url('/assets/images/backgrounds/bg-2.jpg');
   --primary-50: #eff6ff;
   --primary-100: #dbeafe;
   --primary-200: #bfdbfe;

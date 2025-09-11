@@ -2,6 +2,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Camera, X, SwitchCameraIcon, ArrowLeft, CheckCircle, Upload } from 'lucide-react';
+import { ASSETS } from '../../lib/assets';
 
 interface CameraCaptureStepProps {
   onNext: (imageData: string) => void;
@@ -268,27 +269,8 @@ export default function CameraCaptureStep({ onNext, onBack }: CameraCaptureStepP
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -20 }}
       transition={{ duration: 0.3 }}
-      className="bg-[url('/assets/images/backgrounds/bg-main.jpg')] bg-cover bg-center h-full flex flex-col"
+      className="bg-main bg-cover bg-center h-full flex flex-col"
     >
-      {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 bg-white/50 backdrop-blur-sm border-b border-white/30">
-        <button
-          onClick={onBack}
-          className="p-2 hover:bg-white/20 rounded-full transition-colors"
-        >
-          <ArrowLeft size={20} />
-        </button>
-        <div className="text-center">
-          <h1 className="text-lg font-bold text-gray-900">
-            Take Your Photo
-          </h1>
-          <p className="text-sm text-gray-600">
-            Position your face in the center
-          </p>
-        </div>
-        <div className="w-10" /> {/* Spacer for centering */}
-      </div>
-
       {/* Camera Content */}
       <div className="flex-1 relative bg-black overflow-hidden">
         {isLoading && (

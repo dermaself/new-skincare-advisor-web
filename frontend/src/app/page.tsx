@@ -100,14 +100,18 @@ export default function Home() {
             </div>
           </div>
         }>
-          <ImagePreloader onComplete={handleImagesPreloaded}>
+          {!imagesPreloaded ? (
+            <ImagePreloader onComplete={handleImagesPreloaded}>
+              <div></div>
+            </ImagePreloader>
+          ) : (
             <SkinAnalysisModal 
               isOpen={showModal} 
               onClose={handleCloseModal} 
               embedded={true}
               onReady={handleModalReady}
             />
-          </ImagePreloader>
+          )}
         </Suspense>
       </div>
     );

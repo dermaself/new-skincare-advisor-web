@@ -63,8 +63,8 @@ export default function CameraCaptureStep({ onNext, onBack }: CameraCaptureStepP
       const constraints = {
         video: {
           facingMode: facingMode === 'front' ? 'user' : 'environment',
-          width: { ideal: 1280 },
-          height: { ideal: 720 }
+          width: { ideal: 1920 },
+          height: { ideal: 1080 }
         },
         audio: false
       };
@@ -206,22 +206,41 @@ export default function CameraCaptureStep({ onNext, onBack }: CameraCaptureStepP
 
     if (!ctx) return;
     
-    // Use original video dimensions for maximum quality
+    // Get the displayed dimensions (what the user sees on screen)
+    const displayedWidth = video.clientWidth;
+    const displayedHeight = video.clientHeight;
+    
+    // Get the original video dimensions
     const originalWidth = video.videoWidth;
     const originalHeight = video.videoHeight;
     
-    // Set canvas to original dimensions for maximum quality
-    canvas.width = originalWidth;
-    canvas.height = originalHeight;
+    // Set canvas to displayed dimensions to match what user sees
+    canvas.width = displayedWidth;
+    canvas.height = displayedHeight;
+    
+    // Calculate the source rectangle from the original video
+    // This ensures we capture the same area that's visible to the user
+    const sourceX = 0;
+    const sourceY = 0;
+    const sourceWidth = originalWidth;
+    const sourceHeight = originalHeight;
     
     // Handle mirroring for front-facing camera
     if (currentCamera === 'front') {
       ctx.save();
       ctx.scale(-1, 1);
-      ctx.drawImage(video, -originalWidth, 0, originalWidth, originalHeight);
+      ctx.drawImage(
+        video, 
+        sourceX, sourceY, sourceWidth, sourceHeight,  // Source rectangle
+        -displayedWidth, 0, displayedWidth, displayedHeight  // Destination rectangle (mirrored)
+      );
       ctx.restore();
     } else {
-      ctx.drawImage(video, 0, 0, originalWidth, originalHeight);
+      ctx.drawImage(
+        video,
+        sourceX, sourceY, sourceWidth, sourceHeight,  // Source rectangle
+        0, 0, displayedWidth, displayedHeight  // Destination rectangle
+      );
     }
     
     const imageData = canvas.toDataURL('image/jpeg', 1.0);

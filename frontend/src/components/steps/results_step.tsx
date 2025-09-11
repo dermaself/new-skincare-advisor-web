@@ -107,18 +107,15 @@ export default function ResultsStep({
       </div>
 
       {/* Tab Content */}
-      <div className="flex-1 py-4">
+      <div className="flex-1">
         {activeTab === 'results' && (
           <div>
             {/* AI Photo Analysis Section */}
-            <div className="px-4 mb-6">
-              <div className="relative bg-gradient-to-br from-pink-50 to-purple-50 rounded-2xl p-6 border border-pink-100">
+            <div className="mb-6">
+              <div className="relative">
                 <div className="text-center">
-                  <h3 className="text-lg font-bold text-gray-900 mb-2">AI Photo Analysis</h3>
-                  <p className="text-sm text-gray-600 mb-4">Your personalized skin analysis results</p>
-                  
                   {/* Analysis Image */}
-                  <div className="relative inline-block mb-4">
+                  <div className="relative mb-4">
                     <Suspense fallback={
                       <div className="w-32 h-32 bg-gray-200 rounded-full animate-pulse"></div>
                     }>

@@ -4,6 +4,7 @@ import { useState, useEffect, Suspense, lazy } from 'react';
 
 // Lazy load the modal to reduce initial bundle size
 const SkinAnalysisModal = lazy(() => import('@/components/SkinAnalysisModal'));
+const ImagePreloader = lazy(() => import('@/components/ImagePreloader'));
 
 export default function Home() {
   const [showModal, setShowModal] = useState(false);
@@ -89,25 +90,24 @@ export default function Home() {
             </div>
           </div>
         }>
-          <SkinAnalysisModal 
-            isOpen={showModal} 
-            onClose={handleCloseModal} 
-            embedded={true}
-            onReady={handleModalReady}
-          />
+          {showModal ? (
+            <ImagePreloader onComplete={() => setIsModalReady(true)}>
+              <SkinAnalysisModal 
+                isOpen={showModal} 
+                onClose={handleCloseModal} 
+                embedded={true}
+                onReady={handleModalReady}
+              />
+            </ImagePreloader>
+          ) : (
+            <SkinAnalysisModal 
+              isOpen={showModal} 
+              onClose={handleCloseModal} 
+              embedded={true}
+              onReady={handleModalReady}
+            />
+          )}
         </Suspense>
-        
-        {/* Loading overlay */}
-        {!isModalReady && (
-          <div className="absolute inset-0 bg-white flex items-center justify-center z-50">
-            <div className="flex flex-col items-center space-y-4">
-              <div className="loader__wrapper">
-                <div className="loader">&nbsp;</div>
-              </div>
-              <p className="text-gray-600 text-sm">Loading skin analysis...</p>
-            </div>
-          </div>
-        )}
       </div>
     );
   }
@@ -130,11 +130,23 @@ export default function Home() {
           Start Skin Analysis
         </button>
         
-        <SkinAnalysisModal 
-          isOpen={showModal} 
-          onClose={handleCloseModal} 
-          embedded={false} 
-        />
+        <Suspense>
+          {showModal ? (
+            <ImagePreloader onComplete={() => setIsModalReady(true)}>
+              <SkinAnalysisModal 
+                isOpen={showModal} 
+                onClose={handleCloseModal} 
+                embedded={false} 
+              />
+            </ImagePreloader>
+          ) : (
+            <SkinAnalysisModal 
+              isOpen={showModal} 
+              onClose={handleCloseModal} 
+              embedded={false} 
+            />
+          )}
+        </Suspense>
       </div>
     </div>
   );

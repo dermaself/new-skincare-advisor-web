@@ -2,6 +2,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { CheckCircle } from 'lucide-react';
+import { ASSETS } from '../../lib/assets';
 
 interface SkinConcern {
   id: string;
@@ -20,27 +21,27 @@ const skinConcerns: SkinConcern[] = [
   {
     id: 'wrinkles',
     name: 'Visible wrinkles and lack of tone',
-    icon: 'wrinkles'
+    icon: ASSETS.images.icons.wrinkles
   },
   {
     id: 'eyebags',
     name: 'Bags and dark circles',
-    icon: 'eyebags'
+    icon: ASSETS.images.icons.eyebags
   },
   {
     id: 'dullSkin',
     name: 'Dull complexion',
-    icon: 'dullSkin'
+    icon: ASSETS.images.icons.dullSkin
   },
   {
     id: 'aging',
     name: 'First signs of aging',
-    icon: 'aging'
+    icon: ASSETS.images.icons.aging
   },
   {
     id: 'pores',
     name: 'Visible pores and blackheads',
-    icon: 'poreDilation'
+    icon: ASSETS.images.icons.poreDilation
   },
   {
     id: 'none',
@@ -57,7 +58,7 @@ export default function SkinConcernsStep({ selectedConcerns, onConcernToggle, on
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -20 }}
       transition={{ duration: 0.3 }}
-      className="bg-[url('/assets/images/backgrounds/bg-2.jpg')] bg-cover bg-center h-full flex flex-col"
+      className="bg-bg2 bg-cover bg-center h-full flex flex-col"
     >
       {/* Skin Concerns Selection */}
       <div className="flex flex-col px-4 py-4 overflow-y-auto bg-white/50 backdrop-blur-sm p-4 overflow-y-auto mt-auto mx-4 mb-4 rounded-lg">
@@ -90,7 +91,7 @@ export default function SkinConcernsStep({ selectedConcerns, onConcernToggle, on
                   <div className="w-16 overflow-hidden flex-shrink-0 bg-gray-100 flex items-center justify-center">
                     {concern.icon ? (
                       <img
-                        src={`/assets/images/icons/${concern.icon}.svg`}
+                        src={concern.icon}
                         alt={concern.name}
                         className="w-full h-full object-contain p-2"
                         onError={(e) => {

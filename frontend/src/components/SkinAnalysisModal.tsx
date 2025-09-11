@@ -18,6 +18,9 @@ import {
   ModalFooter
 } from './steps';
 
+// Import image preloader
+import ImagePreloader from './ImagePreloader';
+
 interface SkinAnalysisModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -65,6 +68,9 @@ const getProducts = async (): Promise<Product[]> => {
 };
 
 export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, onReady }: SkinAnalysisModalProps) {
+  // Image preloader state
+  const [imagesPreloaded, setImagesPreloaded] = useState(false);
+
   // Prevent body scrolling when modal is open
   useEffect(() => {
     if (isOpen) {
@@ -124,6 +130,7 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
       setCartItems({});
       setCartLoading({});
       setIsShopify(false);
+      setImagesPreloaded(false);
     }
   }, [isOpen]);
 
@@ -333,25 +340,26 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
 
   if (!isOpen) return null;
 
-    return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      {/* Backdrop */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        className="absolute inset-0 bg-black bg-opacity-50"
-        onClick={handleClose}
-      />
-
-      {/* Modal Container */}
+  return (
+    <ImagePreloader onComplete={() => setImagesPreloaded(true)}>
+      <div className="fixed inset-0 z-50 flex items-center justify-center">
+        {/* Backdrop */}
         <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.95 }}
-        transition={{ duration: 0.2 }}
-        className="relative w-full bg-white overflow-hidden flex flex-col h-full md:max-w-[540px] w-full h-full md:max-h-[95vh]"
-      >
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="absolute inset-0 bg-black bg-opacity-50"
+          onClick={handleClose}
+        />
+
+        {/* Modal Container */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.95 }}
+          transition={{ duration: 0.2 }}
+          className="relative w-full bg-white overflow-hidden flex flex-col h-full md:max-w-[540px] w-full h-full md:max-h-[95vh]"
+        >
         {/* Fixed Header inside Modal */}
         <div className="bg-black px-4 py-3 flex items-center justify-between border-b border-gray-700">
           {/* Back Button */}
@@ -487,5 +495,6 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
         />
       </motion.div>
     </div>
+    </ImagePreloader>
   );
 }

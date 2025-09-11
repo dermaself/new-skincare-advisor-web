@@ -2,6 +2,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Camera } from 'lucide-react';
+import { ASSETS } from '../../lib/assets';
 
 interface PhotoInstruction {
   id: string;
@@ -17,22 +18,22 @@ interface PhotoInstructionsStepProps {
 const photoInstructions: PhotoInstruction[] = [
   {
     id: 'glasses',
-    icon: 'glasses',
+    icon: ASSETS.images.icons.glasses,
     text: 'Remove glasses'
   },
   {
     id: 'hair',
-    icon: 'hair',
+    icon: ASSETS.images.icons.hair,
     text: 'Pull back hair'
   },
   {
     id: 'position',
-    icon: 'position',
+    icon: ASSETS.images.icons.position,
     text: 'Position yourself in front of the camera'
   },
   {
     id: 'expression',
-    icon: 'expression',
+    icon: ASSETS.images.icons.expression,
     text: 'Maintain a neutral expression'
   }
 ];
@@ -45,7 +46,7 @@ export default function PhotoInstructionsStep({ onNext, onBack }: PhotoInstructi
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -20 }}
       transition={{ duration: 0.3 }}
-      className="bg-[url('/assets/images/backgrounds/bg-main.jpg')] bg-cover bg-center h-full flex flex-col"
+      className="bg-main bg-cover bg-center h-full flex flex-col"
     >
       {/* Photo Instructions */}
       <div className="flex flex-col px-4 py-4 overflow-y-auto bg-white/50 backdrop-blur-sm p-4 overflow-y-auto mt-auto mx-4 mb-4 rounded-lg">
@@ -63,11 +64,11 @@ export default function PhotoInstructionsStep({ onNext, onBack }: PhotoInstructi
             >
               <div className="w-12 h-12 bg-transparent rounded-lg flex items-center justify-center flex-shrink-0">
                 <img 
-                  src={`/assets/images/icons/${instruction.icon}.svg`}
+                  src={instruction.icon}
                   alt={instruction.text}
                   className="w-8 h-8 text-gray-700"
                   onError={(e) => {
-                    console.error(`Failed to load icon: ${instruction.icon}.svg`);
+                    console.error(`Failed to load icon: ${instruction.icon}`);
                     e.currentTarget.style.display = 'none';
                   }}
                 />

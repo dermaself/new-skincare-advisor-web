@@ -605,21 +605,6 @@ export default function SkinAnalysisImage({
                                 animate={{ pathLength: 1 }}
                                 transition={{ duration: 0.8, delay: index * 0.1 }}
                               />
-                              {/* Add confidence indicator for wrinkles */}
-                              {scaledPoints.length > 0 && (
-                                <motion.circle
-                                  cx={scaledPoints[0].x}
-                                  cy={scaledPoints[0].y}
-                                  r="4"
-                                  fill={color}
-                                  stroke="white"
-                                  strokeWidth="1"
-                                  className="pointer-events-auto cursor-pointer"
-                                  initial={{ opacity: 0, scale: 0 }}
-                                  animate={{ opacity: 0.9, scale: 1 }}
-                                  transition={{ duration: 0.3, delay: index * 0.1 + 0.5 }}
-                                />
-                              )}
                             </g>
                           );
                         } else {
@@ -704,8 +689,6 @@ export default function SkinAnalysisImage({
           </div>
         </div>
       </div>
-
-
 
       {/* Analysis Summary Cards */}
       <div className="grid grid-cols-1 gap-4 p-2">

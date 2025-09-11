@@ -10,6 +10,7 @@ export default function Home() {
   const [showModal, setShowModal] = useState(false);
   const [isEmbedded, setIsEmbedded] = useState(false);
   const [isModalReady, setIsModalReady] = useState(false);
+  const [imagesPreloaded, setImagesPreloaded] = useState(false);
 
   // Check if we're embedded in Shopify
   useEffect(() => {
@@ -20,9 +21,9 @@ export default function Home() {
     
     setIsEmbedded(isInIframe || isShopifyEmbed);
     
-    // If embedded, show modal automatically
+    // If embedded, show modal automatically after images are preloaded
     if (isInIframe || isShopifyEmbed) {
-      setShowModal(true);
+      // Don't set showModal immediately - wait for images to preload
     }
   }, []);
 
@@ -43,6 +44,15 @@ export default function Home() {
   // Handle modal ready state
   const handleModalReady = () => {
     setIsModalReady(true);
+  };
+
+  // Handle image preloading completion
+  const handleImagesPreloaded = () => {
+    setImagesPreloaded(true);
+    // If embedded, show modal after images are preloaded
+    if (isEmbedded) {
+      setShowModal(true);
+    }
   };
 
   // Reset modal ready state when modal closes
@@ -90,14 +100,9 @@ export default function Home() {
             </div>
           </div>
         }>
-          {showModal ? (
-            <ImagePreloader onComplete={() => setIsModalReady(true)}>
-              <SkinAnalysisModal 
-                isOpen={showModal} 
-                onClose={handleCloseModal} 
-                embedded={true}
-                onReady={handleModalReady}
-              />
+          {!imagesPreloaded ? (
+            <ImagePreloader onComplete={handleImagesPreloaded}>
+              <div></div>
             </ImagePreloader>
           ) : (
             <SkinAnalysisModal 

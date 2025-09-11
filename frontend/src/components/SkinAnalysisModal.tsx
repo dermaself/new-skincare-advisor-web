@@ -150,6 +150,12 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
   const handleBack = () => {
     const stepOrder: Step[] = ['onboarding', 'skin-type', 'skin-concerns', 'gender', 'age', 'photo-instructions', 'camera-capture', 'scan', 'loading', 'results'];
     const currentIndex = stepOrder.indexOf(currentStep);
+    
+    if (currentStep === 'results') {
+      setCurrentStep('camera-capture');
+      return;
+    }
+    
     if (currentIndex > 0) {
       setCurrentStep(stepOrder[currentIndex - 1]);
     }

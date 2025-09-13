@@ -44,8 +44,6 @@ const nextConfig = {
     
     return config;
   },
-  // Disable telemetry
-  telemetry: false,
   // Other configuration options if needed
 };
 

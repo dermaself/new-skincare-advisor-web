@@ -11,12 +11,22 @@ import {
   GenderStep,
   AgeStep,
   PhotoInstructionsStep,
-  CameraCaptureStep,
-  ScanStep,
   LoadingStep,
   ResultsStep,
   ModalFooter
 } from './steps';
+
+import dynamic from 'next/dynamic';
+
+const CameraCaptureStep = dynamic(() => import('./steps/camera_capture_step'), {
+  loading: () => <LoadingStep />,
+  ssr: false,
+});
+
+const ScanStep = dynamic(() => import('./steps/scan_step'), {
+  loading: () => <LoadingStep />,
+  ssr: false,
+});
 
 interface SkinAnalysisModalProps {
   isOpen: boolean;

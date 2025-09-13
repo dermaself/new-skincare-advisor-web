@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
 import { CartProvider } from '../components/CartContext';
@@ -11,7 +11,6 @@ export const metadata: Metadata = {
   description: 'Advanced AI-powered skin analysis and personalized product recommendations',
   keywords: 'skin analysis, AI, skincare, beauty, dermatology, personalized recommendations',
   authors: [{ name: 'DermaSelf Team' }],
-  viewport: 'width=device-width, initial-scale=1',
   robots: 'index, follow',
   openGraph: {
     title: 'DermaSelf - AI Skin Analysis',
@@ -26,13 +25,18 @@ export const metadata: Metadata = {
   },
 };
 
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+};
+
 export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
         <CartProvider>
           <div className="min-h-screen">

@@ -206,24 +206,30 @@ export default function CameraCaptureStep({ onNext, onBack }: CameraCaptureStepP
 
     if (!ctx) return;
     
-    // Get the displayed dimensions (what the user sees on screen)
-    const displayedWidth = video.clientWidth;
-    const displayedHeight = video.clientHeight;
-    
-    // Get the original video dimensions
+    // Get the original video dimensions (full resolution)
     const originalWidth = video.videoWidth;
     const originalHeight = video.videoHeight;
     
-    // Set canvas to displayed dimensions to match what user sees
-    canvas.width = displayedWidth;
-    canvas.height = displayedHeight;
+    // Log video element dimensions and styling
+    console.log('=== CAMERA CAPTURE STEP DEBUG ===');
+    console.log('1. Video natural dimensions:', video.videoWidth, 'x', video.videoHeight);
+    console.log('2. Video display dimensions (client):', video.clientWidth, 'x', video.clientHeight);
+    console.log('3. Video offset dimensions:', video.offsetWidth, 'x', video.offsetHeight);
+    console.log('4. Video aspect ratio:', (originalWidth / originalHeight).toFixed(3));
+    console.log('5. Video CSS class:', video.className);
+    console.log('6. Video style transform:', video.style.transform);
+    console.log('7. Video scale:', currentCamera === 'front' ? 'scaleX(-1)' : 'none');
+    console.log('8. Video object-fit: object-contain');
     
-    // Calculate the source rectangle from the original video
-    // This ensures we capture the same area that's visible to the user
-    const sourceX = 0;
-    const sourceY = 0;
-    const sourceWidth = originalWidth;
-    const sourceHeight = originalHeight;
+    // Set canvas to original video dimensions for full resolution capture
+    canvas.width = originalWidth;
+    canvas.height = originalHeight;
+    
+    console.log('9. Canvas dimensions set to original video size:', canvas.width, 'x', canvas.height);
+    
+    // Clear canvas with white background
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillRect(0, 0, originalWidth, originalHeight);
     
     // Handle mirroring for front-facing camera
     if (currentCamera === 'front') {
@@ -231,19 +237,29 @@ export default function CameraCaptureStep({ onNext, onBack }: CameraCaptureStepP
       ctx.scale(-1, 1);
       ctx.drawImage(
         video, 
-        sourceX, sourceY, sourceWidth, sourceHeight,  // Source rectangle
-        -displayedWidth, 0, displayedWidth, displayedHeight  // Destination rectangle (mirrored)
+        0, 0, originalWidth, originalHeight,  // Source rectangle (full video)
+        -originalWidth, 0, originalWidth, originalHeight  // Destination rectangle (mirrored)
       );
       ctx.restore();
+      console.log('10. Applied horizontal flip for front camera');
     } else {
       ctx.drawImage(
         video,
-        sourceX, sourceY, sourceWidth, sourceHeight,  // Source rectangle
-        0, 0, displayedWidth, displayedHeight  // Destination rectangle
+        0, 0, originalWidth, originalHeight,  // Source rectangle (full video)
+        0, 0, originalWidth, originalHeight  // Destination rectangle (full resolution)
       );
+      console.log('10. No flip applied for back camera');
     }
     
     const imageData = canvas.toDataURL('image/jpeg', 1.0);
+    
+    // Log the captured image data
+    console.log('11. Captured image data URL length:', imageData.length);
+    console.log('12. Estimated image size in KB:', Math.round(imageData.length * 0.75 / 1024));
+    console.log('13. Image quality: 1.0 (maximum)');
+    console.log('14. Captured full resolution image:', originalWidth, 'x', originalHeight);
+    console.log('=== END CAMERA CAPTURE STEP DEBUG ===');
+    
     setCapturedImage(imageData);
     setCameraState('preview');
     stopCamera();
@@ -257,6 +273,13 @@ export default function CameraCaptureStep({ onNext, onBack }: CameraCaptureStepP
 
   const confirmPhoto = () => {
     if (capturedImage) {
+      console.log('=== CONFIRM PHOTO DEBUG ===');
+      console.log('1. Image data URL length:', capturedImage.length);
+      console.log('2. Image data URL preview (first 100 chars):', capturedImage.substring(0, 100));
+      console.log('3. Image data URL preview (last 100 chars):', capturedImage.substring(capturedImage.length - 100));
+      console.log('4. Calling onNext with captured image...');
+      console.log('=== END CONFIRM PHOTO DEBUG ===');
+      
       onNext(capturedImage);
     }
   };
@@ -319,16 +342,18 @@ export default function CameraCaptureStep({ onNext, onBack }: CameraCaptureStepP
         )}
         
         {cameraState === 'live' && (
-          <div className="relative w-full h-full">
+          <div className="relative w-full h-full flex items-center justify-center bg-black">
             <video
               ref={videoRef}
               autoPlay
               playsInline
               muted
-              className={`w-full h-full object-cover ${currentCamera === 'front' ? 'scale-x-[-1]' : ''}`}
+              className={`max-w-full max-h-full object-contain ${currentCamera === 'front' ? 'scale-x-[-1]' : ''}`}
               style={{
-                width: '100%',
-                height: '100%',
+                maxWidth: '100%',
+                maxHeight: '100%',
+                width: 'auto',
+                height: 'auto',
                 display: 'block',
                 transform: currentCamera === 'front' ? 'scaleX(-1)' : 'none'
               }}
@@ -338,15 +363,40 @@ export default function CameraCaptureStep({ onNext, onBack }: CameraCaptureStepP
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
               <div className="w-48 h-60 border-2 border-white border-dashed rounded-lg opacity-50"></div>
             </div>
+            
+            {/* Camera indicator */}
+            <div className="absolute top-4 right-4 bg-black/50 backdrop-blur-sm rounded-full px-3 py-1">
+              <span className="text-white text-sm font-medium">
+                {currentCamera === 'front' ? 'Front Camera' : 'Back Camera'}
+              </span>
+            </div>
           </div>
         )}
         
         {cameraState === 'preview' && capturedImage && (
-          <div className="relative w-full h-full">
+          <div className="relative w-full h-full flex items-center justify-center bg-black">
             <img
               src={capturedImage}
               alt="Captured photo"
-              className="w-full h-full object-cover"
+              className="max-w-full max-h-full object-contain"
+              style={{
+                maxWidth: '100%',
+                maxHeight: '100%',
+                width: 'auto',
+                height: 'auto'
+              }}
+              onLoad={(e) => {
+                const img = e.target as HTMLImageElement;
+                console.log('=== PREVIEW DEBUG (camera_capture_step) ===');
+                console.log('1. Image natural dimensions:', img.naturalWidth, 'x', img.naturalHeight);
+                console.log('2. Image display dimensions:', img.offsetWidth, 'x', img.offsetHeight);
+                console.log('3. Image client dimensions:', img.clientWidth, 'x', img.clientHeight);
+                console.log('4. Image aspect ratio:', (img.naturalWidth / img.naturalHeight).toFixed(3));
+                console.log('5. Image display aspect ratio:', (img.offsetWidth / img.offsetHeight).toFixed(3));
+                console.log('6. Image CSS class:', img.className);
+                console.log('7. Container dimensions:', img.parentElement?.offsetWidth, 'x', img.parentElement?.offsetHeight);
+                console.log('=== END PREVIEW DEBUG ===');
+              }}
             />
           </div>
         )}
@@ -367,24 +417,33 @@ export default function CameraCaptureStep({ onNext, onBack }: CameraCaptureStepP
       {/* Controls */}
       <div className="bg-white/50 backdrop-blur-sm border-t border-white/30 p-4">
         {cameraState === 'live' && (
-          <div className="flex items-center justify-center gap-4">
+          <div className="flex items-center justify-center gap-4 sm:gap-6">
+            {/* Switch Camera Button - Mobile optimized */}
             <button
               onClick={switchCamera}
-              className="p-3 bg-white/20 hover:bg-white/30 rounded-full transition-colors"
+              className="p-3 sm:p-4 bg-white/20 hover:bg-white/30 rounded-full transition-colors touch-manipulation"
+              title="Switch Camera"
+              aria-label="Switch between front and back camera"
             >
               <SwitchCameraIcon size={24} className="text-white" />
             </button>
             
+            {/* Capture Button - Mobile optimized */}
             <button
               onClick={capturePhoto}
-              className="p-4 bg-pink-600 hover:bg-pink-700 rounded-full transition-colors shadow-lg"
+              className="p-4 sm:p-5 bg-pink-600 hover:bg-pink-700 active:bg-pink-800 rounded-full transition-colors shadow-lg touch-manipulation min-w-[60px] min-h-[60px] sm:min-w-[70px] sm:min-h-[70px]"
+              title="Take Photo"
+              aria-label="Take photo"
             >
               <Camera size={28} className="text-white" />
             </button>
             
+            {/* Upload Button - Mobile optimized */}
             <button
               onClick={openFileDialog}
-              className="p-3 bg-white/20 hover:bg-white/30 rounded-full transition-colors"
+              className="p-3 sm:p-4 bg-white/20 hover:bg-white/30 rounded-full transition-colors touch-manipulation"
+              title="Upload Photo"
+              aria-label="Upload photo from gallery"
             >
               <Upload size={24} className="text-white" />
             </button>
@@ -392,17 +451,21 @@ export default function CameraCaptureStep({ onNext, onBack }: CameraCaptureStepP
         )}
         
         {cameraState === 'preview' && (
-          <div className="flex items-center justify-center gap-4">
+          <div className="flex items-center justify-center gap-3 sm:gap-4">
             <button
               onClick={retakePhoto}
-              className="px-6 py-3 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg transition-colors"
+              className="px-6 py-3 sm:px-8 sm:py-4 bg-gray-200 hover:bg-gray-300 active:bg-gray-400 text-gray-700 rounded-lg transition-colors touch-manipulation font-semibold"
+              title="Retake Photo"
+              aria-label="Retake photo"
             >
               Retake
             </button>
             
             <button
               onClick={confirmPhoto}
-              className="px-6 py-3 bg-pink-600 hover:bg-pink-700 text-white rounded-lg transition-colors flex items-center gap-2"
+              className="px-6 py-3 sm:px-8 sm:py-4 bg-pink-600 hover:bg-pink-700 active:bg-pink-800 text-white rounded-lg transition-colors flex items-center gap-2 touch-manipulation font-semibold"
+              title="Use Photo"
+              aria-label="Use this photo for analysis"
             >
               <CheckCircle size={20} />
               Use Photo

@@ -161,12 +161,12 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
         setStream(null);
       }
       
-      // Simple camera constraints - avoid complex device selection
+      // Camera constraints - use native resolution without artificial limits
       const constraints = {
         video: {
           facingMode: { ideal: (desiredFacing || currentCamera) === 'front' ? 'user' : 'environment' },
-          width: { ideal: 640, min: 320 },
-          height: { ideal: 480, min: 240 }
+          // Remove resolution constraints to use native camera resolution
+          // This allows the camera to use its maximum supported resolution
         },
         audio: false
       };
@@ -247,7 +247,9 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
       try {
         console.log('Trying fallback with minimal constraints...');
         const fallbackStream = await navigator.mediaDevices.getUserMedia({ 
-          video: true, 
+          video: {
+            facingMode: { ideal: (desiredFacing || currentCamera) === 'front' ? 'user' : 'environment' }
+          }, 
           audio: false 
         });
         
@@ -572,9 +574,81 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
     const originalWidth = video.videoWidth;
     const originalHeight = video.videoHeight;
     
+    // Validate video dimensions
+    if (originalWidth === 0 || originalHeight === 0) {
+      console.error('Invalid video dimensions:', originalWidth, 'x', originalHeight);
+      return;
+    }
+    
+    // Log video element dimensions and styling
+    console.log('=== CAPTURE DEBUG ===');
+    console.log('1. Video natural dimensions:', video.videoWidth, 'x', video.videoHeight);
+    console.log('2. Video display dimensions:', video.offsetWidth, 'x', video.offsetHeight);
+    console.log('3. Video client dimensions:', video.clientWidth, 'x', video.clientHeight);
+    console.log('4. Video aspect ratio:', (originalWidth / originalHeight).toFixed(3));
+    console.log('5. Video display aspect ratio:', (video.offsetWidth / video.offsetHeight).toFixed(3));
+    console.log('6. Video transform:', video.style.transform);
+    console.log('7. Video scale:', currentCamera === 'front' ? 'scaleX(-1)' : 'none');
+    
+    // Calculate the actual displayed area of the video
+    // Since the video uses object-contain, we need to calculate the actual rendered area
+    const videoAspectRatio = originalWidth / originalHeight;
+    const displayAspectRatio = video.offsetWidth / video.offsetHeight;
+    
+    let sourceX = 0, sourceY = 0, sourceWidth = originalWidth, sourceHeight = originalHeight;
+    let destX = 0, destY = 0, destWidth = originalWidth, destHeight = originalHeight;
+    
+    if (videoAspectRatio > displayAspectRatio) {
+      // Video is wider than display area - video is letterboxed vertically
+      // The video fills the width and is centered vertically
+      const scale = video.offsetWidth / originalWidth;
+      const scaledHeight = originalHeight * scale;
+      const letterboxHeight = (video.offsetHeight - scaledHeight) / 2;
+      
+      // Calculate the actual video area in the display
+      const actualDisplayHeight = scaledHeight;
+      const actualDisplayWidth = video.offsetWidth;
+      
+      // Map this back to the original video coordinates
+      sourceY = (letterboxHeight / scale);
+      sourceHeight = actualDisplayHeight / scale;
+      sourceX = 0;
+      sourceWidth = originalWidth;
+      
+      console.log('8. Video is letterboxed vertically');
+      console.log('9. Scale factor:', scale);
+      console.log('10. Letterbox height:', letterboxHeight);
+      console.log('11. Source area:', sourceX, sourceY, sourceWidth, sourceHeight);
+    } else {
+      // Video is taller than display area - video is letterboxed horizontally
+      // The video fills the height and is centered horizontally
+      const scale = video.offsetHeight / originalHeight;
+      const scaledWidth = originalWidth * scale;
+      const letterboxWidth = (video.offsetWidth - scaledWidth) / 2;
+      
+      // Calculate the actual video area in the display
+      const actualDisplayWidth = scaledWidth;
+      const actualDisplayHeight = video.offsetHeight;
+      
+      // Map this back to the original video coordinates
+      sourceX = (letterboxWidth / scale);
+      sourceWidth = actualDisplayWidth / scale;
+      sourceY = 0;
+      sourceHeight = originalHeight;
+      
+      console.log('8. Video is letterboxed horizontally');
+      console.log('9. Scale factor:', scale);
+      console.log('10. Letterbox width:', letterboxWidth);
+      console.log('11. Source area:', sourceX, sourceY, sourceWidth, sourceHeight);
+    }
+    
     // Set canvas to original dimensions for maximum quality
     canvas.width = originalWidth;
     canvas.height = originalHeight;
+    
+    // Clear canvas with white background
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillRect(0, 0, originalWidth, originalHeight);
     
     // Handle mirroring for front-facing camera
     // Front-facing cameras are mirrored by default, so we need to flip the image
@@ -583,23 +657,32 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
       // Flip horizontally for front camera to match iPhone behavior
       ctx.save();
       ctx.scale(-1, 1);
-      ctx.drawImage(video, -originalWidth, 0, originalWidth, originalHeight);
+      ctx.drawImage(
+        video, 
+        sourceX, sourceY, sourceWidth, sourceHeight,
+        -originalWidth, 0, originalWidth, originalHeight
+      );
       ctx.restore();
+      console.log('12. Applied horizontal flip for front camera');
     } else {
       // Back camera doesn't need flipping
-      ctx.drawImage(video, 0, 0, originalWidth, originalHeight);
+      ctx.drawImage(
+        video, 
+        sourceX, sourceY, sourceWidth, sourceHeight,
+        0, 0, originalWidth, originalHeight
+      );
+      console.log('12. No flip applied for back camera');
     }
     
-    // Log both original and displayed dimensions
-    console.log('Original video dimensions:', video.videoWidth, 'x', video.videoHeight);
-    console.log('Displayed video dimensions:', video.offsetWidth, 'x', video.offsetHeight);
-    console.log('Canvas dimensions:', canvas.width, 'x', canvas.height);
+    console.log('13. Canvas dimensions set to:', canvas.width, 'x', canvas.height);
     
-    const imageData = canvas.toDataURL('image/jpeg', 1.0);
+    // Use maximum quality JPEG compression
+    const imageData = canvas.toDataURL('image/jpeg', 0.95);
     
     // Log the captured image data size
-    console.log('Captured image data URL length:', imageData.length);
-    console.log('Estimated image size in KB:', Math.round(imageData.length * 0.75 / 1024));
+    console.log('14. Captured image data URL length:', imageData.length);
+    console.log('15. Estimated image size in KB:', Math.round(imageData.length * 0.75 / 1024));
+    console.log('=== END CAPTURE DEBUG ===');
     
     setCapturedImage(imageData);
     setCameraState('preview');
@@ -871,12 +954,13 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
                 autoPlay
                 playsInline
                 muted
-                className={`w-full h-full object-cover ${currentCamera === 'front' ? 'scale-x-[-1]' : ''}`}
+                className={`w-full h-full object-contain ${currentCamera === 'front' ? 'scale-x-[-1]' : ''}`}
                 style={{
                   width: '100%',
                   height: '100%',
                   display: 'block',
-                  transform: currentCamera === 'front' ? 'scaleX(-1)' : 'none'
+                  transform: currentCamera === 'front' ? 'scaleX(-1)' : 'none',
+                  backgroundColor: '#000' // Black background for letterboxing
                 }}
                 onLoadedMetadata={() => {
                   console.log('Video metadata loaded');
@@ -922,11 +1006,28 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
           )}
 
           {cameraState === 'preview' && (
-            <div className="relative w-full h-full">
+            <div className="relative w-full h-full flex items-center justify-center bg-black">
               <img
                 src={capturedImage!}
                 alt="Captured photo"
-                className="w-full h-full object-cover"
+                className="max-w-full max-h-full object-contain"
+                style={{
+                  maxWidth: '100%',
+                  maxHeight: '100%',
+                  width: 'auto',
+                  height: 'auto'
+                }}
+                onLoad={(e) => {
+                  const img = e.target as HTMLImageElement;
+                  console.log('=== PREVIEW DEBUG ===');
+                  console.log('1. Image natural dimensions:', img.naturalWidth, 'x', img.naturalHeight);
+                  console.log('2. Image display dimensions:', img.offsetWidth, 'x', img.offsetHeight);
+                  console.log('3. Image client dimensions:', img.clientWidth, 'x', img.clientHeight);
+                  console.log('4. Image aspect ratio:', (img.naturalWidth / img.naturalHeight).toFixed(3));
+                  console.log('5. Image display aspect ratio:', (img.offsetWidth / img.offsetHeight).toFixed(3));
+                  console.log('6. Container dimensions:', img.parentElement?.offsetWidth, 'x', img.parentElement?.offsetHeight);
+                  console.log('=== END PREVIEW DEBUG ===');
+                }}
               />
             </div>
           )}

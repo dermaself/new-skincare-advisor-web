@@ -130,31 +130,8 @@ export default function RoutineProductCard({
 
   // Helper function to get product image from different data formats
   const getProductImage = (product: any): string => {
-<<<<<<< Updated upstream
-    console.log('🔍 Product data structure:', product)
-    
-    // For routine products with Shopify ID but no image data, fetch from API
-    if (product.shopifyProductId) {
-      // Check cache first
-      if (imageCache[product.shopifyProductId]) {
-        console.log('✅ Using cached Shopify image:', imageCache[product.shopifyProductId]);
-        return imageCache[product.shopifyProductId];
-      }
-      
-      // Trigger async fetch (this will update the component when done)
-      fetchProductImageFromShopify(product.shopifyProductId).then(imageUrl => {
-        if (imageUrl) {
-          // The cache is already updated in fetchProductImageFromShopify
-          // This will trigger a re-render
-          console.log('🔄 Image fetched, component will re-render');
-        }
-      }).catch(error => {
-        console.error('Failed to fetch product image:', error);
-      });
-=======
     try {
       console.log('🔍 Product data structure:', product)
->>>>>>> Stashed changes
       
       // Safety check
       if (!product) {
@@ -164,6 +141,12 @@ export default function RoutineProductCard({
       
       // For routine products with Shopify ID but no image data, fetch from API
       if (product.shopifyProductId) {
+        // Check cache first
+        if (imageCache[product.shopifyProductId]) {
+          console.log('✅ Using cached Shopify image:', imageCache[product.shopifyProductId]);
+          return imageCache[product.shopifyProductId];
+        }
+        
         // Trigger async fetch (this will update the component when done)
         fetchProductImageFromShopify(product.shopifyProductId).then(imageUrl => {
           if (imageUrl) {
@@ -183,7 +166,7 @@ export default function RoutineProductCard({
       }
       
       // Fallback to placeholder
-      console.log('⚠️ Using placeholder image for product:', product.title || product.name || 'Unknown');
+      console.log('⚠️ Using placeholder image for product:', product.title || (product as any).name || 'Unknown');
       return 'https://via.placeholder.com/300x300/f0f0f0/999999?text=Product+Image';
     } catch (error) {
       console.error('Error in getProductImage:', error);

@@ -131,6 +131,22 @@ export default function ResultsStep({
         console.log('Number of products fetched:', shopifyProducts.length);
         console.log('Fetched products:', shopifyProducts);
         
+        // Debug: Show all variant IDs from fetched products
+        const allFetchedVariantIds = shopifyProducts.flatMap(p => p.variants.map(v => v.id));
+        console.log('All fetched variant IDs:', allFetchedVariantIds);
+        console.log('Requested variant IDs:', allVariantIds);
+        console.log('Variant ID types - requested:', allVariantIds.map(id => typeof id));
+        console.log('Variant ID types - fetched:', allFetchedVariantIds.map(id => typeof id));
+        
+        // Test matching
+        const matchingIds = allVariantIds.filter(requestedId => 
+          allFetchedVariantIds.some(fetchedId => 
+            requestedId.toString() === fetchedId.toString()
+          )
+        );
+        console.log('Matching variant IDs found:', matchingIds);
+        console.log('Number of matches:', matchingIds.length, 'out of', allVariantIds.length);
+        
         // Build routine steps with fetched products
         let globalStepNumber = 1;
         const steps: any[] = [];
@@ -143,8 +159,19 @@ export default function ResultsStep({
             
             // Find main product
             const mainProductVariantId = module.main_product?.shopify_product_id;
+            console.log('Looking for variant ID:', mainProductVariantId, 'type:', typeof mainProductVariantId);
+            
             const mainProduct = mainProductVariantId 
-              ? shopifyProducts.find(p => p.variants.some(v => v.id === mainProductVariantId))
+              ? shopifyProducts.find(p => {
+                  const found = p.variants.some(v => {
+                    console.log('Comparing:', v.id, 'with', mainProductVariantId, 'types:', typeof v.id, typeof mainProductVariantId);
+                    return v.id.toString() === mainProductVariantId.toString();
+                  });
+                  if (found) {
+                    console.log('✅ Found matching product:', p.title);
+                  }
+                  return found;
+                })
               : null;
 
             console.log('Found main product:', mainProduct);
@@ -157,11 +184,15 @@ export default function ResultsStep({
             if (module.alternative_products) {
               module.alternative_products.forEach((altProduct: any) => {
                 if (altProduct.shopify_product_id) {
+                  console.log('Looking for alternative variant ID:', altProduct.shopify_product_id);
                   const altShopifyProduct = shopifyProducts.find(p => 
-                    p.variants.some(v => v.id === altProduct.shopify_product_id)
+                    p.variants.some(v => v.id.toString() === altProduct.shopify_product_id.toString())
                   );
                   if (altShopifyProduct) {
+                    console.log('✅ Found alternative product:', altShopifyProduct.title);
                     alternativeProducts.push(altShopifyProduct);
+                  } else {
+                    console.log('❌ Alternative product not found for variant:', altProduct.shopify_product_id);
                   }
                 }
               });

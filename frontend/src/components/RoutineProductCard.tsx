@@ -50,9 +50,30 @@ export default function RoutineProductCard({
   showAddAllButton = false,
   onAddAllToCart 
 }: RoutineProductCardProps) {
+  
+  // Early return if product is invalid
+  if (!product) {
+    console.error('RoutineProductCard: Product is undefined');
+    return (
+      <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+        <p className="text-red-600">Error: Product data is missing</p>
+      </div>
+    );
+  }
+
+  // Ensure variants array exists and has at least one item
+  const safeVariants = product.variants && Array.isArray(product.variants) && product.variants.length > 0 
+    ? product.variants 
+    : [{
+        id: 'default',
+        title: 'Default',
+        price: '0',
+        inventory_quantity: 1
+      }];
+
   const { addToCart, removeFromCart, isProductInCart, getCartItemLineId, state, showCartSuccessModal } = useCart();
   const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(
-    product.variants[0] || null
+    safeVariants[0] || null
   );
   const [quantity, setQuantity] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
@@ -109,6 +130,7 @@ export default function RoutineProductCard({
 
   // Helper function to get product image from different data formats
   const getProductImage = (product: any): string => {
+<<<<<<< Updated upstream
     console.log('🔍 Product data structure:', product)
     
     // For routine products with Shopify ID but no image data, fetch from API
@@ -129,15 +151,44 @@ export default function RoutineProductCard({
       }).catch(error => {
         console.error('Failed to fetch product image:', error);
       });
+=======
+    try {
+      console.log('🔍 Product data structure:', product)
+>>>>>>> Stashed changes
       
-      console.log('🔄 Fetching image for product with Shopify ID:', product.shopifyProductId);
-      // Return placeholder while fetching
-      return 'https://via.placeholder.com/300x300/f0f0f0/999999?text=Loading...';
+      // Safety check
+      if (!product) {
+        console.error('getProductImage: Product is null or undefined');
+        return 'https://via.placeholder.com/300x300/f0f0f0/999999?text=No+Product';
+      }
+      
+      // For routine products with Shopify ID but no image data, fetch from API
+      if (product.shopifyProductId) {
+        // Trigger async fetch (this will update the component when done)
+        fetchProductImageFromShopify(product.shopifyProductId).then(imageUrl => {
+          if (imageUrl) {
+            // Force re-render by updating a state that will trigger image refresh
+            setImageCache(prev => ({
+              ...prev,
+              [product.shopifyProductId]: imageUrl
+            }));
+          }
+        }).catch(error => {
+          console.error('Error fetching product image:', error);
+        });
+        
+        console.log('🔄 Fetching image for product with Shopify ID:', product.shopifyProductId);
+        // Return placeholder while fetching
+        return 'https://via.placeholder.com/300x300/f0f0f0/999999?text=Loading...';
+      }
+      
+      // Fallback to placeholder
+      console.log('⚠️ Using placeholder image for product:', product.title || product.name || 'Unknown');
+      return 'https://via.placeholder.com/300x300/f0f0f0/999999?text=Product+Image';
+    } catch (error) {
+      console.error('Error in getProductImage:', error);
+      return 'https://via.placeholder.com/300x300/f0f0f0/999999?text=Error';
     }
-    
-    // Fallback to placeholder
-    console.log('⚠️ Using placeholder image for product:', product.title || product.name);
-    return 'https://via.placeholder.com/300x300/f0f0f0/999999?text=Product+Image';
   };
 
   // Check if product is in cart
@@ -151,7 +202,12 @@ export default function RoutineProductCard({
   }, [state.cart]);
 
   const handleAddToCart = async () => {
-    if (!selectedVariant || !variantId) return;
+    if (!selectedVariant || !variantId) {
+      console.error('Cannot add to cart: missing variant or variantId');
+      setErrorMessage('Product variant not available');
+      setShowError(true);
+      return;
+    }
 
     setIsLoading(true);
     setShowSuccess(false);
@@ -181,9 +237,9 @@ export default function RoutineProductCard({
       
       // Prepare product info for the modal
       const productInfo = {
-        name: product.title,
+        name: product.title || (product as any).name || 'Unknown Product',
         image: getProductImage(product),
-        price: parseFloat(selectedVariant.price) * 100 // Convert to cents
+        price: parseFloat(selectedVariant.price || '0') * 100 // Convert to cents
       };
       
       await addToCart(variantId, quantity, customAttributes, productInfo);
@@ -249,7 +305,9 @@ export default function RoutineProductCard({
   };
 
   // Extract tags from product tags string
-  const productTags = product.tags ? product.tags.split(',').map(tag => tag.trim()).filter(tag => tag) : [];
+  const productTags = (product.tags && typeof product.tags === 'string') 
+    ? product.tags.split(',').map(tag => tag.trim()).filter(tag => tag) 
+    : [];
   
   // Get tag colors based on tag content
   const getTagColor = (tag: string) => {
@@ -295,7 +353,7 @@ export default function RoutineProductCard({
         {/* Product Info */}
         <div className="product-info__tablet">
           <h2 className="heading-3 product-name">
-            {product.vendor} {product.title}
+            {product.vendor || 'Unknown Brand'} {product.title || 'Unknown Product'}
           </h2>
           
           {/* Tags */}

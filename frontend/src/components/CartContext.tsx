@@ -1,6 +1,8 @@
 'use client';
 
 import React, { createContext, useContext, useReducer, useEffect, useState, ReactNode } from 'react';
+import CartToast from './CartToast';
+import BottomToolbar from './BottomToolbar';
 
 // Types
 export interface CartItem {
@@ -47,12 +49,12 @@ interface CartState {
   cart: Cart | null;
   loading: boolean;
   error: string | null;
-  showCartSuccessModal: boolean;
-  lastAddedProducts: Array<{
+  showCartToast: boolean;
+  lastAddedProduct: {
     name: string;
     image: string;
     price: number;
-  }>;
+  } | null;
   showGlobalLoading: boolean;
 }
 
@@ -61,8 +63,8 @@ type CartAction =
   | { type: 'SET_LOADING'; payload: boolean }
   | { type: 'SET_ERROR'; payload: string | null }
   | { type: 'CLEAR_CART' }
-  | { type: 'SHOW_CART_SUCCESS_MODAL'; payload: Array<{name: string; image: string; price: number}> }
-  | { type: 'HIDE_CART_SUCCESS_MODAL' }
+  | { type: 'SHOW_CART_TOAST'; payload: {name: string; image: string; price: number} }
+  | { type: 'HIDE_CART_TOAST' }
   | { type: 'SHOW_GLOBAL_LOADING' }
   | { type: 'HIDE_GLOBAL_LOADING' };
 
@@ -71,8 +73,8 @@ const initialState: CartState = {
   cart: null,
   loading: false,
   error: null,
-  showCartSuccessModal: false,
-  lastAddedProducts: [],
+  showCartToast: false,
+  lastAddedProduct: null,
   showGlobalLoading: false,
 };
 
@@ -102,17 +104,17 @@ function cartReducer(state: CartState, action: CartAction): CartState {
         cart: null,
         error: null,
       };
-    case 'SHOW_CART_SUCCESS_MODAL':
+    case 'SHOW_CART_TOAST':
       return {
         ...state,
-        showCartSuccessModal: true,
-        lastAddedProducts: action.payload,
+        showCartToast: true,
+        lastAddedProduct: action.payload,
       };
-    case 'HIDE_CART_SUCCESS_MODAL':
+    case 'HIDE_CART_TOAST':
       return {
         ...state,
-        showCartSuccessModal: false,
-        lastAddedProducts: [],
+        showCartToast: false,
+        lastAddedProduct: null,
       };
     case 'SHOW_GLOBAL_LOADING':
       return {
@@ -140,8 +142,8 @@ interface CartContextType {
   isProductInCart: (variantId: string) => boolean;
   getCartItemLineId: (variantId: string) => string | null;
   refreshCart: () => Promise<void>;
-  showCartSuccessModal: (products: Array<{name: string; image: string; price: number}>) => void;
-  hideCartSuccessModal: () => void;
+  showCartToast: (product: {name: string; image: string; price: number}) => void;
+  hideCartToast: () => void;
   proceedToCheckout: () => void;
   showGlobalLoading: () => void;
   hideGlobalLoading: () => void;
@@ -255,26 +257,29 @@ export function CartProvider({ children }: CartProviderProps) {
           console.log('Cart lines count:', transformedCart.lines.length);
           dispatch({ type: 'SET_CART', payload: transformedCart });
           
-          // Only show cart success modal for CART_UPDATE_SUCCESS (not CART_INITIAL_STATE)
+          // Only show cart toast for CART_UPDATE_SUCCESS (not CART_INITIAL_STATE)
           // and only if we have specific added products info
           if (event.data.type === 'CART_UPDATE_SUCCESS' && event.data.payload.addedProducts) {
-            console.log('Showing cart success modal for added products:', event.data.payload.addedProducts);
-            // Prevent multiple popups by checking if we've shown a modal recently
+            console.log('Showing cart toast for added products:', event.data.payload.addedProducts);
+            // Prevent multiple toasts by checking if we've shown a toast recently
             const now = Date.now();
             if (now - lastSuccessModalTime > 2000) { // 2 second cooldown
               // Use the product info from the message if available
-              const addedProducts = event.data.payload.addedProducts.map((product: any) => ({
-                name: product.name || product.title || product.product_title || 'Product',
-                image: product.image || '/placeholder-product.png',
-                price: product.price || product.final_price || 0
-              }));
-              dispatch({ type: 'SHOW_CART_SUCCESS_MODAL', payload: addedProducts });
-              setLastSuccessModalTime(now);
+              const addedProduct = event.data.payload.addedProducts[0]; // Show only first product
+              if (addedProduct) {
+                const productInfo = {
+                  name: addedProduct.name || addedProduct.title || addedProduct.product_title || 'Product',
+                  image: addedProduct.image || '/placeholder-product.png',
+                  price: addedProduct.price || addedProduct.final_price || 0
+                };
+                dispatch({ type: 'SHOW_CART_TOAST', payload: productInfo });
+                setLastSuccessModalTime(now);
+              }
             } else {
-              console.log('Skipping success modal - too soon since last one');
+              console.log('Skipping success toast - too soon since last one');
             }
           } else {
-            console.log('Not showing success modal - type:', event.data.type, 'has addedProducts:', !!event.data.payload.addedProducts);
+            console.log('Not showing success toast - type:', event.data.type, 'has addedProducts:', !!event.data.payload.addedProducts);
           }
           // Remove the fallback that shows all cart items - we only want to show newly added products
         } else {
@@ -340,20 +345,23 @@ export function CartProvider({ children }: CartProviderProps) {
         const routineData = event.data.payload;
         console.log('Routine added to cart:', routineData);
         
-        // Show cart success modal for the added routine products
+        // Show cart toast for the added routine products
         if (routineData && routineData.products) {
-          // Prevent multiple popups by checking if we've shown a modal recently
+          // Prevent multiple toasts by checking if we've shown a toast recently
           const now = Date.now();
           if (now - lastSuccessModalTime > 2000) { // 2 second cooldown
-            const addedProducts = routineData.products.map((product: any) => ({
-              name: product.name || product.title || product.product_title || 'Product',
-              image: product.image || '/placeholder-product.png',
-              price: product.price || product.final_price || 0
-            }));
-            dispatch({ type: 'SHOW_CART_SUCCESS_MODAL', payload: addedProducts });
-            setLastSuccessModalTime(now);
+            const addedProduct = routineData.products[0]; // Show only first product
+            if (addedProduct) {
+              const productInfo = {
+                name: addedProduct.name || addedProduct.title || addedProduct.product_title || 'Product',
+                image: addedProduct.image || '/placeholder-product.png',
+                price: addedProduct.price || addedProduct.final_price || 0
+              };
+              dispatch({ type: 'SHOW_CART_TOAST', payload: productInfo });
+              setLastSuccessModalTime(now);
+            }
           } else {
-            console.log('Skipping routine success modal - too soon since last one');
+            console.log('Skipping routine success toast - too soon since last one');
           }
         }
       } else {
@@ -493,7 +501,7 @@ export function CartProvider({ children }: CartProviderProps) {
             type: 'SHOPIFY_GET_CART'
           }, '*');
           
-          // Show success modal immediately for Shopify environments
+          // Show success toast immediately for Shopify environments
           // Use provided product info if available, otherwise show generic message
           const now = Date.now();
           if (now - lastSuccessModalTime > 2000) { // 2 second cooldown
@@ -502,7 +510,7 @@ export function CartProvider({ children }: CartProviderProps) {
               image: '/placeholder-product.png',
               price: 0
             };
-            dispatch({ type: 'SHOW_CART_SUCCESS_MODAL', payload: [addedProduct] });
+            dispatch({ type: 'SHOW_CART_TOAST', payload: addedProduct });
             setLastSuccessModalTime(now);
           }
           return;
@@ -582,7 +590,7 @@ export function CartProvider({ children }: CartProviderProps) {
 
         dispatch({ type: 'SET_CART', payload: transformedCart });
         
-        // Show success modal with the added product info (for all environments)
+        // Show success toast with the added product info (for all environments)
         // Use provided product info if available, otherwise extract from cart data
         const now = Date.now();
         if (now - lastSuccessModalTime > 2000) { // 2 second cooldown
@@ -591,7 +599,7 @@ export function CartProvider({ children }: CartProviderProps) {
             image: data.cart.lines.edges[data.cart.lines.edges.length - 1]?.node.merchandise.product.images.edges[0]?.node.url || '/placeholder-product.png',
             price: parseFloat(data.cart.lines.edges[data.cart.lines.edges.length - 1]?.node.merchandise.price.amount || '0') * 100
           };
-          dispatch({ type: 'SHOW_CART_SUCCESS_MODAL', payload: [addedProduct] });
+          dispatch({ type: 'SHOW_CART_TOAST', payload: addedProduct });
           setLastSuccessModalTime(now);
         }
       } else {
@@ -888,17 +896,17 @@ export function CartProvider({ children }: CartProviderProps) {
     dispatch({ type: 'CLEAR_CART' });
   };
 
-  const showCartSuccessModal = (products: Array<{name: string; image: string; price: number}>) => {
-    dispatch({ type: 'SHOW_CART_SUCCESS_MODAL', payload: products });
+  const showCartToast = (product: {name: string; image: string; price: number}) => {
+    dispatch({ type: 'SHOW_CART_TOAST', payload: product });
   };
 
-  const hideCartSuccessModal = () => {
-    dispatch({ type: 'HIDE_CART_SUCCESS_MODAL' });
+  const hideCartToast = () => {
+    dispatch({ type: 'HIDE_CART_TOAST' });
   };
 
   const proceedToCheckout = async () => {
-    // Hide the modal first
-    dispatch({ type: 'HIDE_CART_SUCCESS_MODAL' });
+    // Hide the toast first
+    dispatch({ type: 'HIDE_CART_TOAST' });
     
     // Set loading state for checkout
     dispatch({ type: 'SET_LOADING', payload: true });
@@ -1017,8 +1025,8 @@ export function CartProvider({ children }: CartProviderProps) {
     isProductInCart,
     getCartItemLineId,
     refreshCart,
-    showCartSuccessModal,
-    hideCartSuccessModal,
+    showCartToast,
+    hideCartToast,
     proceedToCheckout,
     showGlobalLoading,
     hideGlobalLoading,
@@ -1027,6 +1035,40 @@ export function CartProvider({ children }: CartProviderProps) {
   return (
     <CartContext.Provider value={value}>
       {children}
+      
+      {/* Cart Toast */}
+      {state.showCartToast && state.lastAddedProduct && (
+        <CartToast
+          isVisible={state.showCartToast}
+          onClose={hideCartToast}
+          onGoToCart={() => {
+            hideCartToast();
+            // Navigate to cart page
+            if (typeof window !== 'undefined') {
+              const shopifyDomain = getShopifyDomain();
+              const cartUrl = `${shopifyDomain}/cart`;
+              if (window.parent !== window) {
+                window.parent.location.href = cartUrl;
+              } else {
+                window.location.href = cartUrl;
+              }
+            }
+          }}
+          productName={state.lastAddedProduct.name}
+          cartItemCount={state.cart?.lines.reduce((total, line) => total + line.quantity, 0) || 0}
+        />
+      )}
+
+      {/* Bottom Toolbar */}
+      {state.cart && state.cart.lines.length > 0 && (
+        <BottomToolbar
+          isVisible={true}
+          onProceedToCheckout={proceedToCheckout}
+          cartItemCount={state.cart.lines.reduce((total, line) => total + line.quantity, 0)}
+          totalAmount={parseFloat(state.cart.cost.totalAmount.amount) * 100}
+          currencyCode={state.cart.cost.totalAmount.currencyCode}
+        />
+      )}
       
       {/* Global Loading Overlay */}
       {state.showGlobalLoading && (

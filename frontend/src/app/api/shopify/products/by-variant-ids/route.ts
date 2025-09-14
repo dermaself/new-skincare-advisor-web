@@ -28,37 +28,39 @@ export async function POST(request: NextRequest) {
     const stringVariantIds = variantIds.map(id => id.toString());
     console.log('🔍 Converted to strings:', stringVariantIds);
 
-    // Instead of fetching by variant ID directly, fetch products and filter by variant
-    // This is more reliable since Storefront API doesn't have a direct productVariant query
+    // Convert numeric variant IDs to Shopify GraphQL format
+    const graphqlVariantIds = stringVariantIds.map(id => `gid://shopify/ProductVariant/${id}`);
+    console.log('🔍 GraphQL variant IDs:', graphqlVariantIds.slice(0, 3)); // Show first 3
+
+    // Query specific variants directly using Shopify's GraphQL API
     const query = `
-      query getProducts {
-        products(first: 50) {
-          edges {
-            node {
+      query getVariants($ids: [ID!]!) {
+        nodes(ids: $ids) {
+          ... on ProductVariant {
+            id
+            title
+            price {
+              amount
+              currencyCode
+            }
+            availableForSale
+            sku
+            image {
+              src
+              altText
+            }
+            product {
               id
               title
               vendor
-              description
               productType
               tags
-              images(first: 5) {
+              description
+              images(first: 1) {
                 edges {
                   node {
-                    url
+                    src
                     altText
-                  }
-                }
-              }
-              variants(first: 10) {
-                edges {
-                  node {
-                    id
-                    title
-                    price {
-                      amount
-                      currencyCode
-                    }
-                    availableForSale
                   }
                 }
               }
@@ -68,7 +70,7 @@ export async function POST(request: NextRequest) {
       }
     `;
 
-    console.log('🔍 Fetching all products to filter by variant IDs...');
+    console.log('🔍 Fetching specific variants directly from Shopify...');
 
     const response = await fetch(`https://${SHOPIFY_DOMAIN}/api/2024-01/graphql.json`, {
       method: 'POST',
@@ -76,7 +78,10 @@ export async function POST(request: NextRequest) {
         'X-Shopify-Storefront-Access-Token': SHOPIFY_STOREFRONT_ACCESS_TOKEN,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ query }),
+      body: JSON.stringify({ 
+        query,
+        variables: { ids: graphqlVariantIds }
+      }),
     });
 
     console.log(`📡 Response status: ${response.status}`);
@@ -109,36 +114,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const allProducts = data.data?.products?.edges || [];
-    console.log(`📦 Found ${allProducts.length} total products`);
-    
-    // Debug: Show all available variant IDs in the store
-    const allAvailableVariantIds = allProducts.flatMap((productEdge: any) => 
-      productEdge.node.variants.edges.map((variantEdge: any) => variantEdge.node.id.split('/').pop())
-    );
-    console.log('All available variant IDs in store:', allAvailableVariantIds.slice(0, 10)); // Show first 10
-    console.log('Total available variants:', allAvailableVariantIds.length);
-
-    // Find products that contain any of the requested variant IDs
-    const matchingProducts = allProducts.filter((productEdge: any) => {
-      const product = productEdge.node;
-      const hasMatchingVariant = product.variants.edges.some((variantEdge: any) => {
-        const variantId = variantEdge.node.id.split('/').pop(); // Extract numeric ID
-        const isMatch = stringVariantIds.includes(variantId);
-        if (isMatch) {
-          console.log(`✅ Found matching variant ${variantId} in product: ${product.title}`);
-        }
-        return isMatch;
-      });
-      return hasMatchingVariant;
-    });
-
-    console.log(`🔍 Found ${matchingProducts.length} products matching variant IDs`);
+    const variants = data.data?.nodes || [];
+    console.log(`📦 Found ${variants.length} variants directly from Shopify`);
     
     // Debug: Show which variant IDs were found vs requested
-    const foundVariantIds = matchingProducts.flatMap((productEdge: any) => 
-      productEdge.node.variants.edges.map((variantEdge: any) => variantEdge.node.id.split('/').pop())
-    );
+    const foundVariantIds = variants.map((variant: any) => variant.id.split('/').pop());
     console.log('Found variant IDs:', foundVariantIds);
     console.log('Requested variant IDs:', stringVariantIds);
     const missingIds = stringVariantIds.filter(id => !foundVariantIds.includes(id));
@@ -146,9 +126,9 @@ export async function POST(request: NextRequest) {
       console.log('Missing variant IDs:', missingIds.slice(0, 5)); // Show first 5
     }
 
-    // Transform the matching products to our expected format
-    const transformedProducts = matchingProducts.map((productEdge: any) => {
-      const product = productEdge.node;
+    // Transform the variants to our expected product format
+    const transformedProducts = variants.map((variant: any) => {
+      const product = variant.product;
       
       return {
         id: product.id.split('/').pop() || product.id,
@@ -156,27 +136,17 @@ export async function POST(request: NextRequest) {
         vendor: product.vendor,
         product_type: product.productType || 'Skincare',
         tags: product.tags.join(', '),
-        variants: product.variants.edges.map((variantEdge: any) => {
-          const variantNode = variantEdge.node;
-          return {
-            id: variantNode.id.split('/').pop() || variantNode.id,
-            title: variantNode.title,
-            price: variantNode.price.amount,
-            inventory_quantity: variantNode.availableForSale ? 1 : 0
-          };
-        }),
-        images: product.images.edges.map((imageEdge: any, index: number) => {
-          const imageNode = imageEdge.node;
-          let imageUrl = imageNode.url;
-          if (imageUrl && !imageUrl.startsWith('http')) {
-            imageUrl = `https:${imageUrl}`;
-          }
-          return {
-            id: index + 1,
-            src: imageUrl,
-            alt: imageNode.altText || product.title
-          };
-        }),
+        variants: [{
+          id: variant.id.split('/').pop() || variant.id,
+          title: variant.title,
+          price: variant.price.amount,
+          inventory_quantity: variant.availableForSale ? 1 : 0
+        }],
+        images: [{
+          id: 1,
+          src: variant.image?.src || product.images.edges[0]?.node.src || 'https://via.placeholder.com/300x300/f0f0f0/999999?text=Product+Image',
+          alt: variant.image?.altText || product.images.edges[0]?.node.altText || product.title
+        }],
         body_html: product.description || '',
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
@@ -191,8 +161,8 @@ export async function POST(request: NextRequest) {
       total: transformedProducts.length,
       debug: {
         requestedVariantIds: stringVariantIds.length,
-        totalProducts: allProducts.length,
-        matchingProducts: transformedProducts.length
+        foundVariants: variants.length,
+        transformedProducts: transformedProducts.length
       }
     });
 

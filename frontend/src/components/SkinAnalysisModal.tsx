@@ -231,41 +231,7 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
       setAnalysisData(analysisResult);
       setRecommendationSource('ai');
       
-      // Process skincare routine data
-      if (analysisResult.recommendations?.skincare_routine) {
-        console.log('Processing skincare routine:', analysisResult.recommendations.skincare_routine);
-        
-        const processedRoutine = {
-          essential: analysisResult.recommendations.skincare_routine.map((category: any) => ({
-            step: category.category.toLowerCase().replace(/\s+/g, '-'),
-            title: category.category,
-            products: category.modules.map((module: any) => ({
-              id: module.main_product.product_id,
-              shopifyProductId: module.main_product.shopify_product_id,
-              title: module.main_product.product_name,
-              vendor: module.main_product.brand,
-              product_type: module.module,
-              tags: `${category.category},${module.module}`,
-              alternative_products: module.alternative_products,
-              images: [{
-                id: 1,
-                src: module.main_product.image_url || '',
-                alt: module.main_product.product_name
-              }],
-              body_html: module.main_product.info || 'Product description not available',
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString()
-            }))
-          })),
-          expert: [], // For now, same as essential
-          addons: []
-        };
-        
-        console.log('Processed routine:', processedRoutine);
-        setRoutine(processedRoutine);
-      } else {
-        console.log('No skincare routine found in recommendations:', analysisResult.recommendations);
-      }
+      // This ensures we always get updated product information
       
       setCurrentStep('results');
     } catch (error) {

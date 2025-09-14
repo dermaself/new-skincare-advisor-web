@@ -5,10 +5,10 @@ const SHOPIFY_STOREFRONT_ACCESS_TOKEN = process.env.SHOPIFY_STOREFRONT_ACCESS_TO
 
 export async function GET(
   request: NextRequest,
-  context: { params: Promise<{ productId: string }> }
+  { params }: { params: { productId: string } }
 ) {
   try {
-    const { productId } = await context.params;
+    const { productId } = params;
 
     if (!SHOPIFY_DOMAIN || !SHOPIFY_STOREFRONT_ACCESS_TOKEN) {
       console.error('Missing Shopify credentials in API route');
@@ -18,12 +18,27 @@ export async function GET(
       );
     }
 
-    // Convert product ID to Shopify GraphQL format
-    const graphqlProductId = productId.startsWith('gid://') 
-      ? productId 
-      : `gid://shopify/Product/${productId}`;
+    // Handle different product ID formats
+    let graphqlProductId: string;
+    
+    if (productId.startsWith('gid://')) {
+      // Already in GraphQL format
+      graphqlProductId = productId;
+    } else {
+      // Convert numeric ID to GraphQL format
+      // Remove any non-numeric characters and ensure it's a valid number
+      const numericId = productId.toString().replace(/[^\d]/g, '');
+      if (!numericId || isNaN(Number(numericId))) {
+        console.error('Invalid product ID format:', productId);
+        return NextResponse.json(
+          { error: 'Invalid product ID format' },
+          { status: 400 }
+        );
+      }
+      graphqlProductId = `gid://shopify/Product/${numericId}`;
+    }
 
-    console.log('🛍️ Fetching product for ID:', graphqlProductId);
+    console.log('🛍️ Fetching product for ID:', graphqlProductId, 'from original:', productId);
 
     const query = `
       query getProduct($productId: ID!) {

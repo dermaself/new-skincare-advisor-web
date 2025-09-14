@@ -85,25 +85,40 @@ export default function RoutineProductCard({
   const [imageCache, setImageCache] = useState<Record<string, string>>({});
 
   // Function to fetch product image from Shopify API
-  const fetchProductImageFromShopify = async (shopifyProductId: string): Promise<string | null> => {
+  const fetchProductImageFromShopify = async (shopifyProductId: string | number): Promise<string | null> => {
     try {
       // Check cache first
-      if (imageCache[shopifyProductId]) {
-        return imageCache[shopifyProductId];
+      const cacheKey = shopifyProductId.toString();
+      if (imageCache[cacheKey]) {
+        return imageCache[cacheKey];
       }
 
       console.log('🔄 Fetching product image from Shopify API for:', shopifyProductId);
       
-      // Extract the numeric ID from the GraphQL ID
-      const numericId = shopifyProductId.split('/').pop();
-      if (!numericId) {
-        throw new Error('Invalid shopify product ID format');
+      // Convert to string and handle both numeric and GraphQL ID formats
+      let productIdForApi: string;
+      
+      if (typeof shopifyProductId === 'number') {
+        productIdForApi = shopifyProductId.toString();
+      } else if (typeof shopifyProductId === 'string') {
+        if (shopifyProductId.startsWith('gid://')) {
+          // Extract numeric ID from GraphQL ID
+          productIdForApi = shopifyProductId.split('/').pop() || shopifyProductId;
+        } else {
+          productIdForApi = shopifyProductId;
+        }
+      } else {
+        throw new Error('Invalid shopify product ID type');
       }
 
-      const response = await fetch(`/api/shopify/products/${numericId}`);
+      console.log('🔄 Using product ID for API call:', productIdForApi);
+
+      const response = await fetch(`/api/shopify/products/${productIdForApi}`);
       
       if (!response.ok) {
-        throw new Error(`Failed to fetch product: ${response.status}`);
+        const errorText = await response.text();
+        console.error('API response error:', response.status, errorText);
+        throw new Error(`Failed to fetch product: ${response.status} - ${errorText}`);
       }
 
       const data = await response.json();
@@ -111,16 +126,17 @@ export default function RoutineProductCard({
       if (data.success && data.product && data.product.images && data.product.images.length > 0) {
         const imageUrl = data.product.images[0].src;
         
-        // Cache the result
+        // Cache the result using string key
         setImageCache(prev => ({
           ...prev,
-          [shopifyProductId]: imageUrl
+          [cacheKey]: imageUrl
         }));
         
         console.log('✅ Fetched product image from Shopify:', imageUrl);
         return imageUrl;
       }
       
+      console.warn('No image found in product data:', data);
       throw new Error('No image found in product data');
     } catch (error) {
       console.error('❌ Failed to fetch product image from Shopify:', error);
@@ -141,10 +157,11 @@ export default function RoutineProductCard({
       
       // For routine products with Shopify ID but no image data, fetch from API
       if (product.shopifyProductId) {
-        // Check cache first
-        if (imageCache[product.shopifyProductId]) {
-          console.log('✅ Using cached Shopify image:', imageCache[product.shopifyProductId]);
-          return imageCache[product.shopifyProductId];
+        // Check cache first using string key
+        const cacheKey = product.shopifyProductId.toString();
+        if (imageCache[cacheKey]) {
+          console.log('✅ Using cached Shopify image:', imageCache[cacheKey]);
+          return imageCache[cacheKey];
         }
         
         // Trigger async fetch (this will update the component when done)
@@ -153,7 +170,7 @@ export default function RoutineProductCard({
             // Force re-render by updating a state that will trigger image refresh
             setImageCache(prev => ({
               ...prev,
-              [product.shopifyProductId]: imageUrl
+              [cacheKey]: imageUrl
             }));
           }
         }).catch(error => {

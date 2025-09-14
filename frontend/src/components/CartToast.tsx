@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle, X, ShoppingBag } from 'lucide-react';
 
@@ -19,6 +19,25 @@ export default function CartToast({
   productName,
   cartItemCount
 }: CartToastProps) {
+  const toastRef = useRef<HTMLDivElement>(null);
+
+  // Handle click outside to close
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (toastRef.current && !toastRef.current.contains(event.target as Node)) {
+        onClose();
+      }
+    };
+
+    if (isVisible) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isVisible, onClose]);
+
   if (!isVisible) return null;
 
   return (
@@ -29,6 +48,7 @@ export default function CartToast({
         exit={{ y: -100, opacity: 0 }}
         transition={{ type: 'spring', damping: 25, stiffness: 300 }}
         className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 w-full max-w-md mx-4"
+        ref={toastRef}
       >
         <div className="bg-white rounded-lg shadow-lg border border-gray-200 p-4">
           {/* Header with close button */}

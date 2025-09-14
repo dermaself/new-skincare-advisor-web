@@ -56,6 +56,7 @@ interface CartState {
     price: number;
   } | null;
   showGlobalLoading: boolean;
+  showBottomToolbar: boolean;
 }
 
 type CartAction =
@@ -65,6 +66,8 @@ type CartAction =
   | { type: 'CLEAR_CART' }
   | { type: 'SHOW_CART_TOAST'; payload: {name: string; image: string; price: number} }
   | { type: 'HIDE_CART_TOAST' }
+  | { type: 'SHOW_BOTTOM_TOOLBAR' }
+  | { type: 'HIDE_BOTTOM_TOOLBAR' }
   | { type: 'SHOW_GLOBAL_LOADING' }
   | { type: 'HIDE_GLOBAL_LOADING' };
 
@@ -76,6 +79,7 @@ const initialState: CartState = {
   showCartToast: false,
   lastAddedProduct: null,
   showGlobalLoading: false,
+  showBottomToolbar: false,
 };
 
 // Reducer
@@ -103,6 +107,7 @@ function cartReducer(state: CartState, action: CartAction): CartState {
         ...state,
         cart: null,
         error: null,
+        showBottomToolbar: false,
       };
     case 'SHOW_CART_TOAST':
       return {
@@ -115,6 +120,16 @@ function cartReducer(state: CartState, action: CartAction): CartState {
         ...state,
         showCartToast: false,
         lastAddedProduct: null,
+      };
+    case 'SHOW_BOTTOM_TOOLBAR':
+      return {
+        ...state,
+        showBottomToolbar: true,
+      };
+    case 'HIDE_BOTTOM_TOOLBAR':
+      return {
+        ...state,
+        showBottomToolbar: false,
       };
     case 'SHOW_GLOBAL_LOADING':
       return {
@@ -144,6 +159,8 @@ interface CartContextType {
   refreshCart: () => Promise<void>;
   showCartToast: (product: {name: string; image: string; price: number}) => void;
   hideCartToast: () => void;
+  showBottomToolbar: () => void;
+  hideBottomToolbar: () => void;
   proceedToCheckout: () => void;
   showGlobalLoading: () => void;
   hideGlobalLoading: () => void;
@@ -273,6 +290,7 @@ export function CartProvider({ children }: CartProviderProps) {
                   price: addedProduct.price || addedProduct.final_price || 0
                 };
                 dispatch({ type: 'SHOW_CART_TOAST', payload: productInfo });
+                dispatch({ type: 'SHOW_BOTTOM_TOOLBAR' });
                 setLastSuccessModalTime(now);
               }
             } else {
@@ -358,6 +376,7 @@ export function CartProvider({ children }: CartProviderProps) {
                 price: addedProduct.price || addedProduct.final_price || 0
               };
               dispatch({ type: 'SHOW_CART_TOAST', payload: productInfo });
+              dispatch({ type: 'SHOW_BOTTOM_TOOLBAR' });
               setLastSuccessModalTime(now);
             }
           } else {
@@ -511,6 +530,7 @@ export function CartProvider({ children }: CartProviderProps) {
               price: 0
             };
             dispatch({ type: 'SHOW_CART_TOAST', payload: addedProduct });
+            dispatch({ type: 'SHOW_BOTTOM_TOOLBAR' });
             setLastSuccessModalTime(now);
           }
           return;
@@ -600,6 +620,7 @@ export function CartProvider({ children }: CartProviderProps) {
             price: parseFloat(data.cart.lines.edges[data.cart.lines.edges.length - 1]?.node.merchandise.price.amount || '0') * 100
           };
           dispatch({ type: 'SHOW_CART_TOAST', payload: addedProduct });
+          dispatch({ type: 'SHOW_BOTTOM_TOOLBAR' });
           setLastSuccessModalTime(now);
         }
       } else {
@@ -904,6 +925,14 @@ export function CartProvider({ children }: CartProviderProps) {
     dispatch({ type: 'HIDE_CART_TOAST' });
   };
 
+  const showBottomToolbar = () => {
+    dispatch({ type: 'SHOW_BOTTOM_TOOLBAR' });
+  };
+
+  const hideBottomToolbar = () => {
+    dispatch({ type: 'HIDE_BOTTOM_TOOLBAR' });
+  };
+
   const proceedToCheckout = async () => {
     // Hide the toast first
     dispatch({ type: 'HIDE_CART_TOAST' });
@@ -1027,6 +1056,8 @@ export function CartProvider({ children }: CartProviderProps) {
     refreshCart,
     showCartToast,
     hideCartToast,
+    showBottomToolbar,
+    hideBottomToolbar,
     proceedToCheckout,
     showGlobalLoading,
     hideGlobalLoading,
@@ -1060,10 +1091,11 @@ export function CartProvider({ children }: CartProviderProps) {
       )}
 
       {/* Bottom Toolbar */}
-      {state.cart && state.cart.lines.length > 0 && (
+      {state.cart && state.cart.lines.length > 0 && state.showBottomToolbar && (
         <BottomToolbar
           isVisible={true}
           onProceedToCheckout={proceedToCheckout}
+          onClose={hideBottomToolbar}
           cartItemCount={state.cart.lines.reduce((total, line) => total + line.quantity, 0)}
           totalAmount={parseFloat(state.cart.cost.totalAmount.amount) * 100}
           currencyCode={state.cart.cost.totalAmount.currencyCode}

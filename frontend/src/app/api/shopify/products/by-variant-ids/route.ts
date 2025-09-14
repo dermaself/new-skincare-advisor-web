@@ -114,8 +114,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const variants = data.data?.nodes || [];
-    console.log(`📦 Found ${variants.length} variants directly from Shopify`);
+    const allNodes = data.data?.nodes || [];
+    console.log(`📦 Received ${allNodes.length} nodes from Shopify`);
+    
+    // Filter out null nodes (variants that don't exist)
+    const variants = allNodes.filter((node: any) => node !== null && node.id);
+    const nullNodes = allNodes.filter((node: any) => node === null);
+    
+    console.log(`📦 Found ${variants.length} valid variants, ${nullNodes.length} null/missing variants`);
     
     // Debug: Show which variant IDs were found vs requested
     const foundVariantIds = variants.map((variant: any) => variant.id.split('/').pop());
@@ -130,30 +136,53 @@ export async function POST(request: NextRequest) {
     const transformedProducts = variants.map((variant: any) => {
       const product = variant.product;
       
+      // Additional null checks for product data
+      if (!product || !product.id) {
+        console.warn('⚠️ Skipping variant with missing product data:', variant.id);
+        return null;
+      }
+      
       return {
         id: product.id.split('/').pop() || product.id,
-        title: product.title,
-        vendor: product.vendor,
+        title: product.title || 'Unknown Product',
+        vendor: product.vendor || 'Unknown Brand',
         product_type: product.productType || 'Skincare',
-        tags: product.tags.join(', '),
+        tags: (product.tags && Array.isArray(product.tags)) ? product.tags.join(', ') : '',
         variants: [{
           id: variant.id.split('/').pop() || variant.id,
-          title: variant.title,
-          price: variant.price.amount,
+          title: variant.title || 'Default',
+          price: variant.price?.amount || '0',
           inventory_quantity: variant.availableForSale ? 1 : 0
         }],
         images: [{
           id: 1,
-          src: variant.image?.src || product.images.edges[0]?.node.src || 'https://via.placeholder.com/300x300/f0f0f0/999999?text=Product+Image',
-          alt: variant.image?.altText || product.images.edges[0]?.node.altText || product.title
+          src: variant.image?.src || product.images?.edges?.[0]?.node?.src || 'https://via.placeholder.com/300x300/f0f0f0/999999?text=Product+Image',
+          alt: variant.image?.altText || product.images?.edges?.[0]?.node?.altText || product.title || 'Product Image'
         }],
         body_html: product.description || '',
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       };
-    });
+    }).filter((product: any) => product !== null); // Remove any null products
 
     console.log(`✅ Successfully transformed ${transformedProducts.length} products`);
+
+    // Handle case where no products were found
+    if (transformedProducts.length === 0) {
+      console.warn('⚠️ No valid products found for the requested variant IDs');
+      return NextResponse.json({
+        success: true,
+        products: [],
+        total: 0,
+        debug: {
+          requestedVariantIds: stringVariantIds.length,
+          foundVariants: variants.length,
+          nullVariants: nullNodes.length,
+          transformedProducts: 0,
+          message: 'No valid products found for the requested variant IDs'
+        }
+      });
+    }
 
     return NextResponse.json({
       success: true,
@@ -162,6 +191,7 @@ export async function POST(request: NextRequest) {
       debug: {
         requestedVariantIds: stringVariantIds.length,
         foundVariants: variants.length,
+        nullVariants: nullNodes.length,
         transformedProducts: transformedProducts.length
       }
     });

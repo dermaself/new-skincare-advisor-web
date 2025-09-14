@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Eye, EyeOff, Info, AlertTriangle, ChevronLeft, ChevronRight, Zap } from 'lucide-react';
 
@@ -101,6 +101,24 @@ const getWrinkleColor = (className: string) => {
   return WRINKLES_COLORS[className as keyof typeof WRINKLES_COLORS] || '#ffffff';
 };
 
+const getAcneColor = (className: string) => {
+  return ACNE_COLORS[className as keyof typeof ACNE_COLORS] || '#FF6B6B';
+};
+
+// Helper function to determine text color based on background color
+const getTextColor = (backgroundColor: string) => {
+  // Convert hex to RGB
+  const hex = backgroundColor.replace('#', '');
+  const r = parseInt(hex.substr(0, 2), 16);
+  const g = parseInt(hex.substr(2, 2), 16);
+  const b = parseInt(hex.substr(4, 2), 16);
+  
+  // Calculate luminance
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  
+  return luminance > 0.5 ? '#000000' : '#ffffff';
+};
+
 export default function SkinAnalysisImage({ 
   imageUrl, 
   analysisData, 
@@ -111,15 +129,11 @@ export default function SkinAnalysisImage({
   const [hoveredDetection, setHoveredDetection] = useState<string | null>(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const imageRef = useRef<HTMLImageElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [imageLoaded, setImageLoaded] = useState(false);
-  const [imageDimensions, setImageDimensions] = useState({ 
-    width: 0, 
-    height: 0, 
-    offsetX: 0, 
-    offsetY: 0 
-  });
-  const [calculatedHeight, setCalculatedHeight] = useState<number>(384);
+  const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 });
+  const [scaleFactors, setScaleFactors] = useState({ x: 1, y: 1 });
 
   // Create multiple images for carousel (analysis versions only)
   const carouselImages = [
@@ -128,47 +142,262 @@ export default function SkinAnalysisImage({
     { url: imageUrl, label: 'Wrinkles Analysis', view: 'wrinkles' as const }
   ];
 
+  // Canvas drawing functions
+  const drawImage = useCallback((ctx: CanvasRenderingContext2D, img: HTMLImageElement) => {
+    if (!img || !canvasSize.width || !canvasSize.height) return;
+
+    // Clear canvas first
+    ctx.clearRect(0, 0, canvasSize.width, canvasSize.height);
+
+    // Draw the image to fill the canvas
+    ctx.drawImage(img, 0, 0, canvasSize.width, canvasSize.height);
+  }, [canvasSize]);
+
+  const drawAcneDetections = useCallback((ctx: CanvasRenderingContext2D) => {
+    if (!analysisData.predictions || analysisData.predictions.length === 0) return;
+
+    analysisData.predictions.forEach((prediction) => {
+      const color = getAcneColor(prediction.class);
+      const x = (prediction.x - prediction.width / 2) * scaleFactors.x;
+      const y = (prediction.y - prediction.height / 2) * scaleFactors.y;
+      const width = prediction.width * scaleFactors.x;
+      const height = prediction.height * scaleFactors.y;
+      const radius = Math.min(width, height) / 3.14; // Use smaller radius - min instead of max, divided by PI
+      const centerX = x + width / 2;
+      const centerY = y + height / 2;
+
+      // Draw filled circle
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+      ctx.fillStyle = color;
+      ctx.globalAlpha = hoveredDetection === prediction.detection_id ? 0.8 : 0.6;
+      ctx.fill();
+
+      // Draw border
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+      ctx.strokeStyle = color;
+      ctx.lineWidth = hoveredDetection === prediction.detection_id ? 3 : 2;
+      ctx.globalAlpha = hoveredDetection === prediction.detection_id ? 1 : 0.8;
+      ctx.stroke();
+
+      // Draw hover highlight
+      if (hoveredDetection === prediction.detection_id) {
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, radius + 3, 0, 2 * Math.PI);
+        ctx.strokeStyle = 'white';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([5, 5]);
+        ctx.globalAlpha = 1;
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
+    });
+
+    ctx.globalAlpha = 1;
+  }, [analysisData.predictions, scaleFactors, hoveredDetection]);
+
+  const drawRednessPolygons = useCallback((ctx: CanvasRenderingContext2D) => {
+    if (!analysisData.redness.polygons) return;
+
+    ctx.fillStyle = REDNESS_COLOR;
+    ctx.strokeStyle = 'white';
+    ctx.lineWidth = 1;
+    ctx.globalAlpha = REDNESS_OPACITY;
+
+    analysisData.redness.polygons.forEach((polygon) => {
+      // Apply scaling factors from API
+      let adjustedPolygon = polygon;
+      if (analysisData.redness.scaling_factors && 
+          (analysisData.redness.scaling_factors.x !== 1 || analysisData.redness.scaling_factors.y !== 1)) {
+        adjustedPolygon = polygon.map(([x, y]) => [
+          x * analysisData.redness.scaling_factors.x,
+          y * analysisData.redness.scaling_factors.y
+        ]);
+      }
+
+      if (adjustedPolygon.length === 1) {
+        // Single point
+        const [x, y] = adjustedPolygon[0];
+        ctx.beginPath();
+        ctx.arc(x * scaleFactors.x, y * scaleFactors.y, 3, 0, 2 * Math.PI);
+        ctx.fill();
+        ctx.stroke();
+      } else if (adjustedPolygon.length >= 3) {
+        // Polygon
+        ctx.beginPath();
+        const [startX, startY] = adjustedPolygon[0];
+        ctx.moveTo(startX * scaleFactors.x, startY * scaleFactors.y);
+        
+        for (let i = 1; i < adjustedPolygon.length; i++) {
+          const [x, y] = adjustedPolygon[i];
+          ctx.lineTo(x * scaleFactors.x, y * scaleFactors.y);
+        }
+        
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+      }
+    });
+
+    ctx.globalAlpha = 1;
+  }, [analysisData.redness, scaleFactors]);
+
+  const drawWrinklesDetections = useCallback((ctx: CanvasRenderingContext2D) => {
+    if (!analysisData.wrinkles?.predictions) return;
+
+    analysisData.wrinkles.predictions.forEach((prediction, index) => {
+      const color = getWrinkleColor(prediction.class);
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+
+      if (prediction.points && prediction.points.length > 0) {
+        // Draw detailed wrinkle lines using points
+        let adjustedPoints = prediction.points;
+        if (analysisData.wrinkles?.scaling_factors && 
+            (analysisData.wrinkles.scaling_factors.x !== 1 || analysisData.wrinkles.scaling_factors.y !== 1)) {
+          adjustedPoints = prediction.points.map(point => ({
+            x: point.x * analysisData.wrinkles!.scaling_factors!.x,
+            y: point.y * analysisData.wrinkles!.scaling_factors!.y
+          }));
+        }
+
+        ctx.beginPath();
+        const firstPoint = adjustedPoints[0];
+        ctx.moveTo(firstPoint.x * scaleFactors.x, firstPoint.y * scaleFactors.y);
+        
+        for (let i = 1; i < adjustedPoints.length; i++) {
+          const point = adjustedPoints[i];
+          ctx.lineTo(point.x * scaleFactors.x, point.y * scaleFactors.y);
+        }
+        
+        ctx.stroke();
+      } else {
+        // Fallback: render bounding box
+        const x = (prediction.x - prediction.width / 2) * scaleFactors.x;
+        const y = (prediction.y - prediction.height / 2) * scaleFactors.y;
+        const width = prediction.width * scaleFactors.x;
+        const height = prediction.height * scaleFactors.y;
+
+        ctx.setLineDash([5, 5]);
+        ctx.globalAlpha = 0.8;
+        ctx.strokeRect(x, y, width, height);
+        ctx.setLineDash([]);
+        ctx.globalAlpha = 1;
+      }
+    });
+  }, [analysisData.wrinkles, scaleFactors]);
+
+  const redrawCanvas = useCallback(() => {
+    const canvas = canvasRef.current;
+    const ctx = canvas?.getContext('2d');
+    const img = imageRef.current;
+    
+    if (!canvas || !ctx || !img || !imageLoaded) return;
+
+    // First draw the image
+    drawImage(ctx, img);
+
+    // Then draw overlays if enabled
+    if (showOverlays) {
+      switch (currentView) {
+        case 'acne':
+          drawAcneDetections(ctx);
+          break;
+        case 'redness':
+          drawRednessPolygons(ctx);
+          break;
+        case 'wrinkles':
+          drawWrinklesDetections(ctx);
+          break;
+      }
+    }
+  }, [currentView, showOverlays, imageLoaded, drawImage, drawAcneDetections, drawRednessPolygons, drawWrinklesDetections]);
+
+  // Handle canvas resize and setup
   useEffect(() => {
-    if (imageRef.current && imageLoaded && containerRef.current) {
+    if (imageRef.current && imageLoaded && containerRef.current && canvasRef.current) {
       const img = imageRef.current;
       const container = containerRef.current;
+      const canvas = canvasRef.current;
       
-      // Use natural dimensions (original captured dimensions)
-      const displayWidth = img.naturalWidth;
-      const displayHeight = img.naturalHeight;
-      const offsetX = 0;
-      const offsetY = 0;
-      
-      // Calculate height based on image aspect ratio and container width
+      // Get container dimensions
       const containerWidth = container.offsetWidth;
-      const calculatedHeight = Math.max(384, (displayHeight * containerWidth) / displayWidth);
       
-      console.log('SkinAnalysisImage - Using captured dimensions:', {
-        displayWidth: displayWidth,
-        displayHeight: displayHeight,
+      // Calculate height maintaining aspect ratio
+      const aspectRatio = img.naturalHeight / img.naturalWidth;
+      const containerHeight = Math.max(384, containerWidth * aspectRatio);
+      
+      // Set canvas size
+      canvas.width = containerWidth;
+      canvas.height = containerHeight;
+      
+      // Calculate scale factors from original image to canvas
+      const scaleX = containerWidth / img.naturalWidth;
+      const scaleY = containerHeight / img.naturalHeight;
+      
+      setCanvasSize({ width: containerWidth, height: containerHeight });
+      setScaleFactors({ x: scaleX, y: scaleY });
+      
+      console.log('Canvas setup:', {
+        containerWidth,
+        containerHeight,
         naturalWidth: img.naturalWidth,
         naturalHeight: img.naturalHeight,
-        offsetWidth: img.offsetWidth,
-        offsetHeight: img.offsetHeight,
-        containerWidth: containerWidth,
-        calculatedHeight: calculatedHeight,
-        scaleX: containerWidth / displayWidth,
-        scaleY: calculatedHeight / displayHeight
+        scaleX,
+        scaleY,
+        aspectRatio
       });
-      console.log('=== IMAGE DISPLAY COMPLETE ===');
-      
-      setImageDimensions({
-        width: displayWidth,
-        height: displayHeight,
-        offsetX,
-        offsetY
-      });
-      
-      setCalculatedHeight(calculatedHeight);
     }
   }, [imageLoaded]);
 
+  // Redraw canvas when view changes or overlays toggle
+  useEffect(() => {
+    redrawCanvas();
+  }, [redrawCanvas]);
+
+  // Redraw canvas when carousel image changes
+  useEffect(() => {
+    if (imageLoaded) {
+      // Small delay to ensure image is fully loaded
+      setTimeout(() => redrawCanvas(), 50);
+    }
+  }, [currentImageIndex, redrawCanvas, imageLoaded]);
+
+  // Handle window resize
+  useEffect(() => {
+    const handleResize = () => {
+      if (imageRef.current && containerRef.current && canvasRef.current) {
+        const img = imageRef.current;
+        const container = containerRef.current;
+        const canvas = canvasRef.current;
+        
+        const containerWidth = container.offsetWidth;
+        const aspectRatio = img.naturalHeight / img.naturalWidth;
+        const containerHeight = Math.max(384, containerWidth * aspectRatio);
+        
+        canvas.width = containerWidth;
+        canvas.height = containerHeight;
+        
+        const scaleX = containerWidth / img.naturalWidth;
+        const scaleY = containerHeight / img.naturalHeight;
+        
+        setCanvasSize({ width: containerWidth, height: containerHeight });
+        setScaleFactors({ x: scaleX, y: scaleY });
+        
+        // Redraw after resize
+        setTimeout(() => redrawCanvas(), 100);
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [redrawCanvas]);
+
   const handleImageLoad = () => {
+    console.log('Image loaded for index:', currentImageIndex);
     setImageLoaded(true);
     
     if (imageRef.current) {
@@ -187,105 +416,58 @@ export default function SkinAnalysisImage({
       if (!dimensionsMatch) {
         console.warn('⚠️ Image dimensions mismatch - annotations may not align correctly');
       }
-      
-      // Force re-render with proper scaling
-      setTimeout(() => {
-        if (containerRef.current) {
-          const container = containerRef.current;
-          const containerWidth = container.offsetWidth;
-          const calculatedHeight = Math.max(384, (img.naturalHeight * containerWidth) / img.naturalWidth);
-          
-          setImageDimensions({
-            width: img.naturalWidth,
-            height: img.naturalHeight,
-            offsetX: 0,
-            offsetY: 0
-          });
-          
-          setCalculatedHeight(calculatedHeight);
-          console.log('6. Final scaling setup complete');
+
+      // Force canvas setup after image loads
+      if (containerRef.current && canvasRef.current) {
+        const container = containerRef.current;
+        const canvas = canvasRef.current;
+        
+        const containerWidth = container.offsetWidth;
+        const aspectRatio = img.naturalHeight / img.naturalWidth;
+        const containerHeight = Math.max(384, containerWidth * aspectRatio);
+        
+        canvas.width = containerWidth;
+        canvas.height = containerHeight;
+        
+        const scaleX = containerWidth / img.naturalWidth;
+        const scaleY = containerHeight / img.naturalHeight;
+        
+        setCanvasSize({ width: containerWidth, height: containerHeight });
+        setScaleFactors({ x: scaleX, y: scaleY });
+        
+        // Trigger canvas redraw after setup
+        setTimeout(() => redrawCanvas(), 100);
+      }
+    }
+  };
+
+  // Canvas click handler for interactions
+  const handleCanvasClick = (event: React.MouseEvent<HTMLCanvasElement>) => {
+    if (!canvasRef.current || currentView !== 'acne') return;
+
+    const canvas = canvasRef.current;
+    const rect = canvas.getBoundingClientRect();
+    const x = event.clientX - rect.left;
+    const y = event.clientY - rect.top;
+
+    // Check if click is on any acne detection
+    if (analysisData.predictions) {
+      for (const prediction of analysisData.predictions) {
+        const detectionX = (prediction.x - prediction.width / 2) * scaleFactors.x;
+        const detectionY = (prediction.y - prediction.height / 2) * scaleFactors.y;
+        const width = prediction.width * scaleFactors.x;
+        const height = prediction.height * scaleFactors.y;
+        const radius = Math.max(width, height) / 2;
+        const centerX = detectionX + width / 2;
+        const centerY = detectionY + height / 2;
+
+        const distance = Math.sqrt((x - centerX) ** 2 + (y - centerY) ** 2);
+        if (distance <= radius) {
+          console.log('Clicked on detection:', prediction);
+          break;
         }
-      }, 100);
+      }
     }
-  };
-
-  const scaleCoordinates = (x: number, y: number, width: number, height: number) => {
-    if (!imageDimensions.width || !imageDimensions.height || !containerRef.current) {
-      console.warn('Scale coordinates: Missing dimensions');
-      return { x: 0, y: 0, width: 0, height: 0 };
-    }
-    
-    // Scale from original image dimensions to displayed container dimensions
-    const containerWidth = containerRef.current.offsetWidth;
-    const containerHeight = calculatedHeight;
-    
-    const scaleX = containerWidth / imageDimensions.width;
-    const scaleY = containerHeight / imageDimensions.height;
-    
-    return {
-      x: x * scaleX,
-      y: y * scaleY,
-      width: width * scaleX,
-      height: height * scaleY
-    };
-  };
-
-  // NEW: Enhanced polygon scaling with support for scaling_factors
-  const scalePolygon = (polygon: [number, number][], scalingFactors?: { x: number; y: number }) => {
-    if (!imageDimensions.width || !imageDimensions.height || !containerRef.current) {
-      console.warn('Scale polygon: Missing dimensions');
-      return [];
-    }
-    
-    const containerWidth = containerRef.current.offsetWidth;
-    const containerHeight = calculatedHeight;
-    
-    // First, scale from API resolution to original image resolution if needed
-    let adjustedPolygon = polygon;
-    if (scalingFactors && (scalingFactors.x !== 1 || scalingFactors.y !== 1)) {
-      adjustedPolygon = polygon.map(([x, y]) => [
-        x * scalingFactors.x,
-        y * scalingFactors.y
-      ]);
-    }
-    
-    // Then scale from original image to display container
-    const scaleX = containerWidth / imageDimensions.width;
-    const scaleY = containerHeight / imageDimensions.height;
-    
-    return adjustedPolygon.map(([x, y]) => [x * scaleX, y * scaleY]);
-  };
-
-  // NEW: Scale wrinkles points with support for detailed point arrays
-  const scaleWrinklePoints = (points: Array<{ x: number; y: number }>, scalingFactors?: { x: number; y: number }) => {
-    if (!imageDimensions.width || !imageDimensions.height || !containerRef.current) {
-      return [];
-    }
-    
-    const containerWidth = containerRef.current.offsetWidth;
-    const containerHeight = calculatedHeight;
-    
-    // First, scale from API resolution to original image resolution if needed
-    let adjustedPoints = points;
-    if (scalingFactors && (scalingFactors.x !== 1 || scalingFactors.y !== 1)) {
-      adjustedPoints = points.map(point => ({
-        x: point.x * scalingFactors.x,
-        y: point.y * scalingFactors.y
-      }));
-    }
-    
-    // Then scale from original image to display container
-    const scaleX = containerWidth / imageDimensions.width;
-    const scaleY = containerHeight / imageDimensions.height;
-    
-    return adjustedPoints.map(point => ({
-      x: point.x * scaleX,
-      y: point.y * scaleY
-    }));
-  };
-
-  const getAcneColor = (className: string) => {
-    return ACNE_COLORS[className as keyof typeof ACNE_COLORS] || '#FF6B6B';
   };
 
   const getConfidenceColor = (confidence: number) => {
@@ -295,14 +477,17 @@ export default function SkinAnalysisImage({
   };
 
   const nextImage = () => {
+    setImageLoaded(false); // Reset image loaded state
     setCurrentImageIndex((prev: number) => (prev + 1) % carouselImages.length);
   };
 
   const prevImage = () => {
+    setImageLoaded(false); // Reset image loaded state
     setCurrentImageIndex((prev: number) => (prev - 1 + carouselImages.length) % carouselImages.length);
   };
 
   const goToImage = (index: number) => {
+    setImageLoaded(false); // Reset image loaded state
     setCurrentImageIndex(index);
     setCurrentView(carouselImages[index].view);
   };
@@ -330,20 +515,51 @@ export default function SkinAnalysisImage({
     }
   }, [analysisData, currentImageIndex]);
 
+  // Get unique classes for current view to show in legend
+  const getUniqueClasses = () => {
+    const classes = new Set<string>();
+    
+    switch (currentView) {
+      case 'acne':
+        analysisData.predictions?.forEach(p => classes.add(p.class));
+        break;
+      case 'redness':
+        if (analysisData.redness.polygons && analysisData.redness.polygons.length > 0) {
+          classes.add('Redness');
+        }
+        break;
+      case 'wrinkles':
+        analysisData.wrinkles?.predictions?.forEach(p => classes.add(p.class));
+        break;
+    }
+    
+    return Array.from(classes);
+  };
+
+  const getClassColor = (className: string) => {
+    switch (currentView) {
+      case 'acne':
+        return getAcneColor(className);
+      case 'redness':
+        return REDNESS_COLOR;
+      case 'wrinkles':
+        return getWrinkleColor(className);
+      default:
+        return '#666666';
+    }
+  };
+
   return (
     <div className={`relative ${className}`}>
       {/* Image Carousel */}
       <div className="relative mb-6">
-        {/* Carousel Navigation */}
-        
         <div className="relative overflow-hidden bg-gray-100">
           {/* Carousel Images */}
           <div 
             ref={containerRef}
             className="relative w-full flex justify-center items-center bg-gray-50" 
             style={{ 
-              minHeight: '384px',
-              height: `${calculatedHeight}px`
+              minHeight: '384px'
             }}
           >
             <AnimatePresence mode="wait">
@@ -353,189 +569,28 @@ export default function SkinAnalysisImage({
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
                 transition={{ duration: 0.3 }}
-                className="absolute inset-0"
               >
+                {/* Hidden image for loading and getting dimensions */}
                 <img
                   ref={imageRef}
                   src={carouselImages[currentImageIndex].url}
                   alt={carouselImages[currentImageIndex].label}
-                  className="w-full h-full object-contain"
+                  className="hidden"
                   onLoad={handleImageLoad}
                   key={`${carouselImages[currentImageIndex].url}-${currentImageIndex}`}
                 />
 
-                {/* SVG Overlay */}
-                {imageLoaded && showOverlays && (
-                  <svg
-                    className="absolute pointer-events-none w-full h-full"
+                {/* Canvas that contains both image and overlays */}
+                {imageLoaded && (
+                  <canvas
+                    ref={canvasRef}
+                    className="w-full h-full pointer-events-auto cursor-pointer"
+                    onClick={handleCanvasClick}
                     style={{ 
-                      left: 0,
-                      top: 0
+                      maxWidth: '100%',
+                      height: 'auto'
                     }}
-                  >
-                    {/* Redness Polygons - only show in redness view */}
-                    {currentView === 'redness' && analysisData.redness.polygons && 
-                      analysisData.redness.polygons.map((polygon, index) => {
-                        // Use the new scaling function with scaling_factors
-                        const scaledPolygon = scalePolygon(polygon, analysisData.redness.scaling_factors);
-                        
-                        if (polygon.length === 1) {
-                          // Single point
-                          const [x, y] = scaledPolygon[0];
-                          return (
-                            <g key={`redness-point-${index}`}>
-                              <motion.circle
-                                cx={x}
-                                cy={y}
-                                r="3"
-                                fill={REDNESS_COLOR}
-                                fillOpacity={REDNESS_OPACITY}
-                                stroke="white"
-                                strokeWidth="1"
-                                initial={{ opacity: 0, scale: 0 }}
-                                animate={{ opacity: REDNESS_OPACITY, scale: 1 }}
-                                transition={{ duration: 0.5, delay: index * 0.1 }}
-                              />
-                            </g>
-                          );
-                        } else if (polygon.length >= 3) {
-                          // Polygon
-                          const points = scaledPolygon.map(([x, y]) => `${x},${y}`).join(' ');
-                          return (
-                            <g key={`redness-polygon-${index}`}>
-                              <motion.polygon
-                                points={points}
-                                fill={REDNESS_COLOR}
-                                fillOpacity={REDNESS_OPACITY}
-                                stroke="white"
-                                strokeWidth="1"
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: REDNESS_OPACITY }}
-                                transition={{ duration: 0.5, delay: index * 0.1 }}
-                              />
-                            </g>
-                          );
-                        }
-                        return null;
-                      })
-                    }
-
-                    {/* Acne Detection Areas - only show in acne view */}
-                    {currentView === 'acne' && analysisData.predictions && analysisData.predictions.length > 0 && (
-                      <>
-                        {analysisData.predictions.map((prediction, index) => {
-                          const scaled = scaleCoordinates(
-                            prediction.x - prediction.width / 2,
-                            prediction.y - prediction.height / 2,
-                            prediction.width,
-                            prediction.height
-                          );
-                          
-                          const color = getAcneColor(prediction.class);
-                          const isHovered = hoveredDetection === prediction.detection_id;
-                          
-                          return (
-                            <g key={prediction.detection_id}>
-                              {/* Filled Detection Area - Circle */}
-                              <motion.circle
-                                cx={scaled.x + scaled.width / 2}
-                                cy={scaled.y + scaled.height / 2}
-                                r={Math.max(scaled.width, scaled.height) / 2}
-                                fill={color}
-                                fillOpacity={isHovered ? 0.8 : 0.6}
-                                stroke={color}
-                                strokeWidth={isHovered ? "3" : "2"}
-                                strokeOpacity={isHovered ? 1 : 0.8}
-                                className="pointer-events-auto cursor-pointer"
-                                onMouseEnter={() => setHoveredDetection(prediction.detection_id)}
-                                onMouseLeave={() => setHoveredDetection(null)}
-                                initial={{ opacity: 0, scale: 0.8 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                transition={{ duration: 0.3, delay: index * 0.1 }}
-                              />
-                              
-                              {/* Border highlight on hover */}
-                              {isHovered && (
-                                <motion.circle
-                                  cx={scaled.x + scaled.width / 2}
-                                  cy={scaled.y + scaled.height / 2}
-                                  r={Math.max(scaled.width, scaled.height) / 2 + 3}
-                                  fill="none"
-                                  stroke="white"
-                                  strokeWidth="2"
-                                  strokeDasharray="5,5"
-                                  initial={{ opacity: 0 }}
-                                  animate={{ opacity: 1 }}
-                                  transition={{ duration: 0.2 }}
-                                />
-                              )}
-                            </g>
-                          );
-                        })}
-                      </>
-                    )}
-
-                    {/* NEW: Wrinkles Detection - only show in wrinkles view */}
-                    {currentView === 'wrinkles' && analysisData.wrinkles?.predictions && 
-                      analysisData.wrinkles.predictions.map((prediction, index) => {
-                        const color = getWrinkleColor(prediction.class);
-                        
-                        if (prediction.points && prediction.points.length > 0) {
-                          // Render detailed wrinkle lines using points
-                          const scaledPoints = scaleWrinklePoints(prediction.points, analysisData.wrinkles?.scaling_factors);
-                          const pointsString = scaledPoints.map(point => `${point.x},${point.y}`).join(' ');
-                          
-                          return (
-                            <g key={`wrinkle-line-${index}`}>
-                              <motion.polyline
-                                points={pointsString}
-                                fill="none"
-                                stroke={color}
-                                strokeWidth="2"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                className="pointer-events-auto cursor-pointer"
-                                onMouseEnter={() => setHoveredDetection(prediction.detection_id || `wrinkle-${index}`)}
-                                onMouseLeave={() => setHoveredDetection(null)}
-                                initial={{ pathLength: 0 }}
-                                animate={{ pathLength: 1 }}
-                                transition={{ duration: 0.8, delay: index * 0.1 }}
-                              />
-                            </g>
-                          );
-                        } else {
-                          // Fallback: render bounding box for wrinkles without detailed points
-                          const scaled = scaleCoordinates(
-                            prediction.x - prediction.width / 2,
-                            prediction.y - prediction.height / 2,
-                            prediction.width,
-                            prediction.height
-                          );
-                          
-                          return (
-                            <g key={`wrinkle-bbox-${index}`}>
-                              <motion.rect
-                                x={scaled.x}
-                                y={scaled.y}
-                                width={scaled.width}
-                                height={scaled.height}
-                                fill="none"
-                                stroke={color}
-                                strokeWidth="2"
-                                strokeDasharray="5,5"
-                                className="pointer-events-auto cursor-pointer"
-                                onMouseEnter={() => setHoveredDetection(prediction.detection_id || `wrinkle-${index}`)}
-                                onMouseLeave={() => setHoveredDetection(null)}
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 0.8 }}
-                                transition={{ duration: 0.3, delay: index * 0.1 }}
-                              />
-                            </g>
-                          );
-                        }
-                      })
-                    }
-                  </svg>
+                  />
                 )}
               </motion.div>
             </AnimatePresence>
@@ -578,6 +633,7 @@ export default function SkinAnalysisImage({
           </div>
         </div>
 
+        {/* View Toggle Buttons */}
         <div className="flex justify-center mb-4">
           <div className="flex space-x-2 bg-white rounded-lg p-1 shadow-sm border">
             {carouselImages.map((image, index) => (
@@ -593,6 +649,47 @@ export default function SkinAnalysisImage({
                 {image.label}
               </button>
             ))}
+          </div>
+        </div>
+
+        {/* Color Legend Bar */}
+        <div className="bg-white rounded-lg p-4 shadow-sm border">
+          <h3 className="text-sm font-medium text-gray-700 mb-3">
+            {carouselImages[currentImageIndex].label} - Color Legend
+          </h3>
+          <div className="flex flex-wrap gap-2">
+            {getUniqueClasses().map((className) => {
+              const color = getClassColor(className);
+              const textColor = getTextColor(color);
+              
+              return (
+                <button
+                  key={className}
+                  className="px-3 py-1 rounded text-sm font-medium transition-all hover:opacity-80"
+                  style={{
+                    backgroundColor: color,
+                    color: textColor
+                  }}
+                  onClick={() => {
+                    // Toggle visibility for this class (future enhancement)
+                    console.log('Toggle visibility for:', className);
+                  }}
+                >
+                  {className}
+                </button>
+              );
+            })}
+          </div>
+          
+          {/* Toggle Overlays Button */}
+          <div className="mt-3 pt-3 border-t border-gray-200">
+            <button
+              onClick={() => setShowOverlays(!showOverlays)}
+              className="flex items-center space-x-2 text-sm text-gray-600 hover:text-gray-900"
+            >
+              {showOverlays ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              <span>{showOverlays ? 'Hide' : 'Show'} Overlays</span>
+            </button>
           </div>
         </div>
       </div>

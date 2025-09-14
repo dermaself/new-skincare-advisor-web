@@ -253,7 +253,7 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
               }],
               images: [{
                 id: 1,
-                src: module.main_product.image_url || `https://via.placeholder.com/300x300/cccccc/666666?text=${encodeURIComponent(module.main_product.product_name.substring(0, 20))}`,
+                src: module.main_product.image_url || '',
                 alt: module.main_product.product_name
               }],
               body_html: module.main_product.info || 'Product description not available',

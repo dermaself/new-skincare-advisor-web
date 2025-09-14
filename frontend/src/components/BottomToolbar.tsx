@@ -1,12 +1,13 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ShoppingBag, ArrowRight } from 'lucide-react';
 
 interface BottomToolbarProps {
   isVisible: boolean;
   onProceedToCheckout: () => void;
+  onClose: () => void;
   cartItemCount: number;
   totalAmount: number;
   currencyCode: string;
@@ -15,10 +16,30 @@ interface BottomToolbarProps {
 export default function BottomToolbar({
   isVisible,
   onProceedToCheckout,
+  onClose,
   cartItemCount,
   totalAmount,
   currencyCode
 }: BottomToolbarProps) {
+  const toolbarRef = useRef<HTMLDivElement>(null);
+
+  // Handle click outside to close
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (toolbarRef.current && !toolbarRef.current.contains(event.target as Node)) {
+        onClose();
+      }
+    };
+
+    if (isVisible) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isVisible, onClose]);
+
   if (!isVisible) return null;
 
   return (
@@ -29,6 +50,7 @@ export default function BottomToolbar({
         exit={{ y: 100, opacity: 0 }}
         transition={{ type: 'spring', damping: 25, stiffness: 300 }}
         className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-200 shadow-lg"
+        ref={toolbarRef}
       >
         <div className="px-4 py-3">
           <div className="flex items-center justify-between">

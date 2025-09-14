@@ -71,7 +71,7 @@ export default function RoutineProductCard({
         inventory_quantity: 1
       }];
 
-  const { addToCart, removeFromCart, isProductInCart, getCartItemLineId, state, showCartSuccessModal } = useCart();
+  const { addToCart, removeFromCart, isProductInCart, getCartItemLineId, state } = useCart();
   const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(
     safeVariants[0] || null
   );

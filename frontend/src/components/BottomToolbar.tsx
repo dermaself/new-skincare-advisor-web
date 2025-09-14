@@ -1,0 +1,61 @@
+'use client';
+
+import React from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { ShoppingBag, ArrowRight } from 'lucide-react';
+
+interface BottomToolbarProps {
+  isVisible: boolean;
+  onProceedToCheckout: () => void;
+  cartItemCount: number;
+  totalAmount: number;
+  currencyCode: string;
+}
+
+export default function BottomToolbar({
+  isVisible,
+  onProceedToCheckout,
+  cartItemCount,
+  totalAmount,
+  currencyCode
+}: BottomToolbarProps) {
+  if (!isVisible) return null;
+
+  return (
+    <AnimatePresence>
+      <motion.div
+        initial={{ y: 100, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        exit={{ y: 100, opacity: 0 }}
+        transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+        className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-200 shadow-lg"
+      >
+        <div className="px-4 py-3">
+          <div className="flex items-center justify-between">
+            {/* Cart info */}
+            <div className="flex items-center space-x-3">
+              <div className="flex items-center space-x-2">
+                <ShoppingBag className="w-5 h-5 text-primary-600" />
+                <span className="text-sm font-medium text-gray-900">
+                  {cartItemCount} {cartItemCount === 1 ? 'item' : 'items'}
+                </span>
+              </div>
+              <div className="text-sm text-gray-600">
+                Total: {currencyCode} {(totalAmount / 100).toFixed(2)}
+              </div>
+            </div>
+
+            {/* Checkout button */}
+            <button
+              onClick={onProceedToCheckout}
+              className="flex items-center space-x-2 bg-primary-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-primary-700 transition-colors"
+            >
+              <span>Proceed to Checkout</span>
+              <ArrowRight className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      </motion.div>
+    </AnimatePresence>
+  );
+}

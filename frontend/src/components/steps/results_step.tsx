@@ -60,17 +60,6 @@ export default function ResultsStep({
   activeTab,
   onTabChange
 }: ResultsStepProps) {
-
-  // Debug routine data
-  React.useEffect(() => {
-    console.log('ResultsStep - Routine data:', routine);
-    console.log('ResultsStep - Routine type:', routineType);
-    if (routine) {
-      console.log('ResultsStep - Essential routine:', routine.essential);
-      console.log('ResultsStep - Expert routine:', routine.expert);
-    }
-  }, [routine, routineType]);
-
   return (
     <motion.div
       key="results"

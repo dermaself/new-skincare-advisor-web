@@ -241,16 +241,12 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
             title: category.category,
             products: category.modules.map((module: any) => ({
               id: module.main_product.product_id,
+              shopifyProductId: module.main_product.shopify_product_id,
               title: module.main_product.product_name,
               vendor: module.main_product.brand,
               product_type: module.module,
               tags: `${category.category},${module.module}`,
-              variants: [{
-                id: module.main_product.shopify_product_id || module.main_product.product_id,
-                title: 'Default',
-                price: module.main_product.best_price.toString(),
-                inventory_quantity: 100
-              }],
+              alternative_products: module.alternative_products,
               images: [{
                 id: 1,
                 src: module.main_product.image_url || '',

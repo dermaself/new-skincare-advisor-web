@@ -47,7 +47,7 @@ export default function CartToast({
         animate={{ y: 0, opacity: 1 }}
         exit={{ y: -100, opacity: 0 }}
         transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-        className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 w-full max-w-md mx-4"
+        className="fixed top-4 right-0 z-50 w-full max-w-md mx-4"
         ref={toastRef}
       >
         <div className="bg-white rounded-lg shadow-lg border border-gray-200 p-4">
@@ -79,7 +79,7 @@ export default function CartToast({
             
             <button
               onClick={onGoToCart}
-              className="flex items-center space-x-2 bg-primary-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary-700 transition-colors"
+              className="flex items-center space-x-2 bg-pink-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-pink-700 transition-colors"
             >
               <ShoppingBag className="w-4 h-4" />
               <span>Go to cart ({cartItemCount})</span>

@@ -284,7 +284,6 @@ export default function ResultsStep({
                 {routineSteps && routineSteps.length > 0 ? (
                   routineSteps.map((step, index) => (
                     <div key={step.stepNumber} className="bg-white rounded-xl border border-gray-200 p-4">
-                      <h4 className="font-semibold text-gray-900 mb-3">{step.stepTitle}</h4>
                       <div className="space-y-3">
                         <Suspense fallback={
                           <div className="animate-pulse bg-gray-200 h-20 rounded-lg"></div>

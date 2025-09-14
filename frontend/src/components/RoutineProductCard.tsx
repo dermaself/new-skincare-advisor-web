@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { ShoppingCart, Plus, Minus, Loader2, CheckCircle, Sun, Moon, Trash2 } from 'lucide-react';
+import { ShoppingCart, Plus, Minus, Loader2, CheckCircle, Sun, Moon, Trash2, Info, X } from 'lucide-react';
 import { useCart } from './CartContext';
 
 interface ProductVariant {
@@ -80,6 +80,7 @@ export default function RoutineProductCard({
   const [showSuccess, setShowSuccess] = useState<'added' | 'removed' | false>(false);
   const [showError, setShowError] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
 
   // Check if product is in cart
   const variantId = selectedVariant ? `gid://shopify/ProductVariant/${selectedVariant.id}` : null;
@@ -210,8 +211,9 @@ export default function RoutineProductCard({
 
   return (
     <section className="routine-steps">
-      <h1 className="heading-1 step-name">
-        <span>STEP {stepNumber}:</span> {categoryTitle || stepTitle}
+      <h1 className="heading-1 w-full step-name flex items-center justify-center gap-2">
+        <p>{stepTitle}</p>
+        <p className="rounded-full bg-gray-200 px-4 py-1">{categoryTitle}</p>
       </h1>
       
       <div className="step-content">
@@ -260,93 +262,52 @@ export default function RoutineProductCard({
             ))}
           </div>
           
-          <p className="body-mobile product-blurb">
-            {product.body_html ? 
-              product.body_html.replace(/<[^>]*>/g, '').substring(0, 150) + '...' : 
-              'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Proin convallis volutpat elit, in tincidunt enim volutpat a.'
-            }
-          </p>
-          
           <div className="product-info-container">
-            <div className="product-price-info">
-              {/* Usage Icons */}
-              <div className="regime-images">
-                <Sun className="w-6 h-6 text-yellow-500" />
-                <Moon className="w-6 h-6 text-blue-500" />
-              </div>
-              
-              <div className="product-info">
-                <p className="body-mobile">20 ml</p>
-                <div className="separator"></div>
-                <p className="body-mobile price-container">
-                  <span className="current-price">
-                    {selectedVariant ? formatPrice(selectedVariant.price) : '$0.00'}
-                  </span>
-                </p>
-              </div>
-            </div>
-            
-            {/* Cart Button */}
-            <button 
-              className={`cart-btn ${isInCart ? 'remove-btn' : 'add-btn'}`}
-              onClick={isInCart ? handleRemoveFromCart : handleAddToCart}
-              disabled={isLoading || !selectedVariant || !isVariantAvailable(selectedVariant) || state.loading}
-            >
-              {isLoading || state.loading ? (
-                <div className="flex items-center justify-center">
-                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                  {isInCart ? 'Removing...' : 'Adding...'}
-                </div>
-              ) : isInCart ? (
-                <div className="flex items-center justify-center">
-                  <Trash2 className="w-4 h-4 mr-2" />
-                  Remove from Cart
-                </div>
-              ) : (
-                <div className="flex items-center justify-center">
-                  <ShoppingCart className="w-4 h-4 mr-2" />
-                  Add to Cart
-                </div>
-              )}
-            </button>
-          </div>
-        </div>
-
-        {/* Success Overlay */}
-        {showSuccess && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="absolute inset-0 bg-green-500 bg-opacity-90 flex items-center justify-center rounded-lg"
-          >
-            <div className="text-white text-center">
-              <CheckCircle className="w-12 h-12 mx-auto mb-2" />
-              <p className="font-semibold">
-                {showSuccess === 'added' ? 'Added to Cart!' : 'Removed from Cart!'}
+            <div className="product-info">
+              <p className="body-mobile price-container">
+                <span className="current-price px-2 font-medium">
+                  Price: {selectedVariant ? formatPrice(selectedVariant.price) : '$0.00'}
+                </span>
               </p>
             </div>
-          </motion.div>
-        )}
 
-        {/* Error Overlay */}
-        {showError && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="absolute inset-0 bg-red-500 bg-opacity-90 flex items-center justify-center rounded-lg"
-          >
-            <div className="text-white text-center">
-              <div className="w-12 h-12 mx-auto mb-2 flex items-center justify-center">
-                <span className="text-2xl">⚠️</span>
-              </div>
-              <p className="font-semibold">Error</p>
-              <p className="text-sm mt-1">{errorMessage}</p>
+            <div className="flex items-center justify-between w-full">
+              <button 
+                className="flex items-center px-4 py-2 rounded-lg font-medium transition-colors bg-gray-200 hover:bg-gray-300"
+                onClick={() => setShowDetailsModal(true)}
+              >
+                <Info className="w-4 h-4 mr-2" />
+                Details
+              </button>
+              {/* Cart Button */}
+              <button 
+                className={`ml-auto px-4 py-2 rounded-lg font-medium transition-colors ${isInCart ? 'remove-btn' : 'add-btn'}`}
+                onClick={isInCart ? handleRemoveFromCart : handleAddToCart}
+                disabled={isLoading || !selectedVariant || !isVariantAvailable(selectedVariant) || state.loading}
+              >
+                {isLoading || state.loading ? (
+                  <div className="flex items-center justify-center">
+                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                    {isInCart ? 'Removing...' : 'Adding...'}
+                  </div>
+                ) : isInCart ? (
+                  <div className="flex items-center justify-center">
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Remove from Cart
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-center">
+                    <ShoppingCart className="w-4 h-4 mr-2" />
+                    Add to Cart
+                  </div>
+                )}
+              </button>
             </div>
-          </motion.div>
-        )}
+          </div>
+        </div>
       </div>
+
+      
 
       {/* Step Separator */}
       {!isLastStep && <div className="step-separator"></div>}
@@ -354,7 +315,7 @@ export default function RoutineProductCard({
       {/* Add All to Bag Button for Last Step */}
       {isLastStep && showAddAllButton && onAddAllToCart && (
         <button 
-          className="add-all-to-bag"
+          className="mt-4 bg-pink-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-pink-700 transition-colors"
           onClick={onAddAllToCart}
           disabled={state.loading}
         >
@@ -371,8 +332,6 @@ export default function RoutineProductCard({
 
       <style jsx>{`
         .cart-btn {
-          padding: 12px 24px;
-          border-radius: 8px;
           font-weight: 600;
           transition: all 0.2s ease;
           border: none;
@@ -384,22 +343,22 @@ export default function RoutineProductCard({
         }
 
         .add-btn {
-          background-color: #3b82f6;
+          background-color: #ff6b9d;
           color: white;
         }
 
         .add-btn:hover:not(:disabled) {
-          background-color: #2563eb;
+          background-color: #ff6b9d;
           transform: translateY(-1px);
         }
 
         .remove-btn {
-          background-color: #ef4444;
+          background-color:rgb(77, 77, 77);
           color: white;
         }
 
         .remove-btn:hover:not(:disabled) {
-          background-color: #dc2626;
+          background-color: rgb(70, 70, 70);
           transform: translateY(-1px);
         }
 
@@ -408,7 +367,134 @@ export default function RoutineProductCard({
           cursor: not-allowed;
           transform: none;
         }
+
+        .custom-scrollbar {
+          scrollbar-width: thin;
+          scrollbar-color: #ff6b9d #f1f1f1;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 8px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: #f1f1f1;
+          border-radius: 4px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: #ff6b9d;
+          border-radius: 4px;
+          transition: background 0.2s ease;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: #e55a8a;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-corner {
+          background: #f1f1f1;
+        }
       `}</style>
+
+      {/* Product Details Modal */}
+      {showDetailsModal && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+          onClick={() => setShowDetailsModal(false)}
+        >
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.9, opacity: 0 }}
+            className="bg-white rounded-lg max-w-md w-full overflow-y-auto scrollbar-thin scrollbar-thumb-pink-600 scrollbar-track-gray-200"
+            style={{ maxHeight: '80vh' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-4 border-b">
+              <h3 className="text-lg font-semibold">Product Details</h3>
+              <button
+                onClick={() => setShowDetailsModal(false)}
+                className="p-1 hover:bg-gray-100 rounded-full transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="p-4">
+              {/* Product Image */}
+              <div className="mb-4">
+                <img
+                  src={product.images[0]?.src || 'https://via.placeholder.com/300x300/f0f0f0/999999?text=Product+Image'}
+                  alt={product.title}
+                  className="w-full h-48 object-cover rounded-lg"
+                />
+              </div>
+
+              {/* Product Info */}
+              <div className="space-y-3">
+                <div>
+                  <h4 className="font-semibold text-lg">{product.title}</h4>
+                  <p className="text-gray-600">{product.vendor}</p>
+                </div>
+
+                {/* Price */}
+                <div>
+                  <p className="text-xl font-bold text-pink-600">
+                    {selectedVariant ? formatPrice(selectedVariant.price) : '$0.00'}
+                  </p>
+                </div>
+
+                {/* Tags */}
+                {productTags.length > 0 && (
+                  <div>
+                    <p className="font-medium mb-2">Tags:</p>
+                    <div className="flex flex-wrap gap-2">
+                      {productTags.map((tag, index) => (
+                        <span
+                          key={index}
+                          className="px-2 py-1 text-xs rounded-full border"
+                          style={{ borderColor: getTagColor(tag) }}
+                        >
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Description */}
+                {product.body_html && (
+                  <div>
+                    <p className="font-medium mb-2">Description:</p>
+                    <div 
+                      className="text-sm text-gray-700 prose prose-sm max-w-none"
+                      dangerouslySetInnerHTML={{ 
+                        __html: product.body_html.replace(/<[^>]*>/g, '').substring(0, 500) + '...' 
+                      }}
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-4 border-t bg-gray-50">
+              <button
+                onClick={() => setShowDetailsModal(false)}
+                className="w-full px-4 py-2 bg-gray-200 text-gray-800 rounded-lg font-medium hover:bg-gray-300 transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
     </section>
   );
 } 

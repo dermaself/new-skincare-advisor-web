@@ -81,116 +81,6 @@ export default function RoutineProductCard({
   const [showError, setShowError] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
-  // Cache for product images to avoid repeated API calls
-  const [imageCache, setImageCache] = useState<Record<string, string>>({});
-
-  // Function to fetch product image from Shopify API
-  const fetchProductImageFromShopify = async (shopifyProductId: string | number): Promise<string | null> => {
-    try {
-      // Check cache first
-      const cacheKey = shopifyProductId.toString();
-      if (imageCache[cacheKey]) {
-        return imageCache[cacheKey];
-      }
-
-      console.log('🔄 Fetching product image from Shopify API for:', shopifyProductId);
-      
-      // Convert to string and handle both numeric and GraphQL ID formats
-      let productIdForApi: string;
-      
-      if (typeof shopifyProductId === 'number') {
-        productIdForApi = shopifyProductId.toString();
-      } else if (typeof shopifyProductId === 'string') {
-        if (shopifyProductId.startsWith('gid://')) {
-          // Extract numeric ID from GraphQL ID
-          productIdForApi = shopifyProductId.split('/').pop() || shopifyProductId;
-        } else {
-          productIdForApi = shopifyProductId;
-        }
-      } else {
-        throw new Error('Invalid shopify product ID type');
-      }
-
-      console.log('🔄 Using product ID for API call:', productIdForApi);
-
-      const response = await fetch(`/api/shopify/products/${productIdForApi}`);
-      
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('API response error:', response.status, errorText);
-        throw new Error(`Failed to fetch product: ${response.status} - ${errorText}`);
-      }
-
-      const data = await response.json();
-      
-      if (data.success && data.product && data.product.images && data.product.images.length > 0) {
-        const imageUrl = data.product.images[0].src;
-        
-        // Cache the result using string key
-        setImageCache(prev => ({
-          ...prev,
-          [cacheKey]: imageUrl
-        }));
-        
-        console.log('✅ Fetched product image from Shopify:', imageUrl);
-        return imageUrl;
-      }
-      
-      console.warn('No image found in product data:', data);
-      throw new Error('No image found in product data');
-    } catch (error) {
-      console.error('❌ Failed to fetch product image from Shopify:', error);
-      return null;
-    }
-  };
-
-  // Helper function to get product image from different data formats
-  const getProductImage = (product: any): string => {
-    try {
-      console.log('🔍 Product data structure:', product)
-      
-      // Safety check
-      if (!product) {
-        console.error('getProductImage: Product is null or undefined');
-        return 'https://via.placeholder.com/300x300/f0f0f0/999999?text=No+Product';
-      }
-      
-      // For routine products with Shopify ID but no image data, fetch from API
-      if (product.shopifyProductId) {
-        // Check cache first using string key
-        const cacheKey = product.shopifyProductId.toString();
-        if (imageCache[cacheKey]) {
-          console.log('✅ Using cached Shopify image:', imageCache[cacheKey]);
-          return imageCache[cacheKey];
-        }
-        
-        // Trigger async fetch (this will update the component when done)
-        fetchProductImageFromShopify(product.shopifyProductId).then(imageUrl => {
-          if (imageUrl) {
-            // Force re-render by updating a state that will trigger image refresh
-            setImageCache(prev => ({
-              ...prev,
-              [cacheKey]: imageUrl
-            }));
-          }
-        }).catch(error => {
-          console.error('Error fetching product image:', error);
-        });
-        
-        console.log('🔄 Fetching image for product with Shopify ID:', product.shopifyProductId);
-        // Return placeholder while fetching
-        return 'https://via.placeholder.com/300x300/f0f0f0/999999?text=Loading...';
-      }
-      
-      // Fallback to placeholder
-      console.log('⚠️ Using placeholder image for product:', product.title || (product as any).name || 'Unknown');
-      return 'https://via.placeholder.com/300x300/f0f0f0/999999?text=Product+Image';
-    } catch (error) {
-      console.error('Error in getProductImage:', error);
-      return 'https://via.placeholder.com/300x300/f0f0f0/999999?text=Error';
-    }
-  };
-
   // Check if product is in cart
   const variantId = selectedVariant ? `gid://shopify/ProductVariant/${selectedVariant.id}` : null;
   const isInCart = variantId ? isProductInCart(variantId) : false;
@@ -238,7 +128,7 @@ export default function RoutineProductCard({
       // Prepare product info for the modal
       const productInfo = {
         name: product.title || (product as any).name || 'Unknown Product',
-        image: getProductImage(product),
+        image: product.images[0]?.src || 'https://via.placeholder.com/300x300?text=Product',
         price: parseFloat(selectedVariant.price || '0') * 100 // Convert to cents
       };
       
@@ -329,16 +219,16 @@ export default function RoutineProductCard({
         <div className="swiper-container">
           <div className="swiper-slide">
             <img 
-              key={`product-${product.id}-${Object.keys(imageCache).length}`}
+              key={`product-${product.id}`}
               width="500px" 
-              src={getProductImage(product)} 
+              src={product.images[0]?.src || 'https://via.placeholder.com/300x300/f0f0f0/999999?text=Product+Image'} 
               alt={product.title}
               className="w-full h-auto"
               onLoad={() => {
-                console.log('✅ Routine image loaded successfully:', getProductImage(product));
+                console.log('✅ Routine image loaded successfully:', product.images[0]?.src);
               }}
               onError={(e) => {
-                console.error('❌ Routine image failed to load:', getProductImage(product));
+                console.error('❌ Routine image failed to load:', product.images[0]?.src);
                 // Fallback to placeholder
                 const target = e.target as HTMLImageElement;
                 const placeholderUrl = 'https://via.placeholder.com/300x300/f0f0f0/999999?text=Product+Image';

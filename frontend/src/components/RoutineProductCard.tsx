@@ -113,15 +113,21 @@ export default function RoutineProductCard({
     
     // For routine products with Shopify ID but no image data, fetch from API
     if (product.shopifyProductId) {
+      // Check cache first
+      if (imageCache[product.shopifyProductId]) {
+        console.log('✅ Using cached Shopify image:', imageCache[product.shopifyProductId]);
+        return imageCache[product.shopifyProductId];
+      }
+      
       // Trigger async fetch (this will update the component when done)
       fetchProductImageFromShopify(product.shopifyProductId).then(imageUrl => {
         if (imageUrl) {
-          // Force re-render by updating a state that will trigger image refresh
-          setImageCache(prev => ({
-            ...prev,
-            [product.shopifyProductId]: imageUrl
-          }));
+          // The cache is already updated in fetchProductImageFromShopify
+          // This will trigger a re-render
+          console.log('🔄 Image fetched, component will re-render');
         }
+      }).catch(error => {
+        console.error('Failed to fetch product image:', error);
       });
       
       console.log('🔄 Fetching image for product with Shopify ID:', product.shopifyProductId);
@@ -265,6 +271,7 @@ export default function RoutineProductCard({
         <div className="swiper-container">
           <div className="swiper-slide">
             <img 
+              key={`product-${product.id}-${Object.keys(imageCache).length}`}
               width="500px" 
               src={getProductImage(product)} 
               alt={product.title}

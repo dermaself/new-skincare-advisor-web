@@ -657,39 +657,24 @@ export default function SkinAnalysisImage({
           <h3 className="text-sm font-medium text-gray-700 mb-3">
             {carouselImages[currentImageIndex].label} - Color Legend
           </h3>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2 align-center justify-center">
             {getUniqueClasses().map((className) => {
               const color = getClassColor(className);
               const textColor = getTextColor(color);
               
               return (
-                <button
+                <div
                   key={className}
                   className="px-3 py-1 rounded text-sm font-medium transition-all hover:opacity-80"
                   style={{
                     backgroundColor: color,
                     color: textColor
                   }}
-                  onClick={() => {
-                    // Toggle visibility for this class (future enhancement)
-                    console.log('Toggle visibility for:', className);
-                  }}
                 >
                   {className}
-                </button>
+                </div>
               );
             })}
-          </div>
-          
-          {/* Toggle Overlays Button */}
-          <div className="mt-3 pt-3 border-t border-gray-200">
-            <button
-              onClick={() => setShowOverlays(!showOverlays)}
-              className="flex items-center space-x-2 text-sm text-gray-600 hover:text-gray-900"
-            >
-              {showOverlays ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-              <span>{showOverlays ? 'Hide' : 'Show'} Overlays</span>
-            </button>
           </div>
         </div>
       </div>

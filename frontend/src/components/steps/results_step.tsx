@@ -87,33 +87,6 @@ export default function ResultsStep({
                       />
                     </Suspense>
                   </div>
-
-                  {/* Analysis Results */}
-                  {analysisData && (
-                    <div className="space-y-3">
-                      <div className="text-sm text-gray-700">
-                        <strong>Skin Type:</strong> {analysisData.skin_type || 'Normal'}
-                      </div>
-                      <div className="text-sm text-gray-700">
-                        <strong>Acne Analysis:</strong> {analysisData.acne?.severity || 'None detected'}
-                      </div>
-                      <div className="text-sm text-gray-700">
-                        <strong>Redness:</strong> {analysisData.redness ? `${analysisData.redness.redness_perc}%` : 'None detected'}
-                      </div>
-                      <div className="text-sm text-gray-700">
-                        <strong>Wrinkles:</strong> {analysisData.wrinkles?.severity || 'None detected'}
-                      </div>
-                      <div className="text-sm text-gray-700">
-                        <strong>Recommendations:</strong> {
-                          typeof analysisData.recommendations === 'string' 
-                            ? analysisData.recommendations 
-                            : analysisData.recommendations?.skincare_routine 
-                              ? 'Personalized routine generated' 
-                              : 'Personalized routine suggested'
-                        }
-                      </div>
-                    </div>
-                  )}
                 </div>
               </div>
             </div>

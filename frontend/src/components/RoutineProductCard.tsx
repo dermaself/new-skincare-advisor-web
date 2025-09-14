@@ -60,6 +60,28 @@ export default function RoutineProductCard({
   const [showError, setShowError] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
+  // Helper function to get product image from different data formats
+  const getProductImage = (product: any): string => {
+    // Handle routine product format (from analysis API)
+    if (product.image && typeof product.image === 'string') {
+      console.log('✅ Using routine product image:', product.image);
+      return product.image;
+    }
+    
+    // Handle Shopify product format (from Shopify API)
+    if (product.images && Array.isArray(product.images) && product.images.length > 0) {
+      const imageUrl = product.images[0]?.src;
+      if (imageUrl) {
+        console.log('✅ Using Shopify product image:', imageUrl);
+        return imageUrl;
+      }
+    }
+    
+    // Fallback to placeholder
+    console.log('⚠️ Using placeholder image for product:', product.title || product.name);
+    return '/placeholder-product.png';
+  };
+
   // Check if product is in cart
   const variantId = selectedVariant ? `gid://shopify/ProductVariant/${selectedVariant.id}` : null;
   const isInCart = variantId ? isProductInCart(variantId) : false;
@@ -102,7 +124,7 @@ export default function RoutineProductCard({
       // Prepare product info for the modal
       const productInfo = {
         name: product.title,
-        image: product.images[0]?.src || '/placeholder-product.png',
+        image: getProductImage(product),
         price: parseFloat(selectedVariant.price) * 100 // Convert to cents
       };
       
@@ -192,9 +214,20 @@ export default function RoutineProductCard({
           <div className="swiper-slide">
             <img 
               width="500px" 
-              src={product.images[0]?.src || '/placeholder-product.png'} 
+              src={getProductImage(product)} 
               alt={product.title}
               className="w-full h-auto"
+              onLoad={() => {
+                console.log('✅ Routine image loaded successfully:', getProductImage(product));
+              }}
+              onError={(e) => {
+                console.error('❌ Routine image failed to load:', getProductImage(product));
+                // Fallback to placeholder
+                const target = e.target as HTMLImageElement;
+                if (target.src !== '/placeholder-product.png') {
+                  target.src = '/placeholder-product.png';
+                }
+              }}
             />
           </div>
         </div>

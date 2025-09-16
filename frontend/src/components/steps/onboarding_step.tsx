@@ -3,6 +3,8 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { CheckCircle } from 'lucide-react';
 import { ASSETS } from '../../lib/assets';
+import Image from 'next/image';
+import DermaselfLogo from '../../app/RGB_Logo_Violet.avif';
 
 interface OnboardingStepProps {
   onNext: () => void;
@@ -74,6 +76,23 @@ export default function OnboardingStep({ onNext, onClose }: OnboardingStepProps)
           whileTap={consentGiven ? { scale: 0.98 } : {}}
         >
           <span>Start Analysis</span>
+        </motion.button>
+        {/* Fake login button */}
+        <motion.button
+          onClick={() => { /* fake button - no action */ }}
+          className="mt-3 py-3 px-8 rounded-lg transition-colors duration-200 w-full md:w-auto mx-auto bg-[#f1e3ff] hover:bg-[#e9d8ff] text-gray-900 flex items-center justify-center gap-2"
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+        >
+          <span>Login with</span>
+          <Image
+            src={DermaselfLogo}
+            alt="Dermaself"
+            width={90}
+            height={24}
+            className="h-7 w-auto"
+            priority={false}
+          />
         </motion.button>
       </div>
     </motion.div>

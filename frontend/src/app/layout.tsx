@@ -6,20 +6,20 @@ import { CartProvider } from '../components/CartContext';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'DermaSelf - AI Skin Analysis',
+  title: 'Dermaself - AI Skin Analysis',
   description: 'Advanced AI-powered skin analysis and personalized product recommendations',
   keywords: 'skin analysis, AI, skincare, beauty, dermatology, personalized recommendations',
-  authors: [{ name: 'DermaSelf Team' }],
+  authors: [{ name: 'Dermaself Team' }],
   robots: 'index, follow',
   openGraph: {
-    title: 'DermaSelf - AI Skin Analysis',
+    title: 'Dermaself - AI Skin Analysis',
     description: 'Advanced AI-powered skin analysis and personalized product recommendations',
     type: 'website',
     locale: 'en_US',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'DermaSelf - AI Skin Analysis',
+    title: 'Dermaself - AI Skin Analysis',
     description: 'Advanced AI-powered skin analysis and personalized product recommendations',
   },
 };

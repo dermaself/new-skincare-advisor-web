@@ -62,7 +62,7 @@ export default function ModalFooter({
             ))}
           </div>
           <p className="pt-2 text-center text-gray-500 text-sm">
-            Powered by DermaSelf
+            Powered by Dermaself
           </p>
         </div>
       )}

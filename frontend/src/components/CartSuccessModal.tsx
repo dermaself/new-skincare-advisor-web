@@ -87,12 +87,12 @@ export default function CartSuccessModal({
               ))}
             </div>
 
-            {/* DermaSelf Badge */}
+            {/* Dermaself Badge */}
             <div className="mb-6 p-3 bg-blue-50 border border-blue-200 rounded-lg">
               <div className="flex items-center space-x-2">
                 <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
                 <span className="text-sm font-medium text-blue-800">
-                  Recommended by DermaSelf
+                  Recommended by Dermaself
                 </span>
               </div>
               <p className="text-xs text-blue-600 mt-1">

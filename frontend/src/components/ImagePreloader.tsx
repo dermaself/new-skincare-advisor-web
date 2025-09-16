@@ -16,7 +16,7 @@ export default function ImagePreloader({ onComplete, children }: ImagePreloaderP
   useEffect(() => {
     const loadImages = async () => {
       try {
-        setLoadingText('DermaSelf - AI Skin Analysis');
+        setLoadingText('Dermaself - AI Skin Analysis');
         
         // Start preloading images
         const preloadPromise = preloadStepImages();

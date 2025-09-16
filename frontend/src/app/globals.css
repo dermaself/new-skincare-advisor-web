@@ -468,9 +468,9 @@ body {
   animation: spin 1s linear infinite;
 }
 
-/* DermaSelf Design System */
+/* Dermaself Design System */
 :root {
-  /* DermaSelf Color Palette */
+  /* Dermaself Color Palette */
   --dermaself-primary: #ff6b9d;
   --dermaself-primary-light: #ff8fab;
   --dermaself-primary-dark: #e55a8a;
@@ -484,7 +484,7 @@ body {
   --dermaself-text-light: #999999;
   
   /* Typography */
-  --dermaself-font-family: 'DermaSelf', 'Helvetica Neue', 'Arial', sans-serif;
+  --dermaself-font-family: 'Dermaself', 'Helvetica Neue', 'Arial', sans-serif;
   --dermaself-font-size-xs: 0.75rem;
   --dermaself-font-size-sm: 0.875rem;
   --dermaself-font-size-base: 1rem;

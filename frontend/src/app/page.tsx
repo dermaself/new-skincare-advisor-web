@@ -122,7 +122,7 @@ export default function Home() {
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white flex items-center justify-center">
       <div className="text-center">
         <h1 className="text-4xl font-bold text-gray-900 mb-6">
-          DermaSelf - AI Skin Analysis
+          Dermaself - AI Skin Analysis
         </h1>
         <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
           Advanced AI technology that analyzes your skin and provides personalized 

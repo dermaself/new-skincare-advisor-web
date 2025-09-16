@@ -1,4 +1,4 @@
-# DermaSelf Frontend - Next.js Skin Analysis App
+# Dermaself Frontend - Next.js Skin Analysis App
 
 A modern, responsive Next.js application for AI-powered skin analysis that can be embedded in Shopify storefronts.
 

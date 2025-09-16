@@ -1,10 +1,10 @@
-# DermaSelf Skin Analysis - Shopify Embedding Guide
+# Dermaself Skin Analysis - Shopify Embedding Guide
 
-This guide explains how to embed the DermaSelf Skin Analysis modal in your Shopify store.
+This guide explains how to embed the Dermaself Skin Analysis modal in your Shopify store.
 
 ## Overview
 
-The DermaSelf Skin Analysis app has been optimized for embedding in Shopify stores. It provides a seamless experience where customers can:
+The Dermaself Skin Analysis app has been optimized for embedding in Shopify stores. It provides a seamless experience where customers can:
 
 1. Complete a skin assessment questionnaire
 2. Take a photo for AI analysis
@@ -281,7 +281,7 @@ window.addEventListener('message', function(event) {
 
 ## Support
 
-For technical support or customization requests, contact the DermaSelf team.
+For technical support or customization requests, contact the Dermaself team.
 
 ## Security Notes
 

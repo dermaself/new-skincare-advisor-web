@@ -275,7 +275,7 @@ export default function RoutineProductCard({
               </button>
               {/* Cart Button */}
               <button 
-                className={`ml-auto px-4 py-2 rounded-lg font-medium transition-colors ${isInCart ? 'remove-btn' : 'add-btn'}`}
+                className={`ml-auto cart-btn px-4 py-2 rounded-lg font-medium transition-colors ${isInCart ? 'remove-btn' : 'add-btn'}`}
                 onClick={isInCart ? handleRemoveFromCart : handleAddToCart}
                 disabled={isLoading || !selectedVariant || !isVariantAvailable(selectedVariant) || state.loading}
               >
@@ -371,6 +371,15 @@ export default function RoutineProductCard({
           min-width: 140px;
         }
 
+        /* Mobile refinements */
+        @media (max-width: 640px) {
+          .cart-btn {
+            min-width: 120px;
+            padding: 8px 12px;
+            font-size: 0.9rem;
+          }
+        }
+
         .add-btn {
           background-color: #ff6b9d;
           color: white;
@@ -439,8 +448,7 @@ export default function RoutineProductCard({
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.9, opacity: 0 }}
-            className="bg-white rounded-lg max-w-md w-full overflow-y-auto scrollbar-thin scrollbar-thumb-pink-600 scrollbar-track-gray-200"
-            style={{ maxHeight: '80vh' }}
+            className="bg-white rounded-lg w-[calc(100%-2rem)] max-w-md md:w-full max-h-[80vh] mx-auto overflow-y-auto scrollbar-thin scrollbar-thumb-pink-600 scrollbar-track-gray-200"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Modal Header */}

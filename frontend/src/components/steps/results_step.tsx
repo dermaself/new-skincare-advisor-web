@@ -6,9 +6,10 @@ import { ASSETS } from '../../lib/assets';
 import { fetchProductsByVariantIds, TransformedProduct } from '../../lib/shopify-product-fetcher';
 import { useCart } from '../CartContext';
 
-// Lazy load heavy components
-const RoutineProductCard = lazy(() => import('../RoutineProductCard'));
-const SkinAnalysisImage = lazy(() => import('../SkinAnalysisImage'));
+// Import components
+import RoutineProductCard from '../RoutineProductCard';
+import SkinAnalysisImage from '../SkinAnalysisImage';
+const SpideringChart = lazy(() => import('../SpideringChart'));
 
 interface Product {
   id: string;
@@ -240,24 +241,73 @@ export default function ResultsStep({
       className="h-full flex flex-col"
     >
       {/* Tab Content */}
-      <div className="flex-1 py-4">
+      <div className="flex-1">
         {activeTab === 'results' && (
-          <div>
+          <div className="bg-gradient-to-br from-pink-50 to-rose-100 min-h-full">
             {/* AI Photo Analysis Section */}
-            <div className="mb-6">
+            <div className="p-6">
               <div className="relative">
                 <div className="text-center">
                   {/* Analysis Image */}
-                  <div className="relative mb-4">
-                    <Suspense fallback={
-                      <div className="w-32 h-32 bg-gray-200 rounded-full animate-pulse"></div>
-                    }>
-                      <SkinAnalysisImage 
-                        imageUrl={capturedImage || analysisData?.image_url || ''} 
-                        analysisData={analysisData}
-                      />
-                    </Suspense>
+                  <div className="relative mb-6">
+                    <SkinAnalysisImage 
+                      imageUrl={capturedImage || analysisData?.image_url || ''} 
+                      analysisData={analysisData}
+                    />
                   </div>
+
+                  {/* Spidering Chart */}
+                  {analysisData && (
+                    <div className="mb-6">
+                      <Suspense fallback={
+                        <div className="bg-white rounded-2xl shadow-lg p-6 animate-pulse">
+                          <div className="h-8 bg-pink-200 rounded mb-4"></div>
+                          <div className="h-48 bg-pink-100 rounded"></div>
+                        </div>
+                      }>
+                        <SpideringChart 
+                          analysisData={analysisData} 
+                          userAge={30} 
+                          userGender="female" 
+                        />
+                      </Suspense>
+                    </div>
+                  )}
+
+                  {/* Analysis Results */}
+                  {analysisData && (
+                    <div className="bg-white rounded-2xl shadow-lg p-6 space-y-4">
+                      <h3 className="text-xl font-bold text-gray-800 mb-4">Your Skin Analysis</h3>
+                      <div className="grid grid-cols-1 gap-4">
+                        <div className="flex justify-between items-center p-3 bg-pink-50 rounded-xl">
+                          <span className="text-sm font-medium text-gray-700">Skin Type</span>
+                          <span className="text-sm font-semibold text-pink-600">{analysisData.skin_type || 'Normal'}</span>
+                        </div>
+                        <div className="flex justify-between items-center p-3 bg-pink-50 rounded-xl">
+                          <span className="text-sm font-medium text-gray-700">Acne Analysis</span>
+                          <span className="text-sm font-semibold text-pink-600">{analysisData.acne?.severity || 'None detected'}</span>
+                        </div>
+                        <div className="flex justify-between items-center p-3 bg-pink-50 rounded-xl">
+                          <span className="text-sm font-medium text-gray-700">Redness</span>
+                          <span className="text-sm font-semibold text-pink-600">{analysisData.redness ? `${analysisData.redness.redness_perc}%` : 'None detected'}</span>
+                        </div>
+                        <div className="flex justify-between items-center p-3 bg-pink-50 rounded-xl">
+                          <span className="text-sm font-medium text-gray-700">Wrinkles</span>
+                          <span className="text-sm font-semibold text-pink-600">{analysisData.wrinkles?.severity || 'None detected'}</span>
+                        </div>
+                        <div className="p-3 bg-gradient-to-r from-pink-100 to-rose-100 rounded-xl">
+                          <span className="text-sm font-medium text-gray-700 block mb-1">Recommendations</span>
+                          <span className="text-sm text-gray-600">
+                            {typeof analysisData.recommendations === 'string' 
+                              ? analysisData.recommendations 
+                              : analysisData.recommendations?.skincare_routine 
+                                ? 'Personalized routine generated' 
+                                : 'Personalized routine suggested'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -265,83 +315,82 @@ export default function ResultsStep({
         )}
 
         {activeTab === 'routine' && (
-          <div className="px-4">
+          <div className="bg-gradient-to-br from-pink-50 to-rose-100 min-h-full p-6">
             {/* Loading State */}
             {isLoadingProducts ? (
-              <div className="space-y-4">
+              <div className="space-y-6">
                 {[1, 2, 3].map((i) => (
-                  <div key={i} className="bg-white rounded-xl border border-gray-200 p-4">
+                  <div key={i} className="bg-white rounded-2xl shadow-lg border border-pink-100 p-6">
                     <div className="animate-pulse">
-                      <div className="h-6 bg-gray-200 rounded mb-3 w-1/3"></div>
-                      <div className="h-20 bg-gray-200 rounded"></div>
+                      <div className="h-8 bg-pink-200 rounded mb-4"></div>
+                      <div className="h-32 bg-pink-100 rounded"></div>
                     </div>
                   </div>
                 ))}
               </div>
             ) : (
               /* Routine Steps */
-              <div className="space-y-4">
+              <div className="space-y-6">
                 {routineSteps && routineSteps.length > 0 ? (
                   routineSteps.map((step, index) => (
-                    <div key={step.stepNumber} className="bg-white rounded-xl border border-gray-200 p-4">
+                    <div key={step.stepNumber} className="bg-white rounded-2xl shadow-lg border border-pink-100 p-6">
                       <div className="space-y-3">
-                        <Suspense fallback={
-                          <div className="animate-pulse bg-gray-200 h-20 rounded-lg"></div>
-                        }>
-                          <RoutineProductCard
-                            product={step.mainProduct as any}
-                            stepNumber={step.stepNumber}
-                            stepTitle={step.stepTitle}
-                            categoryTitle={step.category}
-                            isLastStep={index === routineSteps.length - 1}
-                            showAddAllButton={index === routineSteps.length - 1}
-                            onAddAllToCart={async () => {
-                              // Add all main products to cart
-                              for (const routineStep of routineSteps) {
-                                if (routineStep.mainProduct && routineStep.mainProduct.variants[0]) {
-                                  try {
-                                    const variantId = `gid://shopify/ProductVariant/${routineStep.mainProduct.variants[0].id}`;
-                                    const productInfo = {
-                                      name: routineStep.mainProduct.title,
-                                      image: routineStep.mainProduct.images[0]?.src || 'https://via.placeholder.com/300x300?text=Product',
-                                      price: parseFloat(routineStep.mainProduct.variants[0].price) * 100
-                                    };
-                                    
-                                    // Add custom attributes for tracking recommended products
-                                    const customAttributes = [
-                                      {
-                                        key: 'source',
-                                        value: 'dermaself_recommendation'
-                                      },
-                                      {
-                                        key: 'recommendation_type',
-                                        value: 'skin_analysis'
-                                      },
-                                      {
-                                        key: 'product_step',
-                                        value: routineStep.category.toLowerCase().replace(/\s+/g, '_')
-                                      },
-                                      {
-                                        key: 'added_at',
-                                        value: new Date().toISOString()
-                                      }
-                                    ];
-                                    
-                                    await addToCart(variantId, 1, customAttributes, productInfo);
-                                  } catch (error) {
-                                    console.error('Failed to add product to cart:', error);
-                                  }
+                        <RoutineProductCard
+                          product={step.mainProduct as any}
+                          stepNumber={step.stepNumber}
+                          stepTitle={step.stepTitle}
+                          categoryTitle={step.category}
+                          isLastStep={index === routineSteps.length - 1}
+                          showAddAllButton={index === routineSteps.length - 1}
+                          onAddAllToCart={async () => {
+                            // Add all main products to cart
+                            for (const routineStep of routineSteps) {
+                              if (routineStep.mainProduct && routineStep.mainProduct.variants[0]) {
+                                try {
+                                  const variantId = `gid://shopify/ProductVariant/${routineStep.mainProduct.variants[0].id}`;
+                                  const productInfo = {
+                                    name: routineStep.mainProduct.title,
+                                    image: routineStep.mainProduct.images[0]?.src || 'https://via.placeholder.com/300x300?text=Product',
+                                    price: parseFloat(routineStep.mainProduct.variants[0].price) * 100
+                                  };
+                                  
+                                  // Add custom attributes for tracking recommended products
+                                  const customAttributes = [
+                                    {
+                                      key: 'source',
+                                      value: 'dermaself_recommendation'
+                                    },
+                                    {
+                                      key: 'recommendation_type',
+                                      value: 'skin_analysis'
+                                    },
+                                    {
+                                      key: 'product_step',
+                                      value: routineStep.category.toLowerCase().replace(/\s+/g, '_')
+                                    },
+                                    {
+                                      key: 'added_at',
+                                      value: new Date().toISOString()
+                                    }
+                                  ];
+                                  
+                                  await addToCart(variantId, 1, customAttributes, productInfo);
+                                } catch (error) {
+                                  console.error('Failed to add product to cart:', error);
                                 }
                               }
-                            }}
-                          />
-                        </Suspense>
+                            }
+                          }}
+                        />
                       </div>
                     </div>
                   ))
                 ) : (
-                  <div className="bg-white rounded-xl border border-gray-200 p-6 text-center">
-                    <p className="text-gray-500">No routine data available</p>
+                  <div className="bg-white rounded-2xl shadow-lg border border-pink-100 p-8 text-center">
+                    <div className="w-16 h-16 bg-pink-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <span className="text-2xl">💄</span>
+                    </div>
+                    <p className="text-gray-600 font-medium">No routine data available</p>
                     <p className="text-sm text-gray-400 mt-2">Please try the analysis again</p>
                   </div>
                 )}
@@ -352,15 +401,15 @@ export default function ResultsStep({
       </div>
 
       {/* Restart Button */}
-      <div className="px-4 py-4 border-t border-gray-200">
+      <div className="p-6 bg-white border-t border-pink-100">
         <motion.button
           onClick={onRestart}
-          className="w-full py-3 px-4 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors flex items-center justify-center"
+          className="w-full py-4 px-6 bg-gradient-to-r from-pink-500 to-rose-500 text-white font-semibold rounded-2xl hover:from-pink-600 hover:to-rose-600 transition-all duration-300 flex items-center justify-center shadow-lg"
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
         >
-          <RotateCcw className="w-4 h-4 mr-2" />
-          Start Over
+          <RotateCcw className="w-5 h-5 mr-2" />
+          Start New Analysis
         </motion.button>
       </div>
     </motion.div>

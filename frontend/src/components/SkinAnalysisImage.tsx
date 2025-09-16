@@ -553,7 +553,7 @@ export default function SkinAnalysisImage({
     <div className={`relative ${className}`}>
       {/* Image Carousel */}
       <div className="relative mb-6">
-        <div className="relative overflow-hidden bg-gray-100">
+        <div className="relative overflow-hidden bg-gray-100 rounded-2xl">
           {/* Carousel Images */}
           <div 
             ref={containerRef}
@@ -601,6 +601,7 @@ export default function SkinAnalysisImage({
             <button
               onClick={prevImage}
               className="bg-white/20 hover:bg-white text-gray-800 p-2 rounded-full shadow-lg transition-all"
+              title="Previous image"
             >
               <ChevronLeft className="w-5 h-5" />
             </button>
@@ -610,6 +611,7 @@ export default function SkinAnalysisImage({
             <button
               onClick={nextImage}
               className="bg-white/20 hover:bg-white text-gray-800 p-2 rounded-full shadow-lg transition-all"
+              title="Next image"
             >
               <ChevronRight className="w-5 h-5" />
             </button>
@@ -627,6 +629,7 @@ export default function SkinAnalysisImage({
                       ? 'bg-white shadow-lg'
                       : 'bg-white/50 hover:bg-white/75'
                   }`}
+                  title={`Go to image ${index + 1}`}
                 />
               ))}
             </div>
@@ -634,7 +637,7 @@ export default function SkinAnalysisImage({
         </div>
 
         {/* View Toggle Buttons */}
-        <div className="flex justify-center mb-4">
+        <div className="flex justify-center mb-4 mt-8">
           <div className="flex space-x-2 bg-white rounded-lg p-1 shadow-sm border">
             {carouselImages.map((image, index) => (
               <button
@@ -653,7 +656,7 @@ export default function SkinAnalysisImage({
         </div>
 
         {/* Color Legend Bar */}
-        <div className="bg-white rounded-lg p-4 shadow-sm border">
+        <div className="bg-white rounded-lg p-4 shadow-sm border hidden">
           <h3 className="text-sm font-medium text-gray-700 mb-3">
             {carouselImages[currentImageIndex].label} - Color Legend
           </h3>

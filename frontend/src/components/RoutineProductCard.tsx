@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { ShoppingCart, Plus, Minus, Loader2, CheckCircle, Sun, Moon, Trash2, Info, X } from 'lucide-react';
+import { ShoppingCart, Loader2, CheckCircle, Trash2, Info, X } from 'lucide-react';
 import { useCart } from './CartContext';
 
 interface ProductVariant {
@@ -75,7 +75,6 @@ export default function RoutineProductCard({
   const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(
     safeVariants[0] || null
   );
-  const [quantity, setQuantity] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [showSuccess, setShowSuccess] = useState<'added' | 'removed' | false>(false);
   const [showError, setShowError] = useState(false);
@@ -133,7 +132,7 @@ export default function RoutineProductCard({
         price: parseFloat(selectedVariant.price || '0') * 100 // Convert to cents
       };
       
-      await addToCart(variantId, quantity, customAttributes, productInfo);
+      await addToCart(variantId, 1, customAttributes, productInfo);
       
       // Show success overlay briefly
       setShowSuccess('added');
@@ -178,11 +177,6 @@ export default function RoutineProductCard({
     }
   };
 
-  const handleQuantityChange = (newQuantity: number) => {
-    if (newQuantity >= 1 && newQuantity <= 99) {
-      setQuantity(newQuantity);
-    }
-  };
 
   const formatPrice = (price: string) => {
     return new Intl.NumberFormat('en-US', {
@@ -208,6 +202,7 @@ export default function RoutineProductCard({
     if (tagLower.includes('dry') || tagLower.includes('sensitive')) return 'rgb(255, 99, 132)'; // Red
     return 'rgb(100, 149, 237)'; // Default blue
   };
+  
 
   return (
     <section className="routine-steps">
@@ -253,8 +248,7 @@ export default function RoutineProductCard({
             {productTags.map((tag, index) => (
               <div key={index}>
                 <p 
-                  className="body-mobile-small tag-colour"
-                  style={{ borderColor: getTagColor(tag) }}
+                  className="body-mobile-small tag-colour border-2"
                 >
                   {tag}
                 </p>
@@ -305,6 +299,41 @@ export default function RoutineProductCard({
             </div>
           </div>
         </div>
+
+        {/* Success Overlay */}
+        {showSuccess && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 bg-green-500 bg-opacity-90 flex items-center justify-center rounded-lg"
+          >
+            <div className="text-white text-center">
+              <CheckCircle className="w-12 h-12 mx-auto mb-2" />
+              <p className="font-semibold">
+                {showSuccess === 'added' ? 'Added to Cart!' : 'Removed from Cart!'}
+              </p>
+            </div>
+          </motion.div>
+        )}
+
+        {/* Error Overlay */}
+        {showError && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 bg-red-500 bg-opacity-90 flex items-center justify-center rounded-lg"
+          >
+            <div className="text-white text-center">
+              <div className="w-12 h-12 mx-auto mb-2 flex items-center justify-center">
+                <span className="text-2xl">⚠️</span>
+              </div>
+              <p className="font-semibold">Error</p>
+              <p className="text-sm mt-1">{errorMessage}</p>
+            </div>
+          </motion.div>
+        )}
       </div>
 
       
@@ -420,6 +449,7 @@ export default function RoutineProductCard({
               <button
                 onClick={() => setShowDetailsModal(false)}
                 className="p-1 hover:bg-gray-100 rounded-full transition-colors"
+                title="Close modal"
               >
                 <X className="w-5 h-5" />
               </button>

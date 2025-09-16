@@ -351,7 +351,7 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
           {/* Centered Title */}
           <div className="flex-1 text-center">
             <h2 className={`text-lg font-semibold text-white ${currentStep === 'onboarding' && 'pl-8'}`}>
-              Dermaself - AI Skin Analysis
+              Dermaself x Kiko
             </h2>
           </div>
 

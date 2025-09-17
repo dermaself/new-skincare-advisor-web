@@ -25,14 +25,29 @@ class ImagePreloader {
     const promise = new Promise<PreloadResult>((resolve) => {
       const img = new Image();
       
+      // Add timeout to prevent hanging
+      const timeout = setTimeout(() => {
+        console.warn(`⏰ Image preload timeout: ${url}`);
+        this.loadingPromises.delete(url);
+        resolve({ 
+          success: false, 
+          url, 
+          error: `Timeout loading image: ${url}` 
+        });
+      }, 10000); // 10 second timeout
+      
       img.onload = () => {
+        clearTimeout(timeout);
         this.loadedImages.add(url);
         this.loadingPromises.delete(url);
+        console.log(`✅ Image loaded: ${url}`);
         resolve({ success: true, url });
       };
       
       img.onerror = () => {
+        clearTimeout(timeout);
         this.loadingPromises.delete(url);
+        console.warn(`❌ Image failed to load: ${url}`);
         resolve({ 
           success: false, 
           url, 
@@ -87,6 +102,7 @@ class ImagePreloader {
     ];
 
     console.log('🖼️ Preloading step images...', allImageUrls.length, 'images');
+    console.log('📁 Image URLs:', allImageUrls);
     
     const results = await this.preloadImages(allImageUrls);
     

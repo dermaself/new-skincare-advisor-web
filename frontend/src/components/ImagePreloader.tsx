@@ -32,10 +32,21 @@ export default function ImagePreloader({ onComplete, children }: ImagePreloaderP
         }, 100);
         
         // Wait for preloading to complete
-        await preloadPromise;
+        const results = await preloadPromise;
         
         clearInterval(progressInterval);
         setProgress(100);
+        
+        // Check if we have any successful loads
+        const successful = results.filter(r => r.success).length;
+        const total = results.length;
+        
+        if (successful === 0) {
+          console.warn('⚠️ No images loaded successfully, but continuing...');
+        } else {
+          console.log(`✅ Image preloading completed: ${successful}/${total} images loaded`);
+        }
+        
         // Small delay to show completion
         setTimeout(() => {
           setIsLoading(false);
@@ -45,8 +56,10 @@ export default function ImagePreloader({ onComplete, children }: ImagePreloaderP
       } catch (error) {
         console.error('Image preloading failed:', error);
         // Even if preloading fails, continue with the app
-        setIsLoading(false);
-        onComplete();
+        setTimeout(() => {
+          setIsLoading(false);
+          onComplete();
+        }, 1000);
       }
     };
 

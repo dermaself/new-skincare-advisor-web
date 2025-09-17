@@ -2,8 +2,9 @@
 
 import { useState, useEffect, Suspense, lazy } from 'react';
 
-// Lazy load the modal to reduce initial bundle size
+// Lazy load the modal and preloader to reduce initial bundle size
 const SkinAnalysisModal = lazy(() => import('@/components/SkinAnalysisModal'));
+const ImagePreloader = lazy(() => import('@/components/ImagePreloader'));
 
 // Preload the modal component for faster loading
 const preloadModal = () => {
@@ -14,6 +15,7 @@ export default function EmbedPage() {
   const [showModal, setShowModal] = useState(true); // Always show modal in embed mode
   const [isModalReady, setIsModalReady] = useState(false); // Track when modal is ready
   const [isLoading, setIsLoading] = useState(true); // Track initial loading state
+  const [imagesPreloaded, setImagesPreloaded] = useState(false); // Track image preloading
 
   // Listen for messages from parent Shopify page
   useEffect(() => {
@@ -42,11 +44,18 @@ export default function EmbedPage() {
     setIsLoading(false);
   };
 
+  // Handle image preloading completion
+  const handleImagesPreloaded = () => {
+    setImagesPreloaded(true);
+    setIsLoading(false);
+  };
+
   // Reset modal ready state when modal closes
   useEffect(() => {
     if (!showModal) {
       setIsModalReady(false);
       setIsLoading(true);
+      setImagesPreloaded(false);
     }
   }, [showModal]);
 
@@ -100,12 +109,18 @@ export default function EmbedPage() {
             </div>
           </div>
         }>
-          <SkinAnalysisModal 
-            isOpen={showModal} 
-            onClose={handleCloseModal} 
-            embedded={true}
-            onReady={handleModalReady}
-          />
+          {!imagesPreloaded ? (
+            <ImagePreloader onComplete={handleImagesPreloaded}>
+              <div></div>
+            </ImagePreloader>
+          ) : (
+            <SkinAnalysisModal 
+              isOpen={showModal} 
+              onClose={handleCloseModal} 
+              embedded={true}
+              onReady={handleModalReady}
+            />
+          )}
         </Suspense>
       </div>
     </div>

@@ -140,10 +140,9 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
   // Notify when modal is ready
   useEffect(() => {
     if (isOpen && onReady) {
+      // Immediate callback for faster feedback
       requestAnimationFrame(() => {
-      setTimeout(() => {
-          onReady();
-        }, 200);
+        onReady();
       });
     }
   }, [isOpen, onReady]);

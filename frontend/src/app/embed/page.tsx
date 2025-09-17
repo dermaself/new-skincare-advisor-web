@@ -13,9 +13,7 @@ const preloadModal = () => {
 
 export default function EmbedPage() {
   const [showModal, setShowModal] = useState(true); // Always show modal in embed mode
-  const [isModalReady, setIsModalReady] = useState(false); // Track when modal is ready
-  const [isLoading, setIsLoading] = useState(true); // Track initial loading state
-  const [imagesPreloaded, setImagesPreloaded] = useState(false); // Track image preloading
+  const [isReady, setIsReady] = useState(false); // Track when everything is ready
 
   // Listen for messages from parent Shopify page
   useEffect(() => {
@@ -32,45 +30,32 @@ export default function EmbedPage() {
     // Preload modal components for faster loading
     preloadModal();
     
-    // Show loading immediately
-    setIsLoading(true);
-    
     return () => window.removeEventListener('message', handleMessage);
   }, []);
 
-  // Handle modal ready state
-  const handleModalReady = () => {
-    setIsModalReady(true);
-    setIsLoading(false);
+  // Handle everything ready (images preloaded + modal ready)
+  const handleEverythingReady = () => {
+    setIsReady(true);
   };
 
-  // Handle image preloading completion
-  const handleImagesPreloaded = () => {
-    setImagesPreloaded(true);
-    setIsLoading(false);
-  };
-
-  // Reset modal ready state when modal closes
+  // Reset ready state when modal closes
   useEffect(() => {
     if (!showModal) {
-      setIsModalReady(false);
-      setIsLoading(true);
-      setImagesPreloaded(false);
+      setIsReady(false);
     }
   }, [showModal]);
 
-  // Fallback timeout in case onReady doesn't fire
+  // Fallback timeout in case everything doesn't load
   useEffect(() => {
-    if (showModal && !isModalReady) {
+    if (showModal && !isReady) {
       const fallbackTimer = setTimeout(() => {
-        console.log('Modal ready fallback triggered');
-        setIsModalReady(true);
-        setIsLoading(false);
-      }, 2000); // 2 second fallback
+        console.log('Embed ready fallback triggered');
+        setIsReady(true);
+      }, 5000); // 5 second fallback
 
       return () => clearTimeout(fallbackTimer);
     }
-  }, [showModal, isModalReady]);
+  }, [showModal, isReady]);
 
   const handleCloseModal = () => {
     setShowModal(false);
@@ -87,18 +72,6 @@ export default function EmbedPage() {
   return (
     <div className="w-full h-screen bg-black/20 backdrop-blur-sm flex items-center justify-center p-0 md:p-4">
       <div className="w-full max-w-[540px] h-[95vh] max-h-[800px] bg-white rounded-xl shadow-2xl overflow-hidden border border-gray-200 relative md:rounded-xl rounded-none">
-        {/* Show loading immediately */}
-        {isLoading && (
-          <div className="absolute inset-0 bg-white flex items-center justify-center z-50">
-            <div className="flex flex-col items-center space-y-4">
-              <div className="loader__wrapper">
-                <div className="loader">&nbsp;</div>
-              </div>
-              <p className="text-gray-600 text-sm">Loading skin analysis...</p>
-            </div>
-          </div>
-        )}
-        
         <Suspense fallback={
           <div className="w-full h-full flex items-center justify-center">
             <div className="flex flex-col items-center space-y-4">
@@ -109,16 +82,21 @@ export default function EmbedPage() {
             </div>
           </div>
         }>
-          {!imagesPreloaded ? (
-            <ImagePreloader onComplete={handleImagesPreloaded}>
-              <div></div>
+          {!isReady ? (
+            <ImagePreloader mode="initial" onComplete={handleEverythingReady}>
+              <SkinAnalysisModal 
+                isOpen={showModal} 
+                onClose={handleCloseModal} 
+                embedded={true}
+                onReady={() => {}} // No need for separate modal ready callback
+              />
             </ImagePreloader>
           ) : (
             <SkinAnalysisModal 
               isOpen={showModal} 
               onClose={handleCloseModal} 
               embedded={true}
-              onReady={handleModalReady}
+              onReady={() => {}}
             />
           )}
         </Suspense>

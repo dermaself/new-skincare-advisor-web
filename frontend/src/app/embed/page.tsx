@@ -72,16 +72,7 @@ export default function EmbedPage() {
   return (
     <div className="w-full h-screen bg-black/20 backdrop-blur-sm flex items-center justify-center p-0 md:p-4">
       <div className="w-full max-w-[540px] h-[95vh] max-h-[800px] bg-white rounded-xl shadow-2xl overflow-hidden border border-gray-200 relative md:rounded-xl rounded-none">
-        <Suspense fallback={
-          <div className="w-full h-full flex items-center justify-center">
-            <div className="flex flex-col items-center space-y-4">
-              <div className="loader__wrapper">
-                <div className="loader">&nbsp;</div>
-              </div>
-              <p className="text-gray-600 text-sm">Loading skin analysis...</p>
-            </div>
-          </div>
-        }>
+        <Suspense>
           {!isReady ? (
             <ImagePreloader mode="initial" onComplete={handleEverythingReady}>
               <SkinAnalysisModal 

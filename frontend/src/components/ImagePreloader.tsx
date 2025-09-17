@@ -6,56 +6,94 @@ import { preloadStepImages, getLoadingProgress } from '../lib/imagePreloader';
 interface ImagePreloaderProps {
   onComplete: () => void;
   children: React.ReactNode;
+  mode?: 'initial' | 'analysis'; // New prop to differentiate loading modes
+  analysisProgress?: number; // Optional analysis progress for analysis mode
 }
 
-export default function ImagePreloader({ onComplete, children }: ImagePreloaderProps) {
+export default function ImagePreloader({ 
+  onComplete, 
+  children, 
+  mode = 'initial',
+  analysisProgress = 0 
+}: ImagePreloaderProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [progress, setProgress] = useState(0);
   const [loadingText, setLoadingText] = useState('Preparing your skincare analysis...');
+  const [currentPhase, setCurrentPhase] = useState<'preparing' | 'analyzing' | 'complete'>('preparing');
 
   useEffect(() => {
     const loadImages = async () => {
       try {
-        setLoadingText('Dermaself - AI Skin Analysis');
-        
-        // Start preloading images
-        const preloadPromise = preloadStepImages();
-        
-        // Update progress periodically
-        const progressInterval = setInterval(() => {
-          const { percentage } = getLoadingProgress();
-          setProgress(percentage);
+        if (mode === 'initial') {
+          // Initial image preloading
+          setLoadingText('Dermaself - AI Skin Analysis');
+          setCurrentPhase('preparing');
           
-          if (percentage >= 100) {
-            clearInterval(progressInterval);
+          // Start preloading images
+          const preloadPromise = preloadStepImages();
+          
+          // Update progress periodically
+          const progressInterval = setInterval(() => {
+            const { percentage } = getLoadingProgress();
+            setProgress(percentage);
+            
+            if (percentage >= 100) {
+              clearInterval(progressInterval);
+            }
+          }, 100);
+          
+          // Wait for preloading to complete
+          const results = await preloadPromise;
+          
+          clearInterval(progressInterval);
+          setProgress(100);
+          
+          // Check if we have any successful loads
+          const successful = results.filter(r => r.success).length;
+          const total = results.length;
+          
+          if (successful === 0) {
+            console.warn('⚠️ No images loaded successfully, but continuing...');
+            setLoadingText('Continuing without image cache...');
+          } else {
+            console.log(`✅ Image preloading completed: ${successful}/${total} images loaded`);
+            setLoadingText('Images cached successfully!');
           }
-        }, 100);
-        
-        // Wait for preloading to complete
-        const results = await preloadPromise;
-        
-        clearInterval(progressInterval);
-        setProgress(100);
-        
-        // Check if we have any successful loads
-        const successful = results.filter(r => r.success).length;
-        const total = results.length;
-        
-        if (successful === 0) {
-          console.warn('⚠️ No images loaded successfully, but continuing...');
-        } else {
-          console.log(`✅ Image preloading completed: ${successful}/${total} images loaded`);
+          
+          // Small delay to show completion
+          setTimeout(() => {
+            setIsLoading(false);
+            onComplete();
+          }, 500);
+          
+        } else if (mode === 'analysis') {
+          // Analysis loading mode
+          setLoadingText('Analyzing Your Photo');
+          setCurrentPhase('analyzing');
+          
+          // Simulate analysis progress
+          const analysisInterval = setInterval(() => {
+            setProgress(analysisProgress);
+            
+            if (analysisProgress >= 100) {
+              clearInterval(analysisInterval);
+              setCurrentPhase('complete');
+              setLoadingText('Analysis Complete!');
+              
+              setTimeout(() => {
+                setIsLoading(false);
+                onComplete();
+              }, 1000);
+            }
+          }, 100);
+          
+          return () => clearInterval(analysisInterval);
         }
         
-        // Small delay to show completion
-        setTimeout(() => {
-          setIsLoading(false);
-          onComplete();
-        }, 500);
-        
       } catch (error) {
-        console.error('Image preloading failed:', error);
-        // Even if preloading fails, continue with the app
+        console.error('Loading failed:', error);
+        setLoadingText('Continuing...');
+        // Even if loading fails, continue with the app
         setTimeout(() => {
           setIsLoading(false);
           onComplete();
@@ -64,7 +102,7 @@ export default function ImagePreloader({ onComplete, children }: ImagePreloaderP
     };
 
     loadImages();
-  }, [onComplete]);
+  }, [onComplete, mode, analysisProgress]);
 
   if (!isLoading) {
     return <>{children}</>;
@@ -86,8 +124,11 @@ export default function ImagePreloader({ onComplete, children }: ImagePreloaderP
         <div className="bg-black px-4 py-3 flex items-center justify-center border-b border-gray-700">
           <div className="flex-1 text-center">
             <h2 className="text-lg font-semibold text-white">
-              Dermaself - AI Skin Analysis
+              {mode === 'initial' ? 'Dermaself - AI Skin Analysis' : 'AI Analysis'}
             </h2>
+            {mode === 'analysis' && (
+              <p className="text-gray-300 text-sm mt-1">Personalized Recommendations</p>
+            )}
           </div>
         </div>
 
@@ -114,7 +155,10 @@ export default function ImagePreloader({ onComplete, children }: ImagePreloaderP
               </h2>
               
               <p className="text-sm text-gray-600">
-                AI-powered skin analysis loading...
+                {mode === 'initial' 
+                  ? 'Preparing your skincare analysis experience...'
+                  : 'Our AI is analyzing your skin and creating personalized recommendations...'
+                }
               </p>
             </div>
 
@@ -133,24 +177,27 @@ export default function ImagePreloader({ onComplete, children }: ImagePreloaderP
                 {progress}%
               </span>
             </div>
+
+            {/* Phase Indicator for Analysis Mode */}
+            {mode === 'analysis' && (
+              <div className="mt-4 flex justify-center space-x-2">
+                <div className={`w-2 h-2 rounded-full ${currentPhase === 'preparing' ? 'bg-pink-500' : 'bg-gray-300'}`} />
+                <div className={`w-2 h-2 rounded-full ${currentPhase === 'analyzing' ? 'bg-pink-500' : 'bg-gray-300'}`} />
+                <div className={`w-2 h-2 rounded-full ${currentPhase === 'complete' ? 'bg-pink-500' : 'bg-gray-300'}`} />
+              </div>
+            )}
           </div>
         </div>
 
         {/* Footer - Same as modal */}
         <div className="bg-gray-100 px-4 py-2 border-t border-gray-200">
           <div className="flex items-center justify-center">
-            <div className="flex space-x-1">
-              <div className="w-2 h-2 bg-pink-500 rounded-full"></div>
-              <div className="w-2 h-2 bg-gray-300 rounded-full"></div>
-              <div className="w-2 h-2 bg-gray-300 rounded-full"></div>
-              <div className="w-2 h-2 bg-gray-300 rounded-full"></div>
-              <div className="w-2 h-2 bg-gray-300 rounded-full"></div>
-              <div className="w-2 h-2 bg-gray-300 rounded-full"></div>
-              <div className="w-2 h-2 bg-gray-300 rounded-full"></div>
-              <div className="w-2 h-2 bg-gray-300 rounded-full"></div>
-              <div className="w-2 h-2 bg-gray-300 rounded-full"></div>
-              <div className="w-2 h-2 bg-gray-300 rounded-full"></div>
-            </div>
+            <p className="text-xs text-gray-500">
+              {mode === 'initial' 
+                ? 'Optimizing your experience...'
+                : 'Please wait while we process your image...'
+              }
+            </p>
           </div>
         </div>
       </motion.div>

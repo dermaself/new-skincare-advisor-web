@@ -11,20 +11,22 @@ import {
   GenderStep,
   AgeStep,
   PhotoInstructionsStep,
-  LoadingStep,
   ResultsStep,
   ModalFooter
 } from './steps';
 
+// Import unified loading component
+import ImagePreloader from './ImagePreloader';
+
 import dynamic from 'next/dynamic';
 
 const CameraCaptureStep = dynamic(() => import('./steps/camera_capture_step'), {
-  loading: () => <LoadingStep />,
+  loading: () => <ImagePreloader mode="initial" onComplete={() => {}}><div></div></ImagePreloader>,
   ssr: false,
 });
 
 const ScanStep = dynamic(() => import('./steps/scan_step'), {
-  loading: () => <LoadingStep />,
+  loading: () => <ImagePreloader mode="initial" onComplete={() => {}}><div></div></ImagePreloader>,
   ssr: false,
 });
 
@@ -35,7 +37,7 @@ interface SkinAnalysisModalProps {
   onReady?: () => void;
 }
 
-type Step = 'onboarding' | 'skin-type' | 'skin-concerns' | 'gender' | 'age' | 'photo-instructions' | 'camera-capture' | 'scan' | 'loading' | 'results';
+type Step = 'onboarding' | 'skin-type' | 'skin-concerns' | 'gender' | 'age' | 'photo-instructions' | 'camera-capture' | 'scan' | 'results';
 
 // Product data interfaces
 interface Product {
@@ -149,7 +151,7 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
 
   // Step navigation
   const handleNext = () => {
-    const stepOrder: Step[] = ['onboarding', 'skin-type', 'skin-concerns', 'gender', 'age', 'photo-instructions', 'camera-capture', 'scan', 'loading', 'results'];
+    const stepOrder: Step[] = ['onboarding', 'skin-type', 'skin-concerns', 'gender', 'age', 'photo-instructions', 'camera-capture', 'scan', 'results'];
     const currentIndex = stepOrder.indexOf(currentStep);
     if (currentIndex < stepOrder.length - 1) {
       setCurrentStep(stepOrder[currentIndex + 1]);
@@ -157,7 +159,7 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
   };
 
   const handleBack = () => {
-    const stepOrder: Step[] = ['onboarding', 'skin-type', 'skin-concerns', 'gender', 'age', 'photo-instructions', 'camera-capture', 'scan', 'loading', 'results'];
+    const stepOrder: Step[] = ['onboarding', 'skin-type', 'skin-concerns', 'gender', 'age', 'photo-instructions', 'camera-capture', 'scan', 'results'];
     const currentIndex = stepOrder.indexOf(currentStep);
     
     if (currentStep === 'results') {
@@ -190,7 +192,7 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
 
   // Get current step number for progress indicator
   const getCurrentStepNumber = () => {
-    const stepOrder = ['onboarding', 'skin-type', 'skin-concerns', 'gender', 'age', 'photo-instructions', 'camera-capture', 'scan', 'loading', 'results'];
+    const stepOrder = ['onboarding', 'skin-type', 'skin-concerns', 'gender', 'age', 'photo-instructions', 'camera-capture', 'scan', 'results'];
     return stepOrder.indexOf(currentStep) + 1;
   };
 
@@ -206,8 +208,11 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
     }
     
     // Show loading state immediately
-      setLoading(true);
-    setCurrentStep('loading');
+    setLoading(true);
+    
+    // Use unified loading component instead of separate loading step
+    // The loading will be handled by wrapping the results step
+    setCurrentStep('results');
       
     // Trigger analysis immediately with user data and recommendations
     try {
@@ -440,21 +445,36 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
               />
             )}
 
-              {currentStep === 'loading' && (
-              <LoadingStep />
-            )}
-
             {currentStep === 'results' && (
-              <ResultsStep
-                analysisData={analysisData}
-                routine={routine}
-                routineType={routineType}
-                onRoutineTypeChange={setRoutineType}
-                onRestart={handleRestart}
-                capturedImage={capturedImage}
-                activeTab={activeTab}
-                onTabChange={setActiveTab}
-              />
+              loading ? (
+                <ImagePreloader 
+                  mode="analysis" 
+                  analysisProgress={loading ? 75 : 100}
+                  onComplete={() => setLoading(false)}
+                >
+                  <ResultsStep
+                    analysisData={analysisData}
+                    routine={routine}
+                    routineType={routineType}
+                    onRoutineTypeChange={setRoutineType}
+                    onRestart={handleRestart}
+                    capturedImage={capturedImage}
+                    activeTab={activeTab}
+                    onTabChange={setActiveTab}
+                  />
+                </ImagePreloader>
+              ) : (
+                <ResultsStep
+                  analysisData={analysisData}
+                  routine={routine}
+                  routineType={routineType}
+                  onRoutineTypeChange={setRoutineType}
+                  onRestart={handleRestart}
+                  capturedImage={capturedImage}
+                  activeTab={activeTab}
+                  onTabChange={setActiveTab}
+                />
+              )
             )}
           </AnimatePresence>
         </div>
@@ -462,7 +482,7 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
         {/* Fixed Footer */}
         <ModalFooter
           currentStep={getCurrentStepNumber()}
-          totalSteps={10}
+          totalSteps={9}
           showTabButtons={currentStep === 'results'}
           activeTab={activeTab}
           onTabChange={setActiveTab}

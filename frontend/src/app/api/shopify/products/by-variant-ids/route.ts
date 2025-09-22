@@ -56,6 +56,20 @@ export async function POST(request: NextRequest) {
               productType
               tags
               description
+              metafields(identifiers: [
+                {namespace: "reviews", key: "rating"},
+                {namespace: "reviews", key: "rating_count"},
+                {namespace: "yotpo", key: "reviews_average"},
+                {namespace: "yotpo", key: "reviews_count"},
+                {namespace: "spr", key: "rating"},
+                {namespace: "spr", key: "reviews"},
+                {namespace: "dermaself", key: "rating"},
+                {namespace: "dermaself", key: "rating_count"}
+              ]) {
+                namespace
+                key
+                value
+              }
               images(first: 1) {
                 edges {
                   node {
@@ -142,6 +156,30 @@ export async function POST(request: NextRequest) {
         return null;
       }
       
+      // Extract rating from known metafield namespaces/keys
+      let rating: number | null = null;
+      let ratingCount: number | null = null;
+      try {
+        const mfs = product.metafields || [];
+        const findMf = (ns: string, key: string) => mfs.find((m: any) => m.namespace === ns && m.key === key)?.value;
+        const candidates: Array<string | undefined> = [
+          findMf('reviews', 'rating'),
+          findMf('yotpo', 'reviews_average'),
+          findMf('spr', 'rating'),
+          findMf('dermaself', 'rating')
+        ];
+        const countCandidates: Array<string | undefined> = [
+          findMf('reviews', 'rating_count'),
+          findMf('yotpo', 'reviews_count'),
+          findMf('spr', 'reviews'),
+          findMf('dermaself', 'rating_count')
+        ];
+        const parsed = candidates.map(v => v ? parseFloat(v) : NaN).find(v => !Number.isNaN(v));
+        if (typeof parsed === 'number' && !Number.isNaN(parsed)) rating = parsed;
+        const parsedCount = countCandidates.map(v => v ? parseInt(v as string, 10) : NaN).find(v => !Number.isNaN(v));
+        if (typeof parsedCount === 'number' && !Number.isNaN(parsedCount)) ratingCount = parsedCount;
+      } catch {}
+
       return {
         id: product.id.split('/').pop() || product.id,
         title: product.title || 'Unknown Product',
@@ -159,6 +197,8 @@ export async function POST(request: NextRequest) {
           src: variant.image?.src || product.images?.edges?.[0]?.node?.src || 'https://via.placeholder.com/300x300/f0f0f0/999999?text=Product+Image',
           alt: variant.image?.altText || product.images?.edges?.[0]?.node?.altText || product.title || 'Product Image'
         }],
+        rating,
+        rating_count: ratingCount,
         body_html: product.description || '',
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()

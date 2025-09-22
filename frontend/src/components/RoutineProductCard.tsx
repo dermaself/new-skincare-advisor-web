@@ -188,10 +188,19 @@ export default function RoutineProductCard({
   };
 
 
+  const getActiveCurrency = (): string => {
+    try {
+      if (state?.cart?.cost?.totalAmount?.currencyCode) return state.cart.cost.totalAmount.currencyCode;
+      if (typeof window !== 'undefined' && (window as any)?.Shopify?.currency?.active) return (window as any).Shopify.currency.active;
+    } catch {}
+    return 'USD';
+  };
+
   const formatPrice = (price: string) => {
+    const currency = getActiveCurrency();
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
-      currency: 'USD',
+      currency,
     }).format(parseFloat(price));
   };
 
@@ -244,7 +253,8 @@ export default function RoutineProductCard({
               src={product.images[0]?.src || 'https://via.placeholder.com/80'} 
               alt={product.title}
               loading="lazy"
-              className="w-20 h-20 rounded-lg object-cover bg-muted"
+              className="w-20 h-20 rounded-xl object-cover bg-white p-1 cursor-pointer"
+              onClick={() => setShowDetailsModal(true)}
               onLoad={() => {
                 console.log('✅ Routine image loaded successfully:', product.images[0]?.src);
               }}
@@ -266,8 +276,18 @@ export default function RoutineProductCard({
               </div>
               <div className="mt-2 flex items-center gap-2 flex-wrap">
                 <span className="inline-flex px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-semibold">
-                  {selectedVariant ? formatPrice(selectedVariant.price) : '$0.00'}
+                  {selectedVariant ? formatPrice(selectedVariant.price) : new Intl.NumberFormat('en-US', { style: 'currency', currency: getActiveCurrency() }).format(0)}
                 </span>
+                {(() => {
+                  const ratingValue = (product as any).rating ?? (product as any).rating_value;
+                  const ratingText = typeof ratingValue === 'number' ? ratingValue.toFixed(2) : (ratingValue || null);
+                  return ratingText ? (
+                    <span className="inline-flex items-center text-xs text-gray-700">
+                      <svg className="w-4 h-4 text-yellow-400" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
+                      <span className="ml-1">{ratingText}</span>
+                    </span>
+                  ) : null;
+                })()}
               </div>
             </div>
           </div>
@@ -282,33 +302,20 @@ export default function RoutineProductCard({
             {/* Verified chip */}
             <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-semibold text-white bg-blue-600">
               <CheckCircle className="w-3 h-3" />
-              Lóvi MD Verified
+              Dermaself Verified
             </span>
             
-            {/* Star Rating */}
-            <div className="flex items-center gap-1">
-              {[1, 2, 3, 4, 5].map((star) => (
-                <svg
-                  key={star}
-                  className="w-4 h-4 text-yellow-400"
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
-                >
-                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                </svg>
-              ))}
-              <span className="text-sm text-gray-600 ml-1">4.75</span>
-            </div>
+            {/* Star rating moved next to price */}
           </div>
           
           {/* Why picked bubble */}
           {whyPicked && (
-            <div className="mt-4 rounded-3xl bg-muted p-4 text-base leading-relaxed">
-              <div className="font-semibold mb-1">Why we picked it</div>
-              <p className={`text-gray-900 ${whyExpanded ? '' : 'line-clamp-6'}`}>{whyPicked}</p>
+            <div className="mt-4 rounded-3xl bg-muted p-4 text-sm leading-relaxed">
+              <div className="font-semibold text-sm mb-1">Why we picked it</div>
+              <p className={`text-gray-900 ${whyExpanded ? '' : 'line-clamp-3'}`}>{whyPicked}</p>
               <button
                 type="button"
-                className="mt-2 text-sm font-semibold text-pink-700 hover:text-pink-800"
+                className="mt-2 text-xs font-semibold text-pink-700 hover:text-pink-800"
                 onClick={() => setWhyExpanded(prev => !prev)}
               >
                 {whyExpanded ? 'Show less' : 'Show more'}
@@ -371,7 +378,7 @@ export default function RoutineProductCard({
                           <div className="text-xs text-muted-foreground truncate max-w-[180px]">{alt.vendor}</div>
                           {alt.variants?.[0]?.price && (
                             <div className="mt-2 inline-flex px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-semibold">
-                              {new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(parseFloat(alt.variants[0].price))}
+                              {new Intl.NumberFormat('en-US',{style:'currency',currency:getActiveCurrency()}).format(parseFloat(alt.variants[0].price))}
                             </div>
                           )}
                         </div>
@@ -547,7 +554,7 @@ export default function RoutineProductCard({
                 {/* Price */}
                 <div>
                   <p className="text-xl font-bold text-pink-600">
-                    {selectedVariant ? formatPrice(selectedVariant.price) : '$0.00'}
+                    {selectedVariant ? formatPrice(selectedVariant.price) : new Intl.NumberFormat('en-US', { style: 'currency', currency: getActiveCurrency() }).format(0)}
                   </p>
                 </div>
 

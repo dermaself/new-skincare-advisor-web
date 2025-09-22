@@ -99,10 +99,18 @@ export default function SkincareRoutineCard({
     }
   };
 
+  const getActiveCurrency = (): string => {
+    try {
+      if (typeof window !== 'undefined' && (window as any)?.Shopify?.currency?.active) return (window as any).Shopify.currency.active;
+    } catch {}
+    return 'USD';
+  };
+
   const formatPrice = (price: string) => {
+    const currency = getActiveCurrency();
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
-      currency: 'USD',
+      currency,
     }).format(parseFloat(price));
   };
 

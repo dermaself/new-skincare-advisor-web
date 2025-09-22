@@ -519,7 +519,7 @@ export default function AnalysisResults({ result, onReset }: AnalysisResultsProp
                         <p className="text-lg font-bold text-gray-900 mb-3">
                           {new Intl.NumberFormat('en-US', {
                             style: 'currency',
-                            currency: 'USD',
+                            currency: (typeof window !== 'undefined' && (window as any)?.Shopify?.currency?.active) ? (window as any).Shopify.currency.active : 'USD',
                           }).format(parseFloat(product.variants[0]?.price || '0'))}
                         </p>
                         <button 

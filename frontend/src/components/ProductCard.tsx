@@ -79,10 +79,19 @@ export default function ProductCard({ product }: ProductCardProps) {
     }
   };
 
+  const getActiveCurrency = (): string => {
+    try {
+      if (state?.cart?.cost?.totalAmount?.currencyCode) return state.cart.cost.totalAmount.currencyCode;
+      if (typeof window !== 'undefined' && (window as any)?.Shopify?.currency?.active) return (window as any).Shopify.currency.active;
+    } catch {}
+    return 'USD';
+  };
+
   const formatPrice = (price: string) => {
+    const currency = getActiveCurrency();
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
-      currency: 'USD',
+      currency,
     }).format(parseFloat(price));
   };
 
@@ -143,10 +152,11 @@ export default function ProductCard({ product }: ProductCardProps) {
         {/* Variant Selection */}
         {product.variants.length > 1 && (
           <div className="mb-3">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="variant-select" className="block text-sm font-medium text-gray-700 mb-2">
               Variant
             </label>
             <select
+              id="variant-select"
               value={selectedVariant?.id || ''}
               onChange={(e) => {
                 const variant = product.variants.find(v => v.id.toString() === e.target.value);
@@ -178,6 +188,8 @@ export default function ProductCard({ product }: ProductCardProps) {
               onClick={() => handleQuantityChange(quantity - 1)}
               disabled={quantity <= 1}
               className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-50 disabled:opacity-50"
+              aria-label="Decrease quantity"
+              title="Decrease quantity"
             >
               <Minus className="w-4 h-4" />
             </button>
@@ -190,6 +202,8 @@ export default function ProductCard({ product }: ProductCardProps) {
               onClick={() => handleQuantityChange(quantity + 1)}
               disabled={quantity >= 99}
               className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-50 disabled:opacity-50"
+              aria-label="Increase quantity"
+              title="Increase quantity"
             >
               <Plus className="w-4 h-4" />
             </button>

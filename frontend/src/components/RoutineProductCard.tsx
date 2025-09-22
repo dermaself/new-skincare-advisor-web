@@ -215,129 +215,127 @@ export default function RoutineProductCard({
   
 
   return (
-    <div className="bg-gray-50 min-h-screen">
+    <section className="routine-steps">
       {/* Step Header */}
-      <div className="flex items-center gap-2 mb-4 px-4">
+      <div className="flex items-center gap-2 mb-3">
         <span className="inline-flex items-center justify-center h-7 px-3 rounded-full bg-neutral-900 text-white text-sm font-semibold">
           {`Step ${stepNumber}`}
         </span>
-        <h2 className="text-2xl font-semibold tracking-tight text-gray-900">{stepTitle}</h2>
+        <h2 className="text-2xl font-semibold tracking-tight truncate flex-1">{stepTitle}</h2>
+        {categoryTitle && (
+          <span className="ml-2 hidden sm:inline-flex items-center text-xs bg-muted text-muted-foreground px-2 py-0.5 rounded-full">
+            {categoryTitle}
+          </span>
+        )}
       </div>
       
-      {/* Separator */}
-      <div className="mx-4 mb-6 h-px bg-gray-200"></div>
-      
-      {/* Product Card */}
-      <div className="mx-4 mb-6">
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-          {/* Product Info */}
-          <div className="p-4">
-            {/* Product main row */}
-            <div className="flex items-start gap-4">
-              <img 
-                key={`product-${product.id}`}
-                width="80" 
-                height="80"
-                src={product.images[0]?.src || 'https://via.placeholder.com/80'} 
-                alt={product.title}
-                loading="lazy"
-                className="w-20 h-20 rounded-lg object-cover bg-gray-100"
-                onLoad={() => {
-                  console.log('✅ Routine image loaded successfully:', product.images[0]?.src);
-                }}
-                onError={(e) => {
-                  console.error('❌ Routine image failed to load:', product.images[0]?.src);
-                  const target = e.target as HTMLImageElement;
-                  const placeholderUrl = 'https://via.placeholder.com/80';
-                  if (target.src !== placeholderUrl) {
-                    target.src = placeholderUrl;
-                  }
-                }}
-              />
-              <div className="flex-1 min-w-0">
-                <div className="flex items-start justify-between">
-                  <div className="min-w-0 flex-1">
-                    <div className="text-lg font-bold leading-snug text-gray-900">{product.title || 'Unknown Product'}</div>
-                    <div className="text-sm text-gray-600 mt-1">
-                      {product.vendor || 'Unknown Brand'} · {selectedVariant ? formatPrice(selectedVariant.price) : '$0.00'} · {product.product_type || 'Skincare'} ✨
-                    </div>
-                  </div>
-                  <button 
-                    className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-                    onClick={isInCart ? handleRemoveFromCart : handleAddToCart}
-                    disabled={isLoading || !selectedVariant || !isVariantAvailable(selectedVariant) || state.loading}
-                    title={isInCart ? 'Remove from cart' : 'Add to cart'}
-                    aria-label={isInCart ? 'Remove from cart' : 'Add to cart'}
-                  >
-                    <ShoppingCart className="w-5 h-5 text-gray-600" />
-                  </button>
+      <div className="step-content">
+        {/* Product Info */}
+        <div className="product-info__tablet">
+          {/* Product main row */}
+          <div className="flex items-start gap-3">
+            <img 
+              key={`product-${product.id}`}
+              width="80" 
+              height="80"
+              src={product.images[0]?.src || 'https://via.placeholder.com/80'} 
+              alt={product.title}
+              loading="lazy"
+              className="w-20 h-20 rounded-lg object-cover bg-muted"
+              onLoad={() => {
+                console.log('✅ Routine image loaded successfully:', product.images[0]?.src);
+              }}
+              onError={(e) => {
+                console.error('❌ Routine image failed to load:', product.images[0]?.src);
+                const target = e.target as HTMLImageElement;
+                const placeholderUrl = 'https://via.placeholder.com/80';
+                if (target.src !== placeholderUrl) {
+                  target.src = placeholderUrl;
+                }
+              }}
+            />
+            <div className="flex-1 min-w-0">
+              <div className="flex items-start gap-2">
+                <div className="min-w-0">
+                  <div className="text-lg font-semibold leading-snug line-clamp-2">{product.title || 'Unknown Product'}</div>
+                  <div className="text-sm text-muted-foreground line-clamp-1">{product.vendor || 'Unknown Brand'}</div>
                 </div>
-                
-                {/* Fit and Verified chips */}
-                <div className="mt-3 flex items-center gap-2">
-                  <span className="inline-flex items-center px-3 py-1 rounded-full bg-purple-100 text-purple-800 text-xs font-semibold">
-                    93% fit
-                  </span>
-                  <span className="inline-flex items-center px-3 py-1 rounded-full bg-blue-100 text-blue-800 text-xs font-semibold">
-                    <CheckCircle className="w-3 h-3 mr-1" />
-                    Lóvi MD Verified
-                  </span>
-                </div>
+              </div>
+              <div className="mt-2 flex items-center gap-2 flex-wrap">
+                <span className="inline-flex px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-semibold">
+                  {selectedVariant ? formatPrice(selectedVariant.price) : '$0.00'}
+                </span>
               </div>
             </div>
-            
-            {/* Why picked section */}
-            {whyPicked && (
-              <div className="mt-6">
-                <div className="font-semibold text-gray-900 mb-2">Why we picked it</div>
-                <p className={`text-gray-700 text-sm leading-relaxed ${whyExpanded ? '' : 'line-clamp-3'}`}>{whyPicked}</p>
-                {whyPicked.length > 150 && (
-                  <button
-                    type="button"
-                    className="mt-2 text-sm font-semibold text-pink-600 hover:text-pink-700"
-                    onClick={() => setWhyExpanded(prev => !prev)}
-                  >
-                    {whyExpanded ? 'Show less' : 'Show more'}
-                  </button>
-                )}
-              </div>
-            )}
-
           </div>
-        </div>
-        
-        {/* Footer actions: Add to cart + Alternatives toggle */}
-        <div className="mt-4 flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 w-full">
-          <button 
-            className={`inline-flex items-center justify-center h-12 px-6 rounded-full font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:ring-offset-2 disabled:opacity-60 bg-yellow-400 text-black hover:bg-yellow-500`}
-            onClick={isInCart ? handleRemoveFromCart : handleAddToCart}
-            disabled={isLoading || !selectedVariant || !isVariantAvailable(selectedVariant) || state.loading}
-            aria-label={isInCart ? 'Remove from cart' : 'Add to cart'}
-          >
-            {isLoading || state.loading ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                <span aria-live="polite">{isInCart ? 'Removing...' : 'Adding...'}</span>
-              </>
-            ) : (
-              <>
-                <span className="mr-2">a</span>
-                <span aria-live="polite">{selectedVariant ? formatPrice(selectedVariant.price) : '$0.00'}</span>
-              </>
-            )}
-          </button>
-
-          {alternatives && alternatives.length > 0 && (
-            <button 
-              type="button"
-              className="flex-1 h-12 inline-flex items-center justify-center rounded-full bg-white hover:bg-gray-50 text-sm font-semibold px-4 transition-colors shadow-sm border border-gray-200"
-              onClick={onToggleAlternatives}
-              aria-controls={`alt-list-${product.id}`}
-            >
-              <span>{alternatives.length} alternatives</span>
-            </button>
+          
+          {/* Tags */}
+          <div className="tags">
+            {productTags.map((tag, index) => (
+              <div key={index}>
+                <p 
+                  className="body-mobile-small tag-colour border-2"
+                >
+                  {tag}
+                </p>
+              </div>
+            ))}
+          </div>
+          
+          {/* Why picked bubble */}
+          {whyPicked && (
+            <div className="mt-4 rounded-3xl bg-muted p-4 text-base leading-relaxed">
+              <div className="font-semibold mb-1">Why we picked it</div>
+              <p className={`text-gray-900 ${whyExpanded ? '' : 'line-clamp-6'}`}>{whyPicked}</p>
+              <button
+                type="button"
+                className="mt-2 text-sm font-semibold text-pink-700 hover:text-pink-800"
+                onClick={() => setWhyExpanded(prev => !prev)}
+              >
+                {whyExpanded ? 'Show less' : 'Show more'}
+              </button>
+            </div>
           )}
-        </div>
+
+          {/* Footer actions: Add to cart + Alternatives toggle */}
+          {/* Footer actions: stacked on mobile, inline on md+ */}
+          <div className="mt-4 flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 w-full">
+            <button 
+              className={`inline-flex items-center justify-center h-12 sm:h-11 w-full sm:w-auto px-4 rounded-lg font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-pink-400 focus:ring-offset-2 disabled:opacity-60 ${showSuccess ? 'bg-green-600' : 'bg-pink-600 text-white hover:bg-pink-700'}`}
+              onClick={isInCart ? handleRemoveFromCart : handleAddToCart}
+              disabled={isLoading || !selectedVariant || !isVariantAvailable(selectedVariant) || state.loading}
+              aria-label={isInCart ? 'Remove from cart' : 'Add to cart'}
+            >
+              {isLoading || state.loading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                  <span aria-live="polite">{isInCart ? 'Removing...' : 'Adding...'}</span>
+                </>
+              ) : isInCart ? (
+                <>
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  <span aria-live="polite">Remove from Cart</span>
+                </>
+              ) : (
+                <>
+                  <ShoppingCart className="w-4 h-4 mr-2" />
+                  <span aria-live="polite">Add to Cart</span>
+                </>
+              )}
+            </button>
+
+            {alternatives && alternatives.length > 0 && (
+              <button 
+                type="button"
+                className="flex-1 h-12 sm:h-11 inline-flex items-center justify-between rounded-full bg-white/80 hover:bg-white text-sm font-semibold px-4 transition-colors shadow-sm border border-pink-100"
+                onClick={onToggleAlternatives}
+                aria-controls={`alt-list-${product.id}`}
+              >
+                <span>View {alternatives.length} alternatives</span>
+                <svg className={`w-4 h-4 transition-transform ${alternativesExpanded ? 'rotate-180' : ''}`} viewBox="0 0 20 20" fill="currentColor"><path d="M5.23 7.21a.75.75 0 011.06.02L10 11.188l3.71-3.956a.75.75 0 011.08 1.04l-4.25 4.53a.75.75 0 01-1.08 0l-4.25-4.53a.75.75 0 01.03-1.06z"/></svg>
+              </button>
+            )}
+          </div>
 
           {/* Alternatives list when expanded */}
           {alternativesExpanded && alternatives && alternatives.length > 0 && (
@@ -360,52 +358,37 @@ export default function RoutineProductCard({
                         </div>
                         {/* Add alt to cart */}
                         <div className="ml-auto pl-2">
-                          {(() => {
-                            const altVariantId = alt?.variants?.[0]?.id ? `gid://shopify/ProductVariant/${alt.variants[0].id}` : null;
-                            const isAltInCart = altVariantId ? isProductInCart(altVariantId) : false;
-                            const altCartLineId = altVariantId ? getCartItemLineId(altVariantId) : null;
-                            
-                            return (
-                              <button
-                                type="button"
-                                className="h-9 w-9 inline-flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-pink-400"
-                                onClick={async () => {
-                                  try {
-                                    if (!alt?.variants?.[0]?.id) return;
-                                    
-                                    if (isAltInCart && altCartLineId) {
-                                      await removeFromCart(altCartLineId);
-                                    } else {
-                                      const altVariantId = `gid://shopify/ProductVariant/${alt.variants[0].id}`;
-                                      const info = {
-                                        name: alt.title,
-                                        image: alt.images?.[0]?.src || 'https://via.placeholder.com/300x300?text=Product',
-                                        price: alt.variants?.[0]?.price ? parseFloat(alt.variants[0].price) * 100 : 0
-                                      };
-                                      await addToCart(altVariantId, 1, [
-                                        { key: 'source', value: 'dermaself_recommendation' },
-                                        { key: 'recommendation_type', value: 'skin_analysis_alternative' },
-                                        { key: 'product_step', value: stepTitle.toLowerCase().replace('step ', '').replace(':', '') },
-                                        { key: 'added_at', value: new Date().toISOString() }
-                                      ], info);
-                                    }
-                                  } catch (e) {
-                                    console.error('Failed to toggle alternative cart:', e);
-                                    setErrorMessage('Failed to update cart');
-                                    setShowError(true);
-                                    setTimeout(() => setShowError(false), 2000);
-                                  }
-                                }}
-                                aria-label={isAltInCart ? `Remove ${alt.title} from cart` : `Add ${alt.title} to cart`}
-                              >
-                                {isAltInCart ? (
-                                  <Trash2 className="w-4 h-4" />
-                                ) : (
-                                  <ShoppingCart className="w-4 h-4" />
-                                )}
-                              </button>
-                            );
-                          })()}
+                          <button
+                            type="button"
+                            className="h-9 px-3 inline-flex items-center rounded-md bg-pink-600 text-white text-xs font-semibold hover:bg-pink-700 focus:outline-none focus:ring-2 focus:ring-pink-400"
+                            onClick={async () => {
+                              try {
+                                if (!alt?.variants?.[0]?.id) return;
+                                const altVariantId = `gid://shopify/ProductVariant/${alt.variants[0].id}`;
+                                const info = {
+                                  name: alt.title,
+                                  image: alt.images?.[0]?.src || 'https://via.placeholder.com/300x300?text=Product',
+                                  price: alt.variants?.[0]?.price ? parseFloat(alt.variants[0].price) * 100 : 0
+                                };
+                                await addToCart(altVariantId, 1, [
+                                  { key: 'source', value: 'dermaself_recommendation' },
+                                  { key: 'recommendation_type', value: 'skin_analysis_alternative' },
+                                  { key: 'product_step', value: stepTitle.toLowerCase().replace('step ', '').replace(':', '') },
+                                  { key: 'added_at', value: new Date().toISOString() }
+                                ], info);
+                                setShowSuccess('added');
+                                setTimeout(() => setShowSuccess(false), 800);
+                              } catch (e) {
+                                console.error('Failed to add alternative:', e);
+                                setErrorMessage('Failed to add alternative');
+                                setShowError(true);
+                                setTimeout(() => setShowError(false), 2000);
+                              }
+                            }}
+                            aria-label={`Add ${alt.title} to cart`}
+                          >
+                            Add
+                          </button>
                         </div>
                       </div>
                     </div>
@@ -416,6 +399,22 @@ export default function RoutineProductCard({
           )}
         </div>
 
+        {/* Success Overlay */}
+        {showSuccess && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 bg-green-500 bg-opacity-90 flex items-center justify-center rounded-lg"
+          >
+            <div className="text-white text-center">
+              <CheckCircle className="w-12 h-12 mx-auto mb-2" />
+              <p className="font-semibold">
+                {showSuccess === 'added' ? 'Added to Cart!' : 'Removed from Cart!'}
+              </p>
+            </div>
+          </motion.div>
+        )}
 
         {/* Error Overlay */}
         {showError && (
@@ -434,31 +433,34 @@ export default function RoutineProductCard({
             </div>
           </motion.div>
         )}
+      </div>
 
-        {/* Step Separator */}
-        {!isLastStep && <div className="mx-4 my-6 h-px bg-gray-200"></div>}
+      
 
-        {/* Add All to Bag Button for Last Step */}
-        {isLastStep && showAddAllButton && onAddAllToCart && (
-          <div className="mx-4 mt-6">
-            <button 
-              className="w-full bg-pink-600 text-white px-4 py-3 rounded-lg font-medium hover:bg-pink-700 transition-colors"
-              onClick={onAddAllToCart}
-              disabled={state.loading}
-            >
-              {state.loading ? (
-                <div className="flex items-center justify-center">
-                  <Loader2 className="w-5 h-5 animate-spin mr-2" />
-                  Adding Routine...
-                </div>
-              ) : (
-                'ADD FULL ROUTINE TO BAG'
-              )}
-            </button>
-          </div>
-        )}
+      {/* Step Separator */}
+      {!isLastStep && <div className="step-separator"></div>}
 
-        {/* Product Details Modal */}
+      {/* Add All to Bag Button for Last Step */}
+      {isLastStep && showAddAllButton && onAddAllToCart && (
+        <button 
+          className="mt-4 bg-pink-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-pink-700 transition-colors"
+          onClick={onAddAllToCart}
+          disabled={state.loading}
+        >
+          {state.loading ? (
+            <div className="flex items-center justify-center">
+              <Loader2 className="w-5 h-5 animate-spin mr-2" />
+              Adding Routine...
+            </div>
+          ) : (
+            'ADD FULL ROUTINE TO BAG'
+          )}
+        </button>
+      )}
+
+      {/* Removed style jsx in favor of Tailwind utilities */}
+
+      {/* Product Details Modal */}
       {showDetailsModal && (
         <motion.div
           initial={{ opacity: 0 }}
@@ -556,6 +558,6 @@ export default function RoutineProductCard({
           </motion.div>
         </motion.div>
       )}
-    </div>
+    </section>
   );
 } 

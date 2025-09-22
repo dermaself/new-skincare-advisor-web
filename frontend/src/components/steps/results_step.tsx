@@ -66,6 +66,19 @@ export default function ResultsStep({
   // State for fresh product data
   const [routineSteps, setRoutineSteps] = useState<any[]>([]);
   const [isLoadingProducts, setIsLoadingProducts] = useState(false);
+  // UI state: expanded alternatives per step
+  const [expandedAlternatives, setExpandedAlternatives] = useState<Set<string>>(new Set());
+  const toggleAlternatives = (key: string) => {
+    setExpandedAlternatives(prev => {
+      const next = new Set(prev);
+      if (next.has(key)) {
+        next.delete(key);
+      } else {
+        next.add(key);
+      }
+      return next;
+    });
+  };
   
   // Cart functionality
   const { addToCart } = useCart();
@@ -202,12 +215,14 @@ export default function ResultsStep({
             console.log('Alternative products found:', alternativeProducts.length);
 
             if (mainProduct) {
+              const whyPicked = module.why_picked || module.reason || module.description || (mainProduct?.body_html ? mainProduct.body_html.replace(/<[^>]*>/g, '').substring(0, 400) : '');
               const step = {
                 stepNumber: globalStepNumber,
                 stepTitle: `STEP ${globalStepNumber}: ${module.module?.toUpperCase() || 'SKINCARE STEP'}`,
                 category: category.category, // Use category from JSON for section title
                 mainProduct,
                 alternativeProducts,
+                whyPicked,
                 allProducts: [mainProduct, ...alternativeProducts].filter(Boolean)
               };
               
@@ -333,15 +348,20 @@ export default function ResultsStep({
               <div className="space-y-6">
                 {routineSteps && routineSteps.length > 0 ? (
                   routineSteps.map((step, index) => (
-                    <div key={step.stepNumber} className="bg-white rounded-2xl shadow-lg border border-pink-100 p-6">
+                  <div key={step.stepNumber} className="bg-white rounded-2xl shadow-lg border border-pink-100 p-6">
                       <div className="space-y-3">
                         <RoutineProductCard
                           product={step.mainProduct as any}
                           stepNumber={step.stepNumber}
-                          stepTitle={step.stepTitle}
+                        stepTitle={step.stepTitle}
                           categoryTitle={step.category}
                           isLastStep={index === routineSteps.length - 1}
                           showAddAllButton={index === routineSteps.length - 1}
+                        // new UI props
+                        whyPicked={step.whyPicked}
+                        alternatives={step.alternativeProducts as any}
+                        alternativesExpanded={expandedAlternatives.has(`${step.category}-${step.stepNumber}`)}
+                        onToggleAlternatives={() => toggleAlternatives(`${step.category}-${step.stepNumber}`)}
                           onAddAllToCart={async () => {
                             // Add all main products to cart
                             for (const routineStep of routineSteps) {

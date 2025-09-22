@@ -39,6 +39,11 @@ interface RoutineProductCardProps {
   isLastStep?: boolean;
   showAddAllButton?: boolean;
   onAddAllToCart?: () => void;
+  // UI extensions
+  whyPicked?: string;
+  alternatives?: any[]; // TransformedProduct[] from fetcher; keep loose to avoid backend change
+  alternativesExpanded?: boolean;
+  onToggleAlternatives?: () => void;
 }
 
 export default function RoutineProductCard({ 
@@ -48,7 +53,11 @@ export default function RoutineProductCard({
   categoryTitle,
   isLastStep = false,
   showAddAllButton = false,
-  onAddAllToCart 
+  onAddAllToCart,
+  whyPicked,
+  alternatives = [],
+  alternativesExpanded = false,
+  onToggleAlternatives
 }: RoutineProductCardProps) {
   
   // Early return if product is invalid
@@ -206,10 +215,13 @@ export default function RoutineProductCard({
 
   return (
     <section className="routine-steps">
-      <h1 className="heading-1 w-full step-name flex items-center justify-center gap-2">
-        <p>{stepTitle}</p>
-        <p className="rounded-full bg-gray-200 px-4 py-1">{categoryTitle}</p>
-      </h1>
+      {/* Step Header */}
+      <div className="flex items-center gap-2 mb-3">
+        <span className="inline-flex items-center justify-center h-7 px-3 rounded-full bg-neutral-900 text-white text-sm font-semibold">
+          {`Step ${stepNumber}`}
+        </span>
+        <h2 className="text-2xl font-semibold tracking-tight">{stepTitle}</h2>
+      </div>
       
       <div className="step-content">
         {/* Product Image Slider */}
@@ -239,9 +251,42 @@ export default function RoutineProductCard({
 
         {/* Product Info */}
         <div className="product-info__tablet">
-          <h2 className="heading-3 product-name">
-            {product.vendor || 'Unknown Brand'} {product.title || 'Unknown Product'}
-          </h2>
+          {/* Product main row */}
+          <div className="flex items-start gap-3">
+            <img 
+              key={`product-${product.id}`}
+              width="80" 
+              height="80"
+              src={product.images[0]?.src || 'https://via.placeholder.com/80'} 
+              alt={product.title}
+              loading="lazy"
+              className="w-20 h-20 rounded-lg object-cover bg-muted"
+              onLoad={() => {
+                console.log('✅ Routine image loaded successfully:', product.images[0]?.src);
+              }}
+              onError={(e) => {
+                console.error('❌ Routine image failed to load:', product.images[0]?.src);
+                const target = e.target as HTMLImageElement;
+                const placeholderUrl = 'https://via.placeholder.com/80';
+                if (target.src !== placeholderUrl) {
+                  target.src = placeholderUrl;
+                }
+              }}
+            />
+            <div className="flex-1 min-w-0">
+              <div className="flex items-start gap-2">
+                <div className="min-w-0">
+                  <div className="text-lg font-semibold leading-snug truncate">{product.title || 'Unknown Product'}</div>
+                  <div className="text-sm text-muted-foreground truncate">{product.vendor || 'Unknown Brand'}</div>
+                </div>
+              </div>
+              <div className="mt-2 flex items-center gap-2 flex-wrap">
+                <span className="inline-flex px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-semibold">
+                  {selectedVariant ? formatPrice(selectedVariant.price) : '$0.00'}
+                </span>
+              </div>
+            </div>
+          </div>
           
           {/* Tags */}
           <div className="tags">
@@ -256,48 +301,77 @@ export default function RoutineProductCard({
             ))}
           </div>
           
-          <div className="product-info-container">
-            <div className="product-info">
-              <p className="body-mobile price-container">
-                <span className="current-price px-2 font-medium">
-                  Price: {selectedVariant ? formatPrice(selectedVariant.price) : '$0.00'}
-                </span>
-              </p>
+          {/* Why picked bubble */}
+          {whyPicked && (
+            <div className="mt-4 rounded-3xl bg-muted p-4 text-base leading-relaxed">
+              <div className="font-semibold mb-1">Why we picked it</div>
+              <p className="text-gray-900">{whyPicked}</p>
             </div>
+          )}
 
-            <div className="flex items-center justify-between w-full">
+          {/* Footer actions: Add to cart + Alternatives toggle */}
+          <div className="mt-4 flex items-center gap-3 w-full">
+            <button 
+              className="inline-flex items-center justify-center h-11 px-4 rounded-md bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:opacity-60"
+              onClick={isInCart ? handleRemoveFromCart : handleAddToCart}
+              disabled={isLoading || !selectedVariant || !isVariantAvailable(selectedVariant) || state.loading}
+            >
+              {isLoading || state.loading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                  {isInCart ? 'Removing...' : 'Adding...'}
+                </>
+              ) : isInCart ? (
+                <>
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Remove from Cart
+                </>
+              ) : (
+                <>
+                  <ShoppingCart className="w-4 h-4 mr-2" />
+                  Add to Cart
+                </>
+              )}
+            </button>
+
+            {alternatives && alternatives.length > 0 && (
               <button 
-                className="flex items-center px-4 py-2 rounded-lg font-medium transition-colors bg-gray-200 hover:bg-gray-300"
-                onClick={() => setShowDetailsModal(true)}
+                type="button"
+                className="flex-1 h-11 inline-flex items-center justify-between rounded-full bg-muted/60 hover:bg-muted text-sm font-medium px-4 transition-colors focus:outline-none focus:ring-2 focus:ring-ring"
+                onClick={onToggleAlternatives}
               >
-                <Info className="w-4 h-4 mr-2" />
-                Details
+                <span>View {alternatives.length} alternatives</span>
+                <svg className={`w-4 h-4 transition-transform ${alternativesExpanded ? 'rotate-180' : ''}`} viewBox="0 0 20 20" fill="currentColor"><path d="M5.23 7.21a.75.75 0 011.06.02L10 11.188l3.71-3.956a.75.75 0 011.08 1.04l-4.25 4.53a.75.75 0 01-1.08 0l-4.25-4.53a.75.75 0 01.03-1.06z"/></svg>
               </button>
-              {/* Cart Button */}
-              <button 
-                className={`ml-auto cart-btn px-4 py-2 rounded-lg font-medium transition-colors ${isInCart ? 'remove-btn' : 'add-btn'}`}
-                onClick={isInCart ? handleRemoveFromCart : handleAddToCart}
-                disabled={isLoading || !selectedVariant || !isVariantAvailable(selectedVariant) || state.loading}
-              >
-                {isLoading || state.loading ? (
-                  <div className="flex items-center justify-center">
-                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                    {isInCart ? 'Removing...' : 'Adding...'}
-                  </div>
-                ) : isInCart ? (
-                  <div className="flex items-center justify-center">
-                    <Trash2 className="w-4 h-4 mr-2" />
-                    Remove from Cart
-                  </div>
-                ) : (
-                  <div className="flex items-center justify-center">
-                    <ShoppingCart className="w-4 h-4 mr-2" />
-                    Add to Cart
-                  </div>
-                )}
-              </button>
-            </div>
+            )}
           </div>
+
+          {/* Alternatives list when expanded */}
+          {alternativesExpanded && alternatives && alternatives.length > 0 && (
+            <div className="mt-4 space-y-3">
+              <div className="text-sm text-muted-foreground px-1">Other great AI-picked options</div>
+              <div className="overflow-x-auto [-webkit-overflow-scrolling:touch]">
+                <div className="flex gap-3 w-max pr-1">
+                  {alternatives.map((alt: any) => (
+                    <div key={alt.id || alt.title} className="dermaself-card min-w-[260px] rounded-2xl">
+                      <div className="flex items-start gap-3">
+                        <img src={alt.images?.[0]?.src || 'https://via.placeholder.com/64'} alt={alt.title} loading="lazy" className="w-16 h-16 rounded-lg object-cover bg-muted" />
+                        <div className="min-w-0">
+                          <div className="text-sm font-semibold truncate">{alt.title}</div>
+                          <div className="text-xs text-muted-foreground truncate">{alt.vendor}</div>
+                        </div>
+                      </div>
+                      {alt.variants?.[0]?.price && (
+                        <div className="mt-2 inline-flex px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-semibold">
+                          {new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(parseFloat(alt.variants[0].price))}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Success Overlay */}
@@ -359,81 +433,7 @@ export default function RoutineProductCard({
         </button>
       )}
 
-      <style jsx>{`
-        .cart-btn {
-          font-weight: 600;
-          transition: all 0.2s ease;
-          border: none;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          min-width: 140px;
-        }
-
-        /* Mobile refinements */
-        @media (max-width: 640px) {
-          .cart-btn {
-            min-width: 120px;
-            padding: 8px 12px;
-            font-size: 0.9rem;
-          }
-        }
-
-        .add-btn {
-          background-color: #ff6b9d;
-          color: white;
-        }
-
-        .add-btn:hover:not(:disabled) {
-          background-color: #ff6b9d;
-          transform: translateY(-1px);
-        }
-
-        .remove-btn {
-          background-color:rgb(77, 77, 77);
-          color: white;
-        }
-
-        .remove-btn:hover:not(:disabled) {
-          background-color: rgb(70, 70, 70);
-          transform: translateY(-1px);
-        }
-
-        .cart-btn:disabled {
-          opacity: 0.6;
-          cursor: not-allowed;
-          transform: none;
-        }
-
-        .custom-scrollbar {
-          scrollbar-width: thin;
-          scrollbar-color: #ff6b9d #f1f1f1;
-        }
-
-        .custom-scrollbar::-webkit-scrollbar {
-          width: 8px;
-        }
-
-        .custom-scrollbar::-webkit-scrollbar-track {
-          background: #f1f1f1;
-          border-radius: 4px;
-        }
-
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: #ff6b9d;
-          border-radius: 4px;
-          transition: background 0.2s ease;
-        }
-
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: #e55a8a;
-        }
-
-        .custom-scrollbar::-webkit-scrollbar-corner {
-          background: #f1f1f1;
-        }
-      `}</style>
+      {/* Removed style jsx in favor of Tailwind utilities */}
 
       {/* Product Details Modal */}
       {showDetailsModal && (

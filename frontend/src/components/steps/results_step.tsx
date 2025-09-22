@@ -5,6 +5,7 @@ import { RotateCcw } from 'lucide-react';
 import { ASSETS } from '../../lib/assets';
 import { fetchProductsByVariantIds, TransformedProduct } from '../../lib/shopify-product-fetcher';
 import { useCart } from '../CartContext';
+import { loadModuleOrderConfig, reorderRoutineSteps } from '../../lib/moduleOrderConfig';
 
 // Import components
 import RoutineProductCard from '../RoutineProductCard';
@@ -66,6 +67,7 @@ export default function ResultsStep({
   // State for fresh product data
   const [routineSteps, setRoutineSteps] = useState<any[]>([]);
   const [isLoadingProducts, setIsLoadingProducts] = useState(false);
+  const [moduleOrderConfig, setModuleOrderConfig] = useState<any>(null);
   // UI state: expanded alternatives per step
   const [expandedAlternatives, setExpandedAlternatives] = useState<Set<string>>(new Set());
   // UI state: category selector (Skincare | Makeup)
@@ -84,6 +86,22 @@ export default function ResultsStep({
   
   // Cart functionality
   const { addToCart } = useCart();
+
+  // Load module order configuration
+  useEffect(() => {
+    const loadConfig = async () => {
+      try {
+        const config = await loadModuleOrderConfig();
+        setModuleOrderConfig(config);
+        console.log('📋 Module order configuration loaded:', config);
+      } catch (error) {
+        console.error('Failed to load module order config:', error);
+        setModuleOrderConfig(null);
+      }
+    };
+    
+    loadConfig();
+  }, []);
 
   // Fetch products from Shopify and build routine steps
   useEffect(() => {
@@ -238,7 +256,16 @@ export default function ResultsStep({
           });
         });
 
-        setRoutineSteps(steps);
+        // Apply module order configuration if available
+        let finalSteps = steps;
+        if (moduleOrderConfig) {
+          finalSteps = reorderRoutineSteps(steps, moduleOrderConfig);
+          console.log('📋 Applied module order configuration to', finalSteps.length, 'steps');
+        } else {
+          console.log('📋 No module order configuration, using API order');
+        }
+
+        setRoutineSteps(finalSteps);
       } catch (error) {
         console.error('Failed to fetch routine products:', error);
         setRoutineSteps([]);
@@ -248,7 +275,7 @@ export default function ResultsStep({
     };
 
     fetchRoutineProducts();
-  }, [analysisData?.recommendations]);
+  }, [analysisData?.recommendations, moduleOrderConfig]);
 
   return (
     <motion.div

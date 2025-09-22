@@ -1,0 +1,40 @@
+{
+  "description": "Example configuration file for customizing module order",
+  "instructions": "Copy this file to module-order.json and modify the order arrays to customize the display order of skincare and makeup modules",
+  "skincare": [
+    "Cleansing",
+    "Tonic/Serum",
+    "Pimple Patches",
+    "Eye Contour",
+    "Hydration",
+    "Lip Balm",
+    "SPF",
+    "Night Cream",
+    "Face Mask/Scrub",
+    "Eye Patches",
+    "Lip Scrub",
+    "Razor Disinfectant",
+    "Body Cleanser",
+    "Body Lotion",
+    "Pure Oil",
+    "Other"
+  ],
+  "makeup": [
+    "Eye Makeup Remover",
+    "Makeup Remover",
+    "BB Cream",
+    "Concealer",
+    "Foundation",
+    "Powder",
+    "Bronzer",
+    "Blush",
+    "Fixing Spray",
+    "Makeup Brush Disinfectant",
+    "Beauty Blender Disinfectant"
+  ],
+  "notes": {
+    "customization": "You can reorder these arrays to change the display order. The system will match module names from the API to these configured names.",
+    "fallback": "If this file doesn't exist or is invalid, the system will use the default order from the API.",
+    "matching": "Module names are matched case-insensitively and with flexible string matching to handle variations."
+  }
+}

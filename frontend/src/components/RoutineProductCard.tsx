@@ -229,6 +229,9 @@ export default function RoutineProductCard({
         )}
       </div>
       
+      {/* Separator between header and product content */}
+      <div className="border-b border-gray-200 my-4"></div>
+      
       <div className="step-content">
         {/* Product Info */}
         <div className="product-info__tablet">
@@ -269,17 +272,33 @@ export default function RoutineProductCard({
             </div>
           </div>
           
-          {/* Tags */}
-          <div className="tags">
-            {productTags.map((tag, index) => (
-              <div key={index}>
-                <p 
-                  className="body-mobile-small tag-colour border-2"
+          {/* Fit and Verified Chips */}
+          <div className="mt-2 flex items-center gap-2 flex-wrap">
+            {/* Fit percentage chip */}
+            <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold text-white bg-amber-800">
+              93% fit
+            </span>
+            
+            {/* Verified chip */}
+            <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-semibold text-white bg-blue-600">
+              <CheckCircle className="w-3 h-3" />
+              Lóvi MD Verified
+            </span>
+            
+            {/* Star Rating */}
+            <div className="flex items-center gap-1">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <svg
+                  key={star}
+                  className="w-4 h-4 text-yellow-400"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
                 >
-                  {tag}
-                </p>
-              </div>
-            ))}
+                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                </svg>
+              ))}
+              <span className="text-sm text-gray-600 ml-1">4.75</span>
+            </div>
           </div>
           
           {/* Why picked bubble */}
@@ -327,12 +346,12 @@ export default function RoutineProductCard({
             {alternatives && alternatives.length > 0 && (
               <button 
                 type="button"
-                className="flex-1 h-12 sm:h-11 inline-flex items-center justify-between rounded-full bg-white/80 hover:bg-white text-sm font-semibold px-4 transition-colors shadow-sm border border-pink-100"
+                className="flex-1 h-12 inline-flex items-center justify-between rounded-full bg-white hover:bg-gray-50 text-sm font-semibold px-4 transition-colors shadow-sm border border-gray-200"
                 onClick={onToggleAlternatives}
                 aria-controls={`alt-list-${product.id}`}
               >
-                <span>View {alternatives.length} alternatives</span>
-                <svg className={`w-4 h-4 transition-transform ${alternativesExpanded ? 'rotate-180' : ''}`} viewBox="0 0 20 20" fill="currentColor"><path d="M5.23 7.21a.75.75 0 011.06.02L10 11.188l3.71-3.956a.75.75 0 011.08 1.04l-4.25 4.53a.75.75 0 01-1.08 0l-4.25-4.53a.75.75 0 01.03-1.06z"/></svg>
+                <span className="text-gray-900">{alternatives.length} alternatives</span>
+                <svg className={`w-4 h-4 transition-transform text-gray-600 ${alternativesExpanded ? 'rotate-180' : ''}`} viewBox="0 0 20 20" fill="currentColor"><path d="M5.23 7.21a.75.75 0 011.06.02L10 11.188l3.71-3.956a.75.75 0 011.08 1.04l-4.25 4.53a.75.75 0 01-1.08 0l-4.25-4.53a.75.75 0 01.03-1.06z"/></svg>
               </button>
             )}
           </div>
@@ -356,39 +375,60 @@ export default function RoutineProductCard({
                             </div>
                           )}
                         </div>
-                        {/* Add alt to cart */}
+                        {/* Add/Remove alt from cart */}
                         <div className="ml-auto pl-2">
-                          <button
-                            type="button"
-                            className="h-9 px-3 inline-flex items-center rounded-md bg-pink-600 text-white text-xs font-semibold hover:bg-pink-700 focus:outline-none focus:ring-2 focus:ring-pink-400"
-                            onClick={async () => {
-                              try {
-                                if (!alt?.variants?.[0]?.id) return;
-                                const altVariantId = `gid://shopify/ProductVariant/${alt.variants[0].id}`;
-                                const info = {
-                                  name: alt.title,
-                                  image: alt.images?.[0]?.src || 'https://via.placeholder.com/300x300?text=Product',
-                                  price: alt.variants?.[0]?.price ? parseFloat(alt.variants[0].price) * 100 : 0
-                                };
-                                await addToCart(altVariantId, 1, [
-                                  { key: 'source', value: 'dermaself_recommendation' },
-                                  { key: 'recommendation_type', value: 'skin_analysis_alternative' },
-                                  { key: 'product_step', value: stepTitle.toLowerCase().replace('step ', '').replace(':', '') },
-                                  { key: 'added_at', value: new Date().toISOString() }
-                                ], info);
-                                setShowSuccess('added');
-                                setTimeout(() => setShowSuccess(false), 800);
-                              } catch (e) {
-                                console.error('Failed to add alternative:', e);
-                                setErrorMessage('Failed to add alternative');
-                                setShowError(true);
-                                setTimeout(() => setShowError(false), 2000);
-                              }
-                            }}
-                            aria-label={`Add ${alt.title} to cart`}
-                          >
-                            Add
-                          </button>
+                          {(() => {
+                            const altVariantId = alt?.variants?.[0]?.id ? `gid://shopify/ProductVariant/${alt.variants[0].id}` : null;
+                            const isAltInCart = altVariantId ? isProductInCart(altVariantId) : false;
+                            const altCartLineId = altVariantId ? getCartItemLineId(altVariantId) : null;
+                            
+                            return (
+                              <button
+                                type="button"
+                                className="h-9 w-9 inline-flex items-center justify-center rounded-md bg-pink-600 text-white hover:bg-pink-700 focus:outline-none focus:ring-2 focus:ring-pink-400 transition-colors"
+                                onClick={async () => {
+                                  try {
+                                    if (!alt?.variants?.[0]?.id) return;
+                                    const altVariantId = `gid://shopify/ProductVariant/${alt.variants[0].id}`;
+                                    
+                                    if (isAltInCart && altCartLineId) {
+                                      // Remove from cart
+                                      await removeFromCart(altCartLineId);
+                                      setShowSuccess('removed');
+                                      setTimeout(() => setShowSuccess(false), 800);
+                                    } else {
+                                      // Add to cart
+                                      const info = {
+                                        name: alt.title,
+                                        image: alt.images?.[0]?.src || 'https://via.placeholder.com/300x300?text=Product',
+                                        price: alt.variants?.[0]?.price ? parseFloat(alt.variants[0].price) * 100 : 0
+                                      };
+                                      await addToCart(altVariantId, 1, [
+                                        { key: 'source', value: 'dermaself_recommendation' },
+                                        { key: 'recommendation_type', value: 'skin_analysis_alternative' },
+                                        { key: 'product_step', value: stepTitle.toLowerCase().replace('step ', '').replace(':', '') },
+                                        { key: 'added_at', value: new Date().toISOString() }
+                                      ], info);
+                                      setShowSuccess('added');
+                                      setTimeout(() => setShowSuccess(false), 800);
+                                    }
+                                  } catch (e) {
+                                    console.error('Failed to modify cart:', e);
+                                    setErrorMessage('Failed to modify cart');
+                                    setShowError(true);
+                                    setTimeout(() => setShowError(false), 2000);
+                                  }
+                                }}
+                                aria-label={isAltInCart ? `Remove ${alt.title} from cart` : `Add ${alt.title} to cart`}
+                              >
+                                {isAltInCart ? (
+                                  <Trash2 className="w-4 h-4" />
+                                ) : (
+                                  <ShoppingCart className="w-4 h-4" />
+                                )}
+                              </button>
+                            );
+                          })()}
                         </div>
                       </div>
                     </div>
@@ -437,8 +477,6 @@ export default function RoutineProductCard({
 
       
 
-      {/* Step Separator */}
-      {!isLastStep && <div className="step-separator"></div>}
 
       {/* Add All to Bag Button for Last Step */}
       {isLastStep && showAddAllButton && onAddAllToCart && (
@@ -521,8 +559,7 @@ export default function RoutineProductCard({
                       {productTags.map((tag, index) => (
                         <span
                           key={index}
-                          className="px-2 py-1 text-xs rounded-full border"
-                          style={{ borderColor: getTagColor(tag) }}
+                          className="px-2 py-1 text-xs rounded-full border border-gray-300"
                         >
                           {tag}
                         </span>

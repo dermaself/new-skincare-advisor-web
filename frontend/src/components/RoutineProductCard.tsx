@@ -224,31 +224,6 @@ export default function RoutineProductCard({
       </div>
       
       <div className="step-content">
-        {/* Product Image Slider */}
-        <div className="swiper-container">
-          <div className="swiper-slide">
-            <img 
-              key={`product-${product.id}`}
-              width="500px" 
-              src={product.images[0]?.src || 'https://via.placeholder.com/300x300/f0f0f0/999999?text=Product+Image'} 
-              alt={product.title}
-              className="w-full h-auto"
-              onLoad={() => {
-                console.log('✅ Routine image loaded successfully:', product.images[0]?.src);
-              }}
-              onError={(e) => {
-                console.error('❌ Routine image failed to load:', product.images[0]?.src);
-                // Fallback to placeholder
-                const target = e.target as HTMLImageElement;
-                const placeholderUrl = 'https://via.placeholder.com/300x300/f0f0f0/999999?text=Product+Image';
-                if (target.src !== placeholderUrl) {
-                  target.src = placeholderUrl;
-                }
-              }}
-            />
-          </div>
-        </div>
-
         {/* Product Info */}
         <div className="product-info__tablet">
           {/* Product main row */}
@@ -312,7 +287,7 @@ export default function RoutineProductCard({
           {/* Footer actions: Add to cart + Alternatives toggle */}
           <div className="mt-4 flex items-center gap-3 w-full">
             <button 
-              className="inline-flex items-center justify-center h-11 px-4 rounded-md bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:opacity-60"
+              className="inline-flex items-center justify-center h-11 px-4 rounded-lg bg-pink-600 text-white font-medium hover:bg-pink-700 transition-colors focus:outline-none focus:ring-2 focus:ring-pink-400 focus:ring-offset-2 disabled:opacity-60"
               onClick={isInCart ? handleRemoveFromCart : handleAddToCart}
               disabled={isLoading || !selectedVariant || !isVariantAvailable(selectedVariant) || state.loading}
             >
@@ -337,7 +312,7 @@ export default function RoutineProductCard({
             {alternatives && alternatives.length > 0 && (
               <button 
                 type="button"
-                className="flex-1 h-11 inline-flex items-center justify-between rounded-full bg-muted/60 hover:bg-muted text-sm font-medium px-4 transition-colors focus:outline-none focus:ring-2 focus:ring-ring"
+                className="flex-1 h-11 inline-flex items-center justify-between rounded-full bg-white/80 hover:bg-white text-sm font-semibold px-4 transition-colors shadow-sm border border-pink-100"
                 onClick={onToggleAlternatives}
               >
                 <span>View {alternatives.length} alternatives</span>
@@ -351,21 +326,21 @@ export default function RoutineProductCard({
             <div className="mt-4 space-y-3">
               <div className="text-sm text-muted-foreground px-1">Other great AI-picked options</div>
               <div className="overflow-x-auto [-webkit-overflow-scrolling:touch]">
-                <div className="flex gap-3 w-max pr-1">
+                <div className="flex gap-4 w-max pr-2">
                   {alternatives.map((alt: any) => (
-                    <div key={alt.id || alt.title} className="dermaself-card min-w-[260px] rounded-2xl">
+                    <div key={alt.id || alt.title} className="rounded-2xl bg-white shadow-sm border border-pink-100 p-3 min-w-[300px]">
                       <div className="flex items-start gap-3">
-                        <img src={alt.images?.[0]?.src || 'https://via.placeholder.com/64'} alt={alt.title} loading="lazy" className="w-16 h-16 rounded-lg object-cover bg-muted" />
+                        <img src={alt.images?.[0]?.src || 'https://via.placeholder.com/96'} alt={alt.title} loading="lazy" className="w-20 h-20 rounded-xl object-cover bg-muted" />
                         <div className="min-w-0">
-                          <div className="text-sm font-semibold truncate">{alt.title}</div>
-                          <div className="text-xs text-muted-foreground truncate">{alt.vendor}</div>
+                          <div className="text-sm font-semibold truncate max-w-[180px]">{alt.title}</div>
+                          <div className="text-xs text-muted-foreground truncate max-w-[180px]">{alt.vendor}</div>
+                          {alt.variants?.[0]?.price && (
+                            <div className="mt-2 inline-flex px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-semibold">
+                              {new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(parseFloat(alt.variants[0].price))}
+                            </div>
+                          )}
                         </div>
                       </div>
-                      {alt.variants?.[0]?.price && (
-                        <div className="mt-2 inline-flex px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-semibold">
-                          {new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(parseFloat(alt.variants[0].price))}
-                        </div>
-                      )}
                     </div>
                   ))}
                 </div>

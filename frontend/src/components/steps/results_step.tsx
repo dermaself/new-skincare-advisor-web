@@ -68,6 +68,8 @@ export default function ResultsStep({
   const [isLoadingProducts, setIsLoadingProducts] = useState(false);
   // UI state: expanded alternatives per step
   const [expandedAlternatives, setExpandedAlternatives] = useState<Set<string>>(new Set());
+  // UI state: category selector (Skincare | Makeup)
+  const [selectedCategory, setSelectedCategory] = useState<'skincare' | 'makeup'>('skincare');
   const toggleAlternatives = (key: string) => {
     setExpandedAlternatives(prev => {
       const next = new Set(prev);
@@ -218,7 +220,8 @@ export default function ResultsStep({
               const whyPicked = module.why_picked || module.reason || module.description || (mainProduct?.body_html ? mainProduct.body_html.replace(/<[^>]*>/g, '').substring(0, 400) : '');
               const step = {
                 stepNumber: globalStepNumber,
-                stepTitle: `STEP ${globalStepNumber}: ${module.module?.toUpperCase() || 'SKINCARE STEP'}`,
+                // Use the module name directly for UI; "Step N" is shown in a separate pill
+                stepTitle: module.module || 'Skincare Step',
                 category: category.category, // Use category from JSON for section title
                 mainProduct,
                 alternativeProducts,
@@ -331,6 +334,23 @@ export default function ResultsStep({
 
         {activeTab === 'routine' && (
           <div className="bg-gradient-to-br from-pink-50 to-rose-100 min-h-full p-6">
+            {/* Category Selector */}
+            <div className="mb-4 flex justify-center">
+              <div className="flex space-x-2 bg-white rounded-lg p-1 shadow-sm border border-pink-100">
+                <button
+                  className={`px-4 py-2 rounded-md text-sm font-semibold transition-colors ${selectedCategory === 'skincare' ? 'bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow' : 'text-gray-700 hover:bg-pink-50 hover:text-pink-700'}`}
+                  onClick={() => setSelectedCategory('skincare')}
+                >
+                  Skincare
+                </button>
+                <button
+                  className={`px-4 py-2 rounded-md text-sm font-semibold transition-colors ${selectedCategory === 'makeup' ? 'bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow' : 'text-gray-700 hover:bg-pink-50 hover:text-pink-700'}`}
+                  onClick={() => setSelectedCategory('makeup')}
+                >
+                  Makeup
+                </button>
+              </div>
+            </div>
             {/* Loading State */}
             {isLoadingProducts ? (
               <div className="space-y-6">
@@ -347,7 +367,13 @@ export default function ResultsStep({
               /* Routine Steps */
               <div className="space-y-6">
                 {routineSteps && routineSteps.length > 0 ? (
-                  routineSteps.map((step, index) => (
+                  routineSteps
+                    .filter(step => {
+                      // Use category from infer API response stored as step.category (e.g., "Skincare" | "Makeup")
+                      const cat = (step.category || '').toLowerCase();
+                      return selectedCategory === 'skincare' ? cat === 'skincare' : cat === 'makeup';
+                    })
+                    .map((step, index) => (
                   <div key={step.stepNumber} className="bg-white rounded-2xl shadow-lg border border-pink-100 p-6">
                       <div className="space-y-3">
                         <RoutineProductCard

@@ -89,6 +89,7 @@ export default function RoutineProductCard({
   const [showError, setShowError] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [whyExpanded, setWhyExpanded] = useState(false);
 
   // Check if product is in cart
   const variantId = selectedVariant ? `gid://shopify/ProductVariant/${selectedVariant.id}` : null;
@@ -220,7 +221,12 @@ export default function RoutineProductCard({
         <span className="inline-flex items-center justify-center h-7 px-3 rounded-full bg-neutral-900 text-white text-sm font-semibold">
           {`Step ${stepNumber}`}
         </span>
-        <h2 className="text-2xl font-semibold tracking-tight">{stepTitle}</h2>
+        <h2 className="text-2xl font-semibold tracking-tight truncate flex-1">{stepTitle}</h2>
+        {categoryTitle && (
+          <span className="ml-2 hidden sm:inline-flex items-center text-xs bg-muted text-muted-foreground px-2 py-0.5 rounded-full">
+            {categoryTitle}
+          </span>
+        )}
       </div>
       
       <div className="step-content">
@@ -251,8 +257,8 @@ export default function RoutineProductCard({
             <div className="flex-1 min-w-0">
               <div className="flex items-start gap-2">
                 <div className="min-w-0">
-                  <div className="text-lg font-semibold leading-snug truncate">{product.title || 'Unknown Product'}</div>
-                  <div className="text-sm text-muted-foreground truncate">{product.vendor || 'Unknown Brand'}</div>
+                  <div className="text-lg font-semibold leading-snug line-clamp-2">{product.title || 'Unknown Product'}</div>
+                  <div className="text-sm text-muted-foreground line-clamp-1">{product.vendor || 'Unknown Brand'}</div>
                 </div>
               </div>
               <div className="mt-2 flex items-center gap-2 flex-wrap">
@@ -280,31 +286,40 @@ export default function RoutineProductCard({
           {whyPicked && (
             <div className="mt-4 rounded-3xl bg-muted p-4 text-base leading-relaxed">
               <div className="font-semibold mb-1">Why we picked it</div>
-              <p className="text-gray-900">{whyPicked}</p>
+              <p className={`text-gray-900 ${whyExpanded ? '' : 'line-clamp-6'}`}>{whyPicked}</p>
+              <button
+                type="button"
+                className="mt-2 text-sm font-semibold text-pink-700 hover:text-pink-800"
+                onClick={() => setWhyExpanded(prev => !prev)}
+              >
+                {whyExpanded ? 'Show less' : 'Show more'}
+              </button>
             </div>
           )}
 
           {/* Footer actions: Add to cart + Alternatives toggle */}
-          <div className="mt-4 flex items-center gap-3 w-full">
+          {/* Footer actions: stacked on mobile, inline on md+ */}
+          <div className="mt-4 flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 w-full">
             <button 
-              className="inline-flex items-center justify-center h-11 px-4 rounded-lg bg-pink-600 text-white font-medium hover:bg-pink-700 transition-colors focus:outline-none focus:ring-2 focus:ring-pink-400 focus:ring-offset-2 disabled:opacity-60"
+              className={`inline-flex items-center justify-center h-12 sm:h-11 w-full sm:w-auto px-4 rounded-lg font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-pink-400 focus:ring-offset-2 disabled:opacity-60 ${showSuccess ? 'bg-green-600' : 'bg-pink-600 text-white hover:bg-pink-700'}`}
               onClick={isInCart ? handleRemoveFromCart : handleAddToCart}
               disabled={isLoading || !selectedVariant || !isVariantAvailable(selectedVariant) || state.loading}
+              aria-label={isInCart ? 'Remove from cart' : 'Add to cart'}
             >
               {isLoading || state.loading ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                  {isInCart ? 'Removing...' : 'Adding...'}
+                  <span aria-live="polite">{isInCart ? 'Removing...' : 'Adding...'}</span>
                 </>
               ) : isInCart ? (
                 <>
                   <Trash2 className="w-4 h-4 mr-2" />
-                  Remove from Cart
+                  <span aria-live="polite">Remove from Cart</span>
                 </>
               ) : (
                 <>
                   <ShoppingCart className="w-4 h-4 mr-2" />
-                  Add to Cart
+                  <span aria-live="polite">Add to Cart</span>
                 </>
               )}
             </button>
@@ -312,8 +327,9 @@ export default function RoutineProductCard({
             {alternatives && alternatives.length > 0 && (
               <button 
                 type="button"
-                className="flex-1 h-11 inline-flex items-center justify-between rounded-full bg-white/80 hover:bg-white text-sm font-semibold px-4 transition-colors shadow-sm border border-pink-100"
+                className="flex-1 h-12 sm:h-11 inline-flex items-center justify-between rounded-full bg-white/80 hover:bg-white text-sm font-semibold px-4 transition-colors shadow-sm border border-pink-100"
                 onClick={onToggleAlternatives}
+                aria-controls={`alt-list-${product.id}`}
               >
                 <span>View {alternatives.length} alternatives</span>
                 <svg className={`w-4 h-4 transition-transform ${alternativesExpanded ? 'rotate-180' : ''}`} viewBox="0 0 20 20" fill="currentColor"><path d="M5.23 7.21a.75.75 0 011.06.02L10 11.188l3.71-3.956a.75.75 0 011.08 1.04l-4.25 4.53a.75.75 0 01-1.08 0l-4.25-4.53a.75.75 0 01.03-1.06z"/></svg>
@@ -323,14 +339,14 @@ export default function RoutineProductCard({
 
           {/* Alternatives list when expanded */}
           {alternativesExpanded && alternatives && alternatives.length > 0 && (
-            <div className="mt-4 space-y-3">
+            <div id={`alt-list-${product.id}`} className="mt-4 space-y-3">
               <div className="text-sm text-muted-foreground px-1">Other great AI-picked options</div>
               <div className="overflow-x-auto [-webkit-overflow-scrolling:touch]">
-                <div className="flex gap-4 w-max pr-2">
+                <div className="flex gap-4 w-max pr-3 pb-1">
                   {alternatives.map((alt: any) => (
-                    <div key={alt.id || alt.title} className="rounded-2xl bg-white shadow-sm border border-pink-100 p-3 min-w-[300px]">
+                    <div key={alt.id || alt.title} className="rounded-2xl bg-white shadow-sm border border-pink-100 p-3 min-w-[280px] sm:min-w-[300px]">
                       <div className="flex items-start gap-3">
-                        <img src={alt.images?.[0]?.src || 'https://via.placeholder.com/96'} alt={alt.title} loading="lazy" className="w-20 h-20 rounded-xl object-cover bg-muted" />
+                        <img src={alt.images?.[0]?.src || 'https://via.placeholder.com/96'} alt={alt.title} loading="lazy" className="w-24 h-24 sm:w-20 sm:h-20 rounded-xl object-cover bg-muted" />
                         <div className="min-w-0">
                           <div className="text-sm font-semibold truncate max-w-[180px]">{alt.title}</div>
                           <div className="text-xs text-muted-foreground truncate max-w-[180px]">{alt.vendor}</div>
@@ -339,6 +355,40 @@ export default function RoutineProductCard({
                               {new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(parseFloat(alt.variants[0].price))}
                             </div>
                           )}
+                        </div>
+                        {/* Add alt to cart */}
+                        <div className="ml-auto pl-2">
+                          <button
+                            type="button"
+                            className="h-9 px-3 inline-flex items-center rounded-md bg-pink-600 text-white text-xs font-semibold hover:bg-pink-700 focus:outline-none focus:ring-2 focus:ring-pink-400"
+                            onClick={async () => {
+                              try {
+                                if (!alt?.variants?.[0]?.id) return;
+                                const altVariantId = `gid://shopify/ProductVariant/${alt.variants[0].id}`;
+                                const info = {
+                                  name: alt.title,
+                                  image: alt.images?.[0]?.src || 'https://via.placeholder.com/300x300?text=Product',
+                                  price: alt.variants?.[0]?.price ? parseFloat(alt.variants[0].price) * 100 : 0
+                                };
+                                await addToCart(altVariantId, 1, [
+                                  { key: 'source', value: 'dermaself_recommendation' },
+                                  { key: 'recommendation_type', value: 'skin_analysis_alternative' },
+                                  { key: 'product_step', value: stepTitle.toLowerCase().replace('step ', '').replace(':', '') },
+                                  { key: 'added_at', value: new Date().toISOString() }
+                                ], info);
+                                setShowSuccess('added');
+                                setTimeout(() => setShowSuccess(false), 800);
+                              } catch (e) {
+                                console.error('Failed to add alternative:', e);
+                                setErrorMessage('Failed to add alternative');
+                                setShowError(true);
+                                setTimeout(() => setShowError(false), 2000);
+                              }
+                            }}
+                            aria-label={`Add ${alt.title} to cart`}
+                          >
+                            Add
+                          </button>
                         </div>
                       </div>
                     </div>

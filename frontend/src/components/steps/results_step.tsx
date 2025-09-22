@@ -373,24 +373,24 @@ export default function ResultsStep({
                       const cat = (step.category || '').toLowerCase();
                       return selectedCategory === 'skincare' ? cat === 'skincare' : cat === 'makeup';
                     })
-                    .map((step, index) => (
-                  <div key={step.stepNumber} className="bg-white rounded-2xl shadow-lg border border-pink-100 p-6">
+                    .map((step, index, arr) => (
+                      <div key={`${step.category}-${index + 1}`} className="bg-white rounded-2xl shadow-lg border border-pink-100 p-6">
                       <div className="space-y-3">
                         <RoutineProductCard
                           product={step.mainProduct as any}
-                          stepNumber={step.stepNumber}
+                            stepNumber={index + 1}
                         stepTitle={step.stepTitle}
-                          categoryTitle={step.category}
-                          isLastStep={index === routineSteps.length - 1}
-                          showAddAllButton={index === routineSteps.length - 1}
+                            categoryTitle={step.category}
+                            isLastStep={index === arr.length - 1}
+                            showAddAllButton={index === arr.length - 1}
                         // new UI props
                         whyPicked={step.whyPicked}
                         alternatives={step.alternativeProducts as any}
-                        alternativesExpanded={expandedAlternatives.has(`${step.category}-${step.stepNumber}`)}
-                        onToggleAlternatives={() => toggleAlternatives(`${step.category}-${step.stepNumber}`)}
+                            alternativesExpanded={expandedAlternatives.has(`${step.category}-${index + 1}`)}
+                            onToggleAlternatives={() => toggleAlternatives(`${step.category}-${index + 1}`)}
                           onAddAllToCart={async () => {
                             // Add all main products to cart
-                            for (const routineStep of routineSteps) {
+                              for (const routineStep of arr) {
                               if (routineStep.mainProduct && routineStep.mainProduct.variants[0]) {
                                 try {
                                   const variantId = `gid://shopify/ProductVariant/${routineStep.mainProduct.variants[0].id}`;

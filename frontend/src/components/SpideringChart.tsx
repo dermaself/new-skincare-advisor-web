@@ -128,9 +128,10 @@ export default function SpideringChart({
     value: ((referenceLevels[m.label] ?? Math.max(1, Math.round(m.max / 2))) / m.max) * 100,
     color: '#22c55e' // green
   }));
-  const centerX = 120;
-  const centerY = 120;
-  const radius = 80;
+  // Increase canvas and padding to avoid label clipping at the edges
+  const centerX = 130;
+  const centerY = 130;
+  const radius = 88;
 
   // Calculate points for the polygon
   const getPolygonPoints = () => {
@@ -156,7 +157,7 @@ export default function SpideringChart({
   // Calculate label positions
   const getLabelPosition = (index: number) => {
     const angle = (index * 2 * Math.PI) / metrics.length - Math.PI / 2;
-    const labelRadius = radius + 20;
+    const labelRadius = radius + 28; // extra padding for labels
     const x = centerX + Math.cos(angle) * labelRadius;
     const y = centerY + Math.sin(angle) * labelRadius;
     return { x, y };
@@ -170,7 +171,7 @@ export default function SpideringChart({
         <motion.svg
           width="100%"
           height="auto"
-          viewBox="0 0 240 240"
+          viewBox="0 0 260 260"
           preserveAspectRatio="xMidYMid meet"
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}

@@ -60,6 +60,22 @@ export default function RoutineProductCard({
   onToggleAlternatives
 }: RoutineProductCardProps) {
   
+  // Optimize Shopify CDN image URLs to requested width for faster loads
+  const getOptimizedImageUrl = (url?: string, width: number = 160): string => {
+    if (!url) return 'https://via.placeholder.com/96';
+    try {
+      const u = new URL(url);
+      // Shopify CDN supports width param; keep existing params
+      if (u.hostname.includes('cdn.shopify.com')) {
+        u.searchParams.set('width', String(width));
+        return u.toString();
+      }
+      return url;
+    } catch {
+      return url;
+    }
+  };
+
   // Early return if product is invalid
   if (!product) {
     console.error('RoutineProductCard: Product is undefined');
@@ -250,9 +266,12 @@ export default function RoutineProductCard({
               key={`product-${product.id}`}
               width="80" 
               height="80"
-              src={product.images[0]?.src || 'https://via.placeholder.com/80'} 
+              src={getOptimizedImageUrl(product.images[0]?.src, 160) || 'https://via.placeholder.com/80'} 
               alt={product.title}
               loading="lazy"
+              decoding="async"
+              fetchPriority="auto"
+              sizes="(max-width: 640px) 80px, 80px"
               className="w-20 h-20 rounded-xl object-cover bg-white p-1 cursor-pointer"
               onClick={() => setShowDetailsModal(true)}
               onLoad={() => {
@@ -372,7 +391,18 @@ export default function RoutineProductCard({
                   {alternatives.map((alt: any) => (
                     <div key={alt.id || alt.title} className="rounded-2xl bg-white shadow-sm border border-pink-100 p-3 min-w-[280px] sm:min-w-[300px]">
                       <div className="flex items-start gap-3">
-                        <img src={alt.images?.[0]?.src || 'https://via.placeholder.com/96'} alt={alt.title} loading="lazy" className="w-24 h-24 sm:w-20 sm:h-20 rounded-xl object-cover bg-muted" />
+                        <img
+                          width="96"
+                          height="96"
+                          src={getOptimizedImageUrl(alt.images?.[0]?.src, 200) || 'https://via.placeholder.com/96'}
+                          alt={alt.title}
+                          loading="lazy"
+                          decoding="async"
+                          fetchPriority="low"
+                          sizes="(max-width: 640px) 96px, 80px"
+                          srcSet={`${getOptimizedImageUrl(alt.images?.[0]?.src, 120)} 120w, ${getOptimizedImageUrl(alt.images?.[0]?.src, 160)} 160w, ${getOptimizedImageUrl(alt.images?.[0]?.src, 200)} 200w`}
+                          className="w-24 h-24 sm:w-20 sm:h-20 rounded-xl object-cover bg-muted"
+                        />
                         <div className="min-w-0">
                           <div className="text-sm font-semibold truncate max-w-[180px]">{alt.title}</div>
                           <div className="text-xs text-muted-foreground truncate max-w-[180px]">{alt.vendor}</div>

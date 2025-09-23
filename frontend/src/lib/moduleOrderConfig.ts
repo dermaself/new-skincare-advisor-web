@@ -141,8 +141,10 @@ export function reorderRoutineSteps(
 
     // Create a map for quick lookup
     const stepMap = new Map<string, any>();
+    const normalizedStepMap = new Map<string, any>();
     steps.forEach(step => {
       stepMap.set(step.stepTitle, step);
+      normalizedStepMap.set(normalizeModuleName(step.stepTitle), step);
     });
 
     // Reorder according to configuration
@@ -151,10 +153,18 @@ export function reorderRoutineSteps(
 
     // First, add steps in the configured order
     categoryConfig.forEach(moduleName => {
-      const step = stepMap.get(moduleName);
+      // Try exact match first
+      let step = stepMap.get(moduleName);
+      if (!step) {
+        // Try normalized match
+        const normalized = normalizeModuleName(moduleName);
+        step = normalizedStepMap.get(normalized);
+      }
       if (step) {
         orderedSteps.push(step);
-        stepMap.delete(moduleName);
+        // Remove from both maps to avoid duplicates
+        stepMap.delete(step.stepTitle);
+        normalizedStepMap.delete(normalizeModuleName(step.stepTitle));
       }
     });
 

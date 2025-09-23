@@ -256,9 +256,19 @@ export default function ResultsStep({
                   if (inEvening) targetCategories.push('skincare_evening');
                   if (inWeekly) targetCategories.push('skincare_weekly');
 
-                  // Fallback: if no match, default to morning
+                  // Heuristic fallback if no config match
                   if (targetCategories.length === 0) {
-                    targetCategories.push('skincare_morning');
+                    const nameLc = (moduleName || '').toLowerCase();
+                    if (/(night|notte)/.test(nameLc)) {
+                      targetCategories.push('skincare_evening');
+                    }
+                    if (/(mask|scrub|patch)/.test(nameLc)) {
+                      targetCategories.push('skincare_weekly');
+                    }
+                    // If still none, default to morning
+                    if (targetCategories.length === 0) {
+                      targetCategories.push('skincare_morning');
+                    }
                   }
                 } else {
                   // If no config, default to skincare_morning

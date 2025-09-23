@@ -66,8 +66,16 @@ export async function loadModuleOrderConfig(): Promise<ModuleOrderConfig> {
 
   try {
     // Try to load the configuration file
-    // Force fresh load on browser refresh to avoid 304 empty-body issues
-    const response = await fetch('/config/module-order.json', { cache: 'no-store' });
+    // Force fresh load on browser refresh to avoid Safari/WebKit 304 cache issues
+    const versionParam = typeof performance !== 'undefined' ? Math.floor(performance.timeOrigin).toString() : Date.now().toString();
+    const response = await fetch(`/config/module-order.json?v=${versionParam}` as any, {
+      cache: 'reload',
+      headers: {
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        Pragma: 'no-cache',
+        Expires: '0',
+      } as any,
+    } as any);
     
     if (!response.ok) {
       console.warn('Module order config file not found, using default order');

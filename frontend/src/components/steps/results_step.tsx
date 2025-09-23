@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, Suspense, lazy, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { RotateCcw, Sun, Moon, CalendarDays } from 'lucide-react';
+import { RotateCcw, Sun, Moon, CalendarDays, Palette } from 'lucide-react';
 import { ASSETS } from '../../lib/assets';
 import { fetchProductsByVariantIds, TransformedProduct } from '../../lib/shopify-product-fetcher';
 import { useCart } from '../CartContext';
@@ -106,6 +106,10 @@ export default function ResultsStep({
   // Fetch products from Shopify and build routine steps
   useEffect(() => {
     const fetchRoutineProducts = async () => {
+      // Wait until config is loaded to avoid fallback build
+      if (!moduleOrderConfig) {
+        return;
+      }
       if (!analysisData?.recommendations?.skincare_routine) {
         setRoutineSteps([]);
         return;
@@ -399,7 +403,7 @@ export default function ResultsStep({
         {activeTab === 'routine' && (
           <div className="bg-gradient-to-br from-pink-50 to-rose-100 min-h-full p-6">
             {/* Category Selector */}
-            <div className="mb-4 flex justify-center">
+            <div className="mb-4 sticky top-0 z-30 bg-white/70 backdrop-blur-md py-2 flex justify-center">
               <div className="flex space-x-2 bg-white rounded-lg p-1 shadow-sm border border-pink-100">
                 {/* Skincare Morning */}
                 <button
@@ -426,14 +430,15 @@ export default function ResultsStep({
                   title="Skincare Weekly"
                 >
                   <CalendarDays className="w-4 h-4" />
-                  <span>{selectedCategory === 'skincare_weekly' ? 'Skincare Weekly' : 'Weekly'}</span>
+                  <span>Weekly</span>
                 </button>
                 {/* Makeup */}
                 <button
-                  className={`px-4 py-2 rounded-md text-sm font-semibold transition-colors ${selectedCategory === 'makeup' ? 'bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow' : 'text-gray-700 hover:bg-pink-50 hover:text-pink-700'}`}
+                  className={`px-4 py-2 rounded-md text-sm font-semibold transition-colors inline-flex items-center gap-1 ${selectedCategory === 'makeup' ? 'bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow' : 'text-gray-700 hover:bg-pink-50 hover:text-pink-700'}`}
                   onClick={() => setSelectedCategory('makeup')}
                 >
-                  Makeup
+                  <Palette className="w-4 h-4" />
+                  <span>Makeup</span>
                 </button>
               </div>
             </div>

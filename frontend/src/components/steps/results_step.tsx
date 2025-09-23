@@ -1,11 +1,11 @@
 "use client";
 import React, { useState, Suspense, lazy, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { RotateCcw } from 'lucide-react';
+import { RotateCcw, Sun, Moon, CalendarDays } from 'lucide-react';
 import { ASSETS } from '../../lib/assets';
 import { fetchProductsByVariantIds, TransformedProduct } from '../../lib/shopify-product-fetcher';
 import { useCart } from '../CartContext';
-import { loadModuleOrderConfig, reorderRoutineSteps } from '../../lib/moduleOrderConfig';
+import { loadModuleOrderConfig, reorderRoutineSteps, findBestModuleMatch } from '../../lib/moduleOrderConfig';
 
 // Import components
 import RoutineProductCard from '../RoutineProductCard';
@@ -70,8 +70,8 @@ export default function ResultsStep({
   const [moduleOrderConfig, setModuleOrderConfig] = useState<any>(null);
   // UI state: expanded alternatives per step
   const [expandedAlternatives, setExpandedAlternatives] = useState<Set<string>>(new Set());
-  // UI state: category selector (Skincare | Makeup)
-  const [selectedCategory, setSelectedCategory] = useState<'skincare' | 'makeup'>('skincare');
+  // UI state: category selector (skincare subcategories + makeup)
+  const [selectedCategory, setSelectedCategory] = useState<'skincare_morning' | 'skincare_evening' | 'skincare_weekly' | 'makeup'>('skincare_morning');
   const toggleAlternatives = (key: string) => {
     setExpandedAlternatives(prev => {
       const next = new Set(prev);
@@ -236,20 +236,51 @@ export default function ResultsStep({
 
             if (mainProduct) {
               const whyPicked = module.why_picked || module.reason || module.description || (mainProduct?.body_html ? mainProduct.body_html.replace(/<[^>]*>/g, '').substring(0, 400) : '');
-              const step = {
-                stepNumber: globalStepNumber,
-                // Use the module name directly for UI; "Step N" is shown in a separate pill
-                stepTitle: module.module || 'Skincare Step',
-                category: category.category, // Use category from JSON for section title
-                mainProduct,
-                alternativeProducts,
-                whyPicked,
-                allProducts: [mainProduct, ...alternativeProducts].filter(Boolean)
-              };
-              
-              steps.push(step);
-              globalStepNumber++;
-              console.log('Step created successfully');
+              const moduleName: string = module.module || 'Skincare Step';
+
+              // Determine categories: for makeup keep 'makeup'; for skincare split into subcategories based on config lists
+              const apiCategory = (category.category || '').toLowerCase();
+              const targetCategories: string[] = [];
+
+              if (apiCategory === 'makeup') {
+                targetCategories.push('makeup');
+              } else {
+                // skincare: check in morning/evening/weekly lists, allow duplicates across multiple lists
+                if (moduleOrderConfig) {
+                  const m = moduleOrderConfig;
+                  const inMorning = findBestModuleMatch(moduleName, m.skincare_morning || []) !== null;
+                  const inEvening = findBestModuleMatch(moduleName, m.skincare_evening || []) !== null;
+                  const inWeekly = findBestModuleMatch(moduleName, m.skincare_weekly || []) !== null;
+
+                  if (inMorning) targetCategories.push('skincare_morning');
+                  if (inEvening) targetCategories.push('skincare_evening');
+                  if (inWeekly) targetCategories.push('skincare_weekly');
+
+                  // Fallback: if no match, default to morning
+                  if (targetCategories.length === 0) {
+                    targetCategories.push('skincare_morning');
+                  }
+                } else {
+                  // If no config, default to skincare_morning
+                  targetCategories.push('skincare_morning');
+                }
+              }
+
+              // Create one step per target category (duplication allowed)
+              for (const catKey of targetCategories) {
+                const step = {
+                  stepNumber: globalStepNumber,
+                  stepTitle: moduleName,
+                  category: catKey, // 'skincare_morning' | 'skincare_evening' | 'skincare_weekly' | 'makeup'
+                  mainProduct,
+                  alternativeProducts,
+                  whyPicked,
+                  allProducts: [mainProduct, ...alternativeProducts].filter(Boolean)
+                };
+                steps.push(step);
+                globalStepNumber++;
+                console.log('Step created successfully in category:', catKey);
+              }
             } else {
               console.log('No main product found, skipping step');
             }
@@ -364,12 +395,34 @@ export default function ResultsStep({
             {/* Category Selector */}
             <div className="mb-4 flex justify-center">
               <div className="flex space-x-2 bg-white rounded-lg p-1 shadow-sm border border-pink-100">
+                {/* Skincare Morning */}
                 <button
-                  className={`px-4 py-2 rounded-md text-sm font-semibold transition-colors ${selectedCategory === 'skincare' ? 'bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow' : 'text-gray-700 hover:bg-pink-50 hover:text-pink-700'}`}
-                  onClick={() => setSelectedCategory('skincare')}
+                  className={`px-3 py-2 rounded-md text-sm font-semibold transition-colors inline-flex items-center gap-1 ${selectedCategory === 'skincare_morning' ? 'bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow' : 'text-gray-700 hover:bg-pink-50 hover:text-pink-700'}`}
+                  onClick={() => setSelectedCategory('skincare_morning')}
+                  title="Skincare Morning"
                 >
-                  Skincare
+                  <Sun className="w-4 h-4" />
+                  {selectedCategory === 'skincare_morning' && <span>Skincare</span>}
                 </button>
+                {/* Skincare Evening */}
+                <button
+                  className={`px-3 py-2 rounded-md text-sm font-semibold transition-colors inline-flex items-center gap-1 ${selectedCategory === 'skincare_evening' ? 'bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow' : 'text-gray-700 hover:bg-pink-50 hover:text-pink-700'}`}
+                  onClick={() => setSelectedCategory('skincare_evening')}
+                  title="Skincare Evening"
+                >
+                  <Moon className="w-4 h-4" />
+                  {selectedCategory === 'skincare_evening' && <span>Skincare</span>}
+                </button>
+                {/* Skincare Weekly */}
+                <button
+                  className={`px-3 py-2 rounded-md text-sm font-semibold transition-colors inline-flex items-center gap-1 ${selectedCategory === 'skincare_weekly' ? 'bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow' : 'text-gray-700 hover:bg-pink-50 hover:text-pink-700'}`}
+                  onClick={() => setSelectedCategory('skincare_weekly')}
+                  title="Skincare Weekly"
+                >
+                  <CalendarDays className="w-4 h-4" />
+                  <span>{selectedCategory === 'skincare_weekly' ? 'Skincare Weekly' : 'Weekly'}</span>
+                </button>
+                {/* Makeup */}
                 <button
                   className={`px-4 py-2 rounded-md text-sm font-semibold transition-colors ${selectedCategory === 'makeup' ? 'bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow' : 'text-gray-700 hover:bg-pink-50 hover:text-pink-700'}`}
                   onClick={() => setSelectedCategory('makeup')}
@@ -395,29 +448,27 @@ export default function ResultsStep({
               <div className="space-y-6">
                 {routineSteps && routineSteps.length > 0 ? (
                   routineSteps
-                    .filter(step => {
-                      // Use category from infer API response stored as step.category (e.g., "Skincare" | "Makeup")
-                      const cat = (step.category || '').toLowerCase();
-                      return selectedCategory === 'skincare' ? cat === 'skincare' : cat === 'makeup';
-                    })
+                    .filter(step => (step.category || '').toLowerCase() === selectedCategory)
                     .map((step, index, arr) => (
                       <div key={`${step.category}-${index + 1}`} className="bg-white rounded-2xl shadow-lg border border-pink-100 p-6">
                       <div className="space-y-3">
                         <RoutineProductCard
                           product={step.mainProduct as any}
-                            stepNumber={index + 1}
-                        stepTitle={step.stepTitle}
-                            categoryTitle={step.category}
-                            isLastStep={index === arr.length - 1}
-                            showAddAllButton={index === arr.length - 1}
+                          stepNumber={index + 1}
+                          stepTitle={step.stepTitle}
+                          categoryTitle={
+                            selectedCategory === 'makeup' ? 'Makeup' : (selectedCategory === 'skincare_weekly' ? 'Skincare Weekly' : 'Skincare')
+                          }
+                          isLastStep={index === arr.length - 1}
+                          showAddAllButton={index === arr.length - 1}
                         // new UI props
-                        whyPicked={step.whyPicked}
-                        alternatives={step.alternativeProducts as any}
-                            alternativesExpanded={expandedAlternatives.has(`${step.category}-${index + 1}`)}
-                            onToggleAlternatives={() => toggleAlternatives(`${step.category}-${index + 1}`)}
+                          whyPicked={step.whyPicked}
+                          alternatives={step.alternativeProducts as any}
+                          alternativesExpanded={expandedAlternatives.has(`${step.category}-${index + 1}`)}
+                          onToggleAlternatives={() => toggleAlternatives(`${step.category}-${index + 1}`)}
                           onAddAllToCart={async () => {
-                            // Add all main products to cart
-                              for (const routineStep of arr) {
+                            // Add all main products (filtered list) to cart
+                            for (const routineStep of arr) {
                               if (routineStep.mainProduct && routineStep.mainProduct.variants[0]) {
                                 try {
                                   const variantId = `gid://shopify/ProductVariant/${routineStep.mainProduct.variants[0].id}`;
@@ -426,27 +477,14 @@ export default function ResultsStep({
                                     image: routineStep.mainProduct.images[0]?.src || 'https://via.placeholder.com/300x300?text=Product',
                                     price: parseFloat(routineStep.mainProduct.variants[0].price) * 100
                                   };
-                                  
-                                  // Add custom attributes for tracking recommended products
+
                                   const customAttributes = [
-                                    {
-                                      key: 'source',
-                                      value: 'dermaself_recommendation'
-                                    },
-                                    {
-                                      key: 'recommendation_type',
-                                      value: 'skin_analysis'
-                                    },
-                                    {
-                                      key: 'product_step',
-                                      value: routineStep.category.toLowerCase().replace(/\s+/g, '_')
-                                    },
-                                    {
-                                      key: 'added_at',
-                                      value: new Date().toISOString()
-                                    }
+                                    { key: 'source', value: 'dermaself_recommendation' },
+                                    { key: 'recommendation_type', value: 'skin_analysis' },
+                                    { key: 'product_step', value: routineStep.category.toLowerCase().replace(/\s+/g, '_') },
+                                    { key: 'added_at', value: new Date().toISOString() }
                                   ];
-                                  
+
                                   await addToCart(variantId, 1, customAttributes, productInfo);
                                 } catch (error) {
                                   console.error('Failed to add product to cart:', error);

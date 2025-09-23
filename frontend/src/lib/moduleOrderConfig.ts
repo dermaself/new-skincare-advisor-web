@@ -7,29 +7,35 @@
  */
 
 export interface ModuleOrderConfig {
-  skincare: string[];
+  skincare_morning: string[];
+  skincare_evening: string[];
+  skincare_weekly: string[];
   makeup: string[];
 }
 
 // Default fallback order (same as config file for consistency)
 const DEFAULT_MODULE_ORDER: ModuleOrderConfig = {
-  skincare: [
+  skincare_morning: [
     "Cleansing",
     "Tonic/Serum", 
     "Pimple Patches",
     "Eye Contour",
     "Hydration",
     "Lip Balm",
-    "SPF",
+    "SPF"
+  ],
+  skincare_evening: [
+    "Cleansing",
+    "Tonic/Serum", 
+    "Pimple Patches",
+    "Eye Contour",
     "Night Cream",
+    "Lip Balm"
+  ],
+  skincare_weekly: [
     "Face Mask/Scrub",
     "Eye Patches",
-    "Lip Scrub",
-    "Razor Disinfectant",
-    "Body Cleanser",
-    "Body Lotion",
-    "Pure Oil",
-    "Other"
+    "Lip Scrub"
   ],
   makeup: [
     "Eye Makeup Remover",
@@ -68,20 +74,26 @@ export async function loadModuleOrderConfig(): Promise<ModuleOrderConfig> {
       return cachedConfig;
     }
 
-    const config: ModuleOrderConfig = await response.json();
-    
-    // Validate the configuration structure
-    if (!config.skincare || !config.makeup || 
-        !Array.isArray(config.skincare) || !Array.isArray(config.makeup)) {
-      console.warn('Invalid module order config structure, using default order');
-      cachedConfig = DEFAULT_MODULE_ORDER;
-      return cachedConfig;
-    }
+    const raw = await response.json();
+
+    // Backward compatibility: if old shape with "skincare" exists, map it to morning by default
+    const normalized: ModuleOrderConfig = {
+      skincare_morning: Array.isArray(raw.skincare_morning)
+        ? raw.skincare_morning
+        : (Array.isArray(raw.skincare) ? raw.skincare : DEFAULT_MODULE_ORDER.skincare_morning),
+      skincare_evening: Array.isArray(raw.skincare_evening)
+        ? raw.skincare_evening
+        : DEFAULT_MODULE_ORDER.skincare_evening,
+      skincare_weekly: Array.isArray(raw.skincare_weekly)
+        ? raw.skincare_weekly
+        : DEFAULT_MODULE_ORDER.skincare_weekly,
+      makeup: Array.isArray(raw.makeup) ? raw.makeup : DEFAULT_MODULE_ORDER.makeup,
+    };
 
     // Cache the valid configuration
-    cachedConfig = config;
+    cachedConfig = normalized;
     console.log('✅ Module order configuration loaded successfully');
-    return config;
+    return normalized;
 
   } catch (error) {
     console.warn('Failed to load module order config, using default order:', error);
@@ -104,7 +116,7 @@ export function reorderRoutineSteps(
     return routineSteps;
   }
 
-  // Group steps by category
+  // Group steps by category (now includes skincare_morning/evening/weekly and makeup)
   const stepsByCategory: { [category: string]: any[] } = {};
   
   routineSteps.forEach(step => {
@@ -119,7 +131,7 @@ export function reorderRoutineSteps(
 
   // Process each category
   Object.entries(stepsByCategory).forEach(([category, steps]) => {
-    const categoryConfig = category === 'skincare' ? config.skincare : config.makeup;
+    const categoryConfig = (config as any)[category] as string[] | undefined;
     
     if (!categoryConfig || categoryConfig.length === 0) {
       // If no config for this category, keep original order

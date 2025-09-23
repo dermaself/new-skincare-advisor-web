@@ -1,21 +1,25 @@
 {
-  "skincare": [
+  "skincare_morning": [
     "Cleansing",
     "Tonic/Serum",
     "Pimple Patches",
     "Eye Contour",
     "Hydration",
     "Lip Balm",
-    "SPF",
+    "SPF"
+  ],
+  "skincare_evening": [
+    "Cleansing",
+    "Tonic/Serum",
+    "Pimple Patches",
+    "Eye Contour",
     "Night Cream",
+    "Lip Balm"
+  ],
+  "skincare_weekly": [
     "Face Mask/Scrub",
     "Eye Patches",
-    "Lip Scrub",
-    "Razor Disinfectant",
-    "Body Cleanser",
-    "Body Lotion",
-    "Pure Oil",
-    "Other"
+    "Lip Scrub"
   ],
   "makeup": [
     "Eye Makeup Remover",

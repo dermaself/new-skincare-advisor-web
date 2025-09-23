@@ -160,6 +160,13 @@ export default function ResultsStep({
 
         // Fetch all products from Shopify
         const shopifyProducts = await fetchProductsByVariantIds(allVariantIds);
+        // Build fast lookup map by variant id (string form)
+        const variantIdToProduct = new Map<string, TransformedProduct>();
+        for (const p of shopifyProducts) {
+          for (const v of p.variants) {
+            variantIdToProduct.set(v.id.toString(), p);
+          }
+        }
         
         console.log('=== SHOPIFY PRODUCTS FETCHED ===');
         console.log('Number of products fetched:', shopifyProducts.length);
@@ -195,17 +202,8 @@ export default function ResultsStep({
             const mainProductVariantId = module.main_product?.shopify_product_id;
             console.log('Looking for variant ID:', mainProductVariantId, 'type:', typeof mainProductVariantId);
             
-            const mainProduct = mainProductVariantId 
-              ? shopifyProducts.find(p => {
-                  const found = p.variants.some(v => {
-                    console.log('Comparing:', v.id, 'with', mainProductVariantId, 'types:', typeof v.id, typeof mainProductVariantId);
-                    return v.id.toString() === mainProductVariantId.toString();
-                  });
-                  if (found) {
-                    console.log('✅ Found matching product:', p.title);
-                  }
-                  return found;
-                })
+            const mainProduct = mainProductVariantId
+              ? variantIdToProduct.get(mainProductVariantId.toString()) || null
               : null;
 
             console.log('Found main product:', mainProduct);
@@ -219,9 +217,7 @@ export default function ResultsStep({
               module.alternative_products.forEach((altProduct: any) => {
                 if (altProduct.shopify_product_id) {
                   console.log('Looking for alternative variant ID:', altProduct.shopify_product_id);
-                  const altShopifyProduct = shopifyProducts.find(p => 
-                    p.variants.some(v => v.id.toString() === altProduct.shopify_product_id.toString())
-                  );
+                  const altShopifyProduct = variantIdToProduct.get(altProduct.shopify_product_id.toString()) || null;
                   if (altShopifyProduct) {
                     console.log('✅ Found alternative product:', altShopifyProduct.title);
                     alternativeProducts.push(altShopifyProduct);

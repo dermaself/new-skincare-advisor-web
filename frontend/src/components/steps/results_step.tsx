@@ -403,7 +403,7 @@ export default function ResultsStep({
         {activeTab === 'routine' && (
           <div className="bg-gradient-to-br from-pink-50 to-rose-100 min-h-full p-6">
             {/* Category Selector */}
-            <div className="mb-4 sticky top-0 z-30 bg-white/70 backdrop-blur-md py-2 flex justify-center">
+            <div className="mb-4 sticky top-0 z-30 bg-transparent py-2 flex justify-center">
               <div className="flex space-x-2 bg-white rounded-lg p-1 shadow-sm border border-pink-100">
                 {/* Skincare Morning */}
                 <button
@@ -430,7 +430,7 @@ export default function ResultsStep({
                   title="Skincare Weekly"
                 >
                   <CalendarDays className="w-4 h-4" />
-                  <span>Weekly</span>
+                  {selectedCategory === 'skincare_weekly' && <span>Weekly</span>}
                 </button>
                 {/* Makeup */}
                 <button
@@ -438,7 +438,7 @@ export default function ResultsStep({
                   onClick={() => setSelectedCategory('makeup')}
                 >
                   <Palette className="w-4 h-4" />
-                  <span>Makeup</span>
+                  {selectedCategory === 'makeup' && <span>Makeup</span>}
                 </button>
               </div>
             </div>

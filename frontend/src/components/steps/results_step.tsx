@@ -6,6 +6,7 @@ import { ASSETS } from '../../lib/assets';
 import { fetchProductsByVariantIds, TransformedProduct } from '../../lib/shopify-product-fetcher';
 import { useCart } from '../CartContext';
 import { loadModuleOrderConfig, reorderRoutineSteps, findBestModuleMatch } from '../../lib/moduleOrderConfig';
+import { t } from '../../lib/i18n';
 
 // Import components
 import RoutineProductCard from '../RoutineProductCard';
@@ -73,7 +74,7 @@ export default function ResultsStep({
   // UI state: category selector (skincare subcategories + makeup)
   const [selectedCategory, setSelectedCategory] = useState<'skincare_morning' | 'skincare_evening' | 'skincare_weekly' | 'makeup'>('skincare_morning');
   const toggleAlternatives = (key: string) => {
-    setExpandedAlternatives(prev => {
+    setExpandedAlternatives((prev: Set<string>) => {
       const next = new Set(prev);
       if (next.has(key)) {
         next.delete(key);
@@ -177,15 +178,17 @@ export default function ResultsStep({
         console.log('Fetched products:', shopifyProducts);
         
         // Debug: Show all variant IDs from fetched products
-        const allFetchedVariantIds = shopifyProducts.flatMap(p => p.variants.map(v => v.id));
+        const allFetchedVariantIds = ([] as any[]).concat(
+          ...shopifyProducts.map((p: TransformedProduct) => p.variants.map((v: any) => v.id))
+        );
         console.log('All fetched variant IDs:', allFetchedVariantIds);
         console.log('Requested variant IDs:', allVariantIds);
-        console.log('Variant ID types - requested:', allVariantIds.map(id => typeof id));
-        console.log('Variant ID types - fetched:', allFetchedVariantIds.map(id => typeof id));
+        console.log('Variant ID types - requested:', allVariantIds.map((id: any) => typeof id));
+        console.log('Variant ID types - fetched:', allFetchedVariantIds.map((id: any) => typeof id));
         
         // Test matching
-        const matchingIds = allVariantIds.filter(requestedId => 
-          allFetchedVariantIds.some(fetchedId => 
+        const matchingIds = allVariantIds.filter((requestedId: any) => 
+          allFetchedVariantIds.some((fetchedId: any) => 
             requestedId.toString() === fetchedId.toString()
           )
         );
@@ -363,32 +366,32 @@ export default function ResultsStep({
                   {/* Analysis Results */}
                   {analysisData && (
                     <div className="bg-white rounded-2xl shadow-lg p-6 space-y-4">
-                      <h3 className="text-xl font-bold text-gray-800 mb-4">Your Skin Analysis</h3>
+                      <h3 className="text-xl font-bold text-gray-800 mb-4">{t('results.analysis.title')}</h3>
                       <div className="grid grid-cols-1 gap-4">
                         <div className="flex justify-between items-center p-3 bg-pink-50 rounded-xl">
-                          <span className="text-sm font-medium text-gray-700">Skin Type</span>
-                          <span className="text-sm font-semibold text-pink-600">{analysisData.skin_type || 'Normal'}</span>
+                          <span className="text-sm font-medium text-gray-700">{t('results.analysis.skinType')}</span>
+                          <span className="text-sm font-semibold text-pink-600">{analysisData.skin_type || t('results.analysis.noneDetected')}</span>
                         </div>
                         <div className="flex justify-between items-center p-3 bg-pink-50 rounded-xl">
-                          <span className="text-sm font-medium text-gray-700">Acne Analysis</span>
-                          <span className="text-sm font-semibold text-pink-600">{analysisData.acne?.severity || 'None detected'}</span>
+                          <span className="text-sm font-medium text-gray-700">{t('results.analysis.acne')}</span>
+                          <span className="text-sm font-semibold text-pink-600">{analysisData.acne?.severity || t('results.analysis.noneDetected')}</span>
                         </div>
                         <div className="flex justify-between items-center p-3 bg-pink-50 rounded-xl">
-                          <span className="text-sm font-medium text-gray-700">Redness</span>
-                          <span className="text-sm font-semibold text-pink-600">{analysisData.redness ? `${analysisData.redness.redness_perc}%` : 'None detected'}</span>
+                          <span className="text-sm font-medium text-gray-700">{t('results.analysis.redness')}</span>
+                          <span className="text-sm font-semibold text-pink-600">{analysisData.redness ? `${analysisData.redness.redness_perc}%` : t('results.analysis.noneDetected')}</span>
                         </div>
                         <div className="flex justify-between items-center p-3 bg-pink-50 rounded-xl">
-                          <span className="text-sm font-medium text-gray-700">Wrinkles</span>
-                          <span className="text-sm font-semibold text-pink-600">{analysisData.wrinkles?.severity || 'None detected'}</span>
+                          <span className="text-sm font-medium text-gray-700">{t('results.analysis.wrinkles')}</span>
+                          <span className="text-sm font-semibold text-pink-600">{analysisData.wrinkles?.severity || t('results.analysis.noneDetected')}</span>
                         </div>
                         <div className="p-3 bg-gradient-to-r from-pink-100 to-rose-100 rounded-xl">
-                          <span className="text-sm font-medium text-gray-700 block mb-1">Recommendations</span>
+                          <span className="text-sm font-medium text-gray-700 block mb-1">{t('results.analysis.recommendations')}</span>
                           <span className="text-sm text-gray-600">
                             {typeof analysisData.recommendations === 'string' 
                               ? analysisData.recommendations 
                               : analysisData.recommendations?.skincare_routine 
-                                ? 'Personalized routine generated' 
-                                : 'Personalized routine suggested'}
+                                ? t('results.recommendations.generated') 
+                                : t('results.recommendations.suggested')}
                           </span>
                         </div>
                       </div>
@@ -412,7 +415,7 @@ export default function ResultsStep({
                   title="Skincare Morning"
                 >
                   <Sun className="w-4 h-4" />
-                  {selectedCategory === 'skincare_morning' && <span>Skincare</span>}
+                  {selectedCategory === 'skincare_morning' && <span>{t('routine.tabs.skincare')}</span>}
                 </button>
                 {/* Skincare Evening */}
                 <button
@@ -421,7 +424,7 @@ export default function ResultsStep({
                   title="Skincare Evening"
                 >
                   <Moon className="w-4 h-4" />
-                  {selectedCategory === 'skincare_evening' && <span>Skincare</span>}
+                  {selectedCategory === 'skincare_evening' && <span>{t('routine.tabs.skincare')}</span>}
                 </button>
                 {/* Skincare Weekly */}
                 <button
@@ -430,7 +433,7 @@ export default function ResultsStep({
                   title="Skincare Weekly"
                 >
                   <CalendarDays className="w-4 h-4" />
-                  {selectedCategory === 'skincare_weekly' && <span>Weekly</span>}
+                  {selectedCategory === 'skincare_weekly' && <span>{t('routine.tabs.weekly')}</span>}
                 </button>
                 {/* Makeup */}
                 <button
@@ -438,7 +441,7 @@ export default function ResultsStep({
                   onClick={() => setSelectedCategory('makeup')}
                 >
                   <Palette className="w-4 h-4" />
-                  {selectedCategory === 'makeup' && <span>Makeup</span>}
+                  {selectedCategory === 'makeup' && <span>{t('routine.tabs.makeup')}</span>}
                 </button>
               </div>
             </div>
@@ -459,8 +462,8 @@ export default function ResultsStep({
               <div className="space-y-6">
                 {routineSteps && routineSteps.length > 0 ? (
                   routineSteps
-                    .filter(step => (step.category || '').toLowerCase() === selectedCategory)
-                    .map((step, index, arr) => (
+                    .filter((step: any) => (step.category || '').toLowerCase() === selectedCategory)
+                    .map((step: any, index: number, arr: any[]) => (
                       <div key={`${step.category}-${index + 1}`} className="bg-white rounded-2xl shadow-lg border border-pink-100 p-6">
                       <div className="space-y-3">
                         <RoutineProductCard
@@ -468,7 +471,7 @@ export default function ResultsStep({
                           stepNumber={index + 1}
                           stepTitle={step.stepTitle}
                           categoryTitle={
-                            selectedCategory === 'makeup' ? 'Makeup' : (selectedCategory === 'skincare_weekly' ? 'Skincare Weekly' : 'Skincare')
+                            selectedCategory === 'makeup' ? t('routine.tabs.makeup') : (selectedCategory === 'skincare_weekly' ? t('routine.tabs.weekly') : t('routine.tabs.skincare'))
                           }
                           isLastStep={index === arr.length - 1}
                           showAddAllButton={index === arr.length - 1}
@@ -512,8 +515,8 @@ export default function ResultsStep({
                     <div className="w-16 h-16 bg-pink-100 rounded-full flex items-center justify-center mx-auto mb-4">
                       <span className="text-2xl">💄</span>
                     </div>
-                    <p className="text-gray-600 font-medium">No routine data available</p>
-                    <p className="text-sm text-gray-400 mt-2">Please try the analysis again</p>
+                    <p className="text-gray-600 font-medium">{t('routine.noData.title')}</p>
+                    <p className="text-sm text-gray-400 mt-2">{t('routine.noData.subtitle')}</p>
                   </div>
                 )}
               </div>
@@ -531,7 +534,7 @@ export default function ResultsStep({
           whileTap={{ scale: 0.98 }}
         >
           <RotateCcw className="w-5 h-5 mr-2" />
-          Start New Analysis
+          {t('routine.restart')}
         </motion.button>
       </div>
     </motion.div>

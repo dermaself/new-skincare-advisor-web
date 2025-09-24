@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { CheckCircle } from 'lucide-react';
 import { ASSETS } from '../../lib/assets';
 import Image from 'next/image';
+import { t } from '../../lib/i18n';
 
 interface OnboardingStepProps {
   onNext: () => void;
@@ -25,21 +26,21 @@ export default function OnboardingStep({ onNext, onClose }: OnboardingStepProps)
       {/* Main content */}
       <div className="flex flex-col justify-center text-center m-8 mt-auto bg-white/50 backdrop-blur-sm rounded-lg p-8 overflow-y-auto h-fit">
         <h1 className="text-2xl font-bold text-gray-900 mb-6 leading-tight">
-          Discover Your Perfect Skincare Routine with AI-Powered Analysis
+          {t('onboarding.title')}
         </h1>
         
         <div className="text-gray-600 mb-8 space-y-4">
           <p className="text-sm leading-relaxed">
-            By using this service, you agree to our{' '}
+            {t('onboarding.privacy.prefix')}{' '}
             <a 
               href="https://dermaself-dev.myshopify.com/pages/privacy-policy" 
               target="_blank" 
               rel="noopener noreferrer"
               className="text-pink-600 hover:text-pink-700 underline"
             >
-              Privacy Policy
+              {t('onboarding.privacy.link')}
             </a>
-            . Your data will be processed securely and used only to provide personalized skincare recommendations.
+            {t('onboarding.privacy.suffix')}
           </p>
         </div>
 
@@ -53,7 +54,7 @@ export default function OnboardingStep({ onNext, onClose }: OnboardingStepProps)
               className="mt-1 w-4 h-4 text-pink-600 border-gray-300 rounded focus:ring-pink-500"
             />
             <span className="text-sm text-gray-700">
-              I consent to the processing of my personal data for the purpose of receiving personalized skincare recommendations.
+              {t('onboarding.consent')}
             </span>
           </label>
         </div>
@@ -74,7 +75,7 @@ export default function OnboardingStep({ onNext, onClose }: OnboardingStepProps)
           whileHover={consentGiven ? { scale: 1.02 } : {}}
           whileTap={consentGiven ? { scale: 0.98 } : {}}
         >
-          <span>Start Analysis</span>
+          <span>{t('onboarding.start')}</span>
         </motion.button>
         {/* Fake login button */}
         <motion.button
@@ -83,7 +84,7 @@ export default function OnboardingStep({ onNext, onClose }: OnboardingStepProps)
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
         >
-          <span>Login with</span>
+          <span>{t('onboarding.loginWith')}</span>
           <div className="flex items-center">
             <span className="text-sm font-semibold text-purple-600">Dermaself</span>
           </div>

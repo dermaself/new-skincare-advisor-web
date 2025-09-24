@@ -3,6 +3,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { CheckCircle } from 'lucide-react';
 import { ASSETS } from '../../lib/assets';
+import { t } from '../../lib/i18n';
 
 interface AgeOption {
   id: string;
@@ -19,23 +20,23 @@ interface AgeStepProps {
 const ageOptions: AgeOption[] = [
   {
     id: '18-24',
-    name: '18-24'
+    name: t('steps.age.18_24')
   },
   {
     id: '25-34',
-    name: '25-34'
+    name: t('steps.age.25_34')
   },
   {
     id: '35-44',
-    name: '35-44'
+    name: t('steps.age.35_44')
   },
   {
     id: '45-54',
-    name: '45-54'
+    name: t('steps.age.45_54')
   },
   {
     id: '55+',
-    name: '55+'
+    name: t('steps.age.55_plus')
   }
 ];
 
@@ -53,7 +54,7 @@ export default function AgeStep({ selectedAge, onAgeSelect, onNext, onBack }: Ag
       <div className="flex flex-col px-4 py-4 overflow-y-auto bg-white/50 backdrop-blur-sm p-4 overflow-y-auto mt-auto mx-4 mb-4 rounded-lg">
         <div className="text-center mb-4">
           <h1 className="text-xl font-bold text-gray-900 mb-2">
-            What age group do you belong to?
+            {t('steps.age.title')}
           </h1>
         </div>
         
@@ -97,7 +98,7 @@ export default function AgeStep({ selectedAge, onAgeSelect, onNext, onBack }: Ag
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
           >
-            Next
+            {t('common.next')}
           </motion.button>
         </div>
       </div>

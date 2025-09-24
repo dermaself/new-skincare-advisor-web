@@ -3,6 +3,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { CheckCircle } from 'lucide-react';
 import { ASSETS } from '../../lib/assets';
+import { t } from '../../lib/i18n';
 
 interface GenderOption {
   id: string;
@@ -19,19 +20,19 @@ interface GenderStepProps {
 const genderOptions: GenderOption[] = [
   {
     id: 'woman',
-    name: 'Woman'
+    name: t('steps.gender.woman')
   },
   {
     id: 'man',
-    name: 'Man'
+    name: t('steps.gender.man')
   },
   {
     id: 'non-binary',
-    name: 'Non-binary'
+    name: t('steps.gender.nonBinary')
   },
   {
     id: 'prefer-not-to-specify',
-    name: 'I prefer not to specify'
+    name: t('steps.gender.preferNot')
   }
 ];
 
@@ -49,7 +50,7 @@ export default function GenderStep({ selectedGender, onGenderSelect, onNext, onB
       <div className="flex flex-col px-4 py-4 overflow-y-auto bg-white/50 backdrop-blur-sm p-4 overflow-y-auto mt-auto mx-4 mb-4 rounded-lg">
         <div className="text-center mb-4">
           <h1 className="text-xl font-bold text-gray-900 mb-2">
-            What gender do you identify with?
+            {t('steps.gender.title')}
           </h1>
         </div>
         
@@ -93,7 +94,7 @@ export default function GenderStep({ selectedGender, onGenderSelect, onNext, onB
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
           >
-            Next
+            {t('common.next')}
           </motion.button>
         </div>
       </div>

@@ -94,7 +94,13 @@ export function verifyWebhookSignature(
   hmacHeader: string,
   webhookSecret: string
 ): boolean {
-  const crypto = require('crypto');
+  // Import crypto at the top of the file instead
+  const crypto = (typeof window === 'undefined') ? eval('require')('crypto') : null;
+  
+  if (!crypto) {
+    console.error('Crypto module not available');
+    return false;
+  }
   
   const expectedHmac = crypto
     .createHmac('sha256', webhookSecret)

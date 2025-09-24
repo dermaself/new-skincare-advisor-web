@@ -10,5 +10,17 @@
     "project": "./tsconfig.json"
   },
   "plugins": ["@typescript-eslint"],
-  "rules": {}
+  "rules": {
+    "@typescript-eslint/no-explicit-any": "warn",
+    "@typescript-eslint/no-unused-vars": "warn",
+    "@next/next/no-img-element": "warn",
+    "@next/next/no-assign-module-variable": "warn",
+    "react-hooks/rules-of-hooks": "warn",
+    "react-hooks/exhaustive-deps": "warn",
+    "prefer-const": "warn",
+    "react/no-unescaped-entities": "warn",
+    "@typescript-eslint/no-var-requires": "warn",
+    "no-var": "warn",
+    "jsx-a11y/alt-text": "warn"
+  }
 }

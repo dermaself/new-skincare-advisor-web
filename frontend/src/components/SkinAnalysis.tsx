@@ -177,6 +177,7 @@ export default function SkinAnalysis() {
                   <button
                     onClick={() => setSelectedImage(null)}
                     className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-colors"
+                    aria-label="Rimuovi immagine"
                   >
                     <X className="w-4 h-4" />
                   </button>

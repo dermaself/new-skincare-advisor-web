@@ -80,12 +80,12 @@ export default function SpideringChart({
 
     const metrics = [
       { label: 'Acne', level: acneLevel, max: acneLevels, color: '#ef4444' },
-      { label: 'Dryness', level: drynessLevel, max: drynessLevels, color: '#3b82f6' },
-      { label: 'Wrinkles', level: wrinklesLevel, max: wrinklesLevels, color: '#f59e0b' },
-      { label: 'Dark Spots', level: darkSpotsLevel, max: darkSpotsLevels, color: '#8b5cf6' },
-      { label: 'Large Pores', level: poresLevel, max: poresLevels, color: '#10b981' },
-      { label: 'Redness', level: rednessLevel, max: rednessLevels, color: '#ec4899' },
-      { label: 'Skin Laxity', level: laxityLevel, max: laxityLevels, color: '#06b6d4' }
+      { label: 'Secchezza', level: drynessLevel, max: drynessLevels, color: '#3b82f6' },
+      { label: 'Rughe', level: wrinklesLevel, max: wrinklesLevels, color: '#f59e0b' },
+      { label: 'Discromie', level: darkSpotsLevel, max: darkSpotsLevels, color: '#8b5cf6' },
+      { label: 'Pori', level: poresLevel, max: poresLevels, color: '#10b981' },
+      { label: 'Rossore', level: rednessLevel, max: rednessLevels, color: '#ec4899' },
+      { label: 'Lassità\nCutanea', level: laxityLevel, max: laxityLevels, color: '#06b6d4' }
     ];
 
     // Convert to percentage value for plotting
@@ -105,12 +105,12 @@ export default function SpideringChart({
     // Defaults
     let ref = {
       Acne: 1,
-      Dryness: 2,
-      Wrinkles: 2,
-      'Dark Spots': 2,
-      'Large Pores': 3,
-      Redness: 2,
-      'Skin Laxity': 2,
+      Secchezza: 2,
+      Rughe: 2,
+      'Discromie': 2,
+      'Pori': 3,
+      Rossore: 2,
+      'Lassità\nCutanea': 2,
     } as Record<string, number>;
 
     // Example of branching for other ages/genders in future
@@ -165,7 +165,7 @@ export default function SpideringChart({
 
   return (
     <div className="bg-white rounded-2xl shadow-lg p-6">
-      <h3 className="text-xl font-bold text-gray-800 mb-4 text-center">Skin Analysis Overview</h3>
+      <h3 className="text-xl font-bold text-gray-800 mb-4 text-center">Panoramica Analisi della Pelle</h3>
       
       <div className="flex items-center justify-center w-full">
         <motion.svg
@@ -322,7 +322,7 @@ export default function SpideringChart({
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4 mr-1">
                     <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.721-1.36 3.486 0l6.518 11.59c.75 1.335-.213 2.99-1.743 2.99H3.482c-1.53 0-2.492-1.655-1.743-2.99L8.257 3.1zM11 14a1 1 0 10-2 0 1 1 0 002 0zm-.25-6.75a.75.75 0 00-1.5 0v3.5a.75.75 0 001.5 0v-3.5z" clipRule="evenodd" />
                   </svg>
-                  <span className="font-medium">Da migliorare</span>
+                  <span className="font-medium">Da Migliorare</span>
                 </span>
               )}
             </span>

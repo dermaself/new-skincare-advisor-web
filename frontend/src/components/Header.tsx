@@ -14,31 +14,31 @@ export default function Header() {
             </div>
             <div>
               <h1 className="text-xl font-bold text-gray-900">Dermaself</h1>
-              <p className="text-sm text-gray-500">AI Skin Analysis</p>
+              <p className="text-sm text-gray-500">Analisi della Pelle AI</p>
             </div>
           </div>
           
           <nav className="hidden md:flex items-center space-x-8">
             <a href="#features" className="text-gray-600 hover:text-primary-600 transition-colors">
-              Features
+              Funzionalità
             </a>
             <a href="#how-it-works" className="text-gray-600 hover:text-primary-600 transition-colors">
-              How it Works
+              Come Funziona
             </a>
             <a href="#about" className="text-gray-600 hover:text-primary-600 transition-colors">
-              About
+              Chi Siamo
             </a>
           </nav>
           
           <div className="flex items-center space-x-4">
             <button className="flex items-center space-x-2 text-gray-600 hover:text-primary-600 transition-colors">
               <Heart className="w-5 h-5" />
-              <span className="hidden sm:inline">Favorites</span>
+              <span className="hidden sm:inline">Preferiti</span>
             </button>
             <CartIcon />
             <button className="flex items-center space-x-2 bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition-colors">
               <Sparkles className="w-5 h-5" />
-              <span>Try Analysis</span>
+              <span>Prova Analisi</span>
             </button>
           </div>
         </div>

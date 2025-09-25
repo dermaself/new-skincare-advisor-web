@@ -137,9 +137,9 @@ export default function SkinAnalysisImage({
 
   // Create multiple images for carousel (analysis versions only)
   const carouselImages = [
-    { url: imageUrl, label: 'Acne Analysis', view: 'acne' as const },
-    { url: imageUrl, label: 'Redness Analysis', view: 'redness' as const },
-    { url: imageUrl, label: 'Wrinkles Analysis', view: 'wrinkles' as const }
+    { url: imageUrl, label: 'Analisi Acne', view: 'acne' as const },
+    { url: imageUrl, label: 'Analisi Rossore', view: 'redness' as const },
+    { url: imageUrl, label: 'Analisi Rughe', view: 'wrinkles' as const }
   ];
 
   // Canvas drawing functions

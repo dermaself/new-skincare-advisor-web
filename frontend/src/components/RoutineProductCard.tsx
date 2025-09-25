@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { ShoppingCart, Loader2, CheckCircle, Trash2, Info, X } from 'lucide-react';
 import { useCart } from './CartContext';
+import { translateModuleName } from '../lib/moduleTranslations';
 
 interface ProductVariant {
   id: string | number;
@@ -244,9 +245,9 @@ export default function RoutineProductCard({
       {/* Step Header */}
       <div className="flex items-center gap-2 mb-3">
         <span className="inline-flex items-center justify-center h-7 px-3 rounded-full bg-neutral-900 text-white text-sm font-semibold">
-          {`Step ${stepNumber}`}
+          {`Passo ${stepNumber}`}
         </span>
-        <h2 className="text-2xl font-semibold tracking-tight truncate flex-1">{stepTitle}</h2>
+        <h2 className="text-2xl font-semibold tracking-tight truncate flex-1">{translateModuleName(stepTitle)}</h2>
         {categoryTitle && (
           <span className="ml-2 hidden sm:inline-flex items-center text-xs bg-muted text-muted-foreground px-2 py-0.5 rounded-full">
             {categoryTitle}
@@ -330,7 +331,7 @@ export default function RoutineProductCard({
           {/* Why picked bubble */}
           {whyPicked && (
             <div className="mt-4 rounded-3xl bg-muted p-4 text-sm leading-relaxed">
-              <div className="font-semibold text-sm mb-1">Why we picked it</div>
+              <div className="font-semibold text-sm mb-1">Perchè l'abbiamo scelta</div>
               <p className={`text-gray-900 ${whyExpanded ? '' : 'line-clamp-3'}`}>{whyPicked}</p>
               <button
                 type="button"
@@ -349,22 +350,22 @@ export default function RoutineProductCard({
               className={`inline-flex items-center justify-center h-12 sm:h-11 w-full sm:w-auto px-4 rounded-lg font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-pink-400 focus:ring-offset-2 disabled:opacity-60 ${showSuccess ? 'bg-green-600' : 'bg-pink-600 text-white hover:bg-pink-700'}`}
               onClick={isInCart ? handleRemoveFromCart : handleAddToCart}
               disabled={isLoading || !selectedVariant || !isVariantAvailable(selectedVariant) || state.loading}
-              aria-label={isInCart ? 'Remove from cart' : 'Add to cart'}
+              aria-label={isInCart ? 'Rimuovi dal carrello' : 'Aggiungi al carrello'}
             >
               {isLoading || state.loading ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                  <span aria-live="polite">{isInCart ? 'Removing...' : 'Adding...'}</span>
+                  <span aria-live="polite">{isInCart ? 'Rimuovendo...' : 'Aggiungendo...'}</span>
                 </>
               ) : isInCart ? (
                 <>
                   <Trash2 className="w-4 h-4 mr-2" />
-                  <span aria-live="polite">Remove from Cart</span>
+                  <span aria-live="polite">Rimuovi dal Carrello</span>
                 </>
               ) : (
                 <>
                   <ShoppingCart className="w-4 h-4 mr-2" />
-                  <span aria-live="polite">Add to Cart</span>
+                  <span aria-live="polite">Aggiungi al Carrello</span>
                 </>
               )}
             </button>
@@ -376,7 +377,7 @@ export default function RoutineProductCard({
                 onClick={onToggleAlternatives}
                 aria-controls={`alt-list-${product.id}`}
               >
-                <span className="text-gray-900">{alternatives.length} alternatives</span>
+                <span className="text-gray-900">{alternatives.length} alternative</span>
                 <svg className={`w-4 h-4 transition-transform text-gray-600 ${alternativesExpanded ? 'rotate-180' : ''}`} viewBox="0 0 20 20" fill="currentColor"><path d="M5.23 7.21a.75.75 0 011.06.02L10 11.188l3.71-3.956a.75.75 0 011.08 1.04l-4.25 4.53a.75.75 0 01-1.08 0l-4.25-4.53a.75.75 0 01.03-1.06z"/></svg>
               </button>
             )}
@@ -456,7 +457,7 @@ export default function RoutineProductCard({
                                     setTimeout(() => setShowError(false), 2000);
                                   }
                                 }}
-                                aria-label={isAltInCart ? `Remove ${alt.title} from cart` : `Add ${alt.title} to cart`}
+                                aria-label={isAltInCart ? `Rimuovi ${alt.title} dal carrello` : `Aggiungi ${alt.title} al carrello`}
                               >
                                 {isAltInCart ? (
                                   <Trash2 className="w-4 h-4" />
@@ -525,10 +526,10 @@ export default function RoutineProductCard({
           {state.loading ? (
             <div className="flex items-center justify-center">
               <Loader2 className="w-5 h-5 animate-spin mr-2" />
-              Adding Routine...
+              Aggiungendo Routine...
             </div>
           ) : (
-            'ADD FULL ROUTINE TO BAG'
+            'AGGIUNGI ROUTINE COMPLETA AL CARRELLO'
           )}
         </button>
       )}

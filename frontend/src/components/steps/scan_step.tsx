@@ -41,10 +41,10 @@ export default function ScanStep({ onBack, onImageCapture }: ScanStepProps) {
         <div className="text-center">
           <div className="flex items-center justify-center mb-2">
             <Camera className="w-5 h-5 text-pink-600 mr-2" />
-            <span className="text-sm font-medium text-gray-900">Position your face in the frame</span>
+            <span className="text-sm font-medium text-gray-900">Posiziona il tuo viso nel riquadro</span>
           </div>
           <p className="text-xs text-gray-600">
-            Make sure your face is well-lit and clearly visible for the best analysis results.
+            Assicurati che il tuo viso sia ben illuminato e chiaramente visibile per i migliori risultati dell'analisi.
           </p>
         </div>
       </div>

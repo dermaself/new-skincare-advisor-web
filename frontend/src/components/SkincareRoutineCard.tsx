@@ -162,7 +162,7 @@ export default function SkincareRoutineCard({
             {isAddingToCart || state.loading ? (
               <div className="flex items-center justify-center">
                 <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                Adding...
+                Aggiungendo...
               </div>
             ) : (
               'Acquista'
@@ -208,7 +208,7 @@ export default function SkincareRoutineCard({
                       disabled={state.loading}
                       className="w-full bg-blue-600 text-white py-1 px-2 rounded text-xs hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      {state.loading ? 'Adding...' : 'Add to Cart'}
+                      {state.loading ? 'Aggiungendo...' : 'Aggiungi al Carrello'}
                     </button>
                   </div>
                 ))}
@@ -226,10 +226,10 @@ export default function SkincareRoutineCard({
               {state.loading ? (
                 <div className="flex items-center justify-center">
                   <Loader2 className="w-5 h-5 animate-spin mr-2" />
-                  Adding Routine...
+                  Aggiungendo Routine...
                 </div>
               ) : (
-                'ADD FULL ROUTINE TO BAG'
+                'AGGIUNGI ROUTINE COMPLETA AL CARRELLO'
               )}
             </button>
           )}

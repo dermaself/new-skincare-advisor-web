@@ -20,32 +20,32 @@ interface SkinConcernsStepProps {
 const skinConcerns: SkinConcern[] = [
   {
     id: 'wrinkles',
-    name: 'Visible wrinkles and lack of tone',
+    name: 'Rughe visibili e mancanza di tono',
     icon: ASSETS.images.icons.wrinkles
   },
   {
     id: 'eyebags',
-    name: 'Bags and dark circles',
+    name: 'Borse e occhiaie',
     icon: ASSETS.images.icons.eyebags
   },
   {
     id: 'dullSkin',
-    name: 'Dull complexion',
+    name: 'Carnagione spenta',
     icon: ASSETS.images.icons.dullSkin
   },
   {
     id: 'aging',
-    name: 'First signs of aging',
+    name: 'Primi segni dell\'invecchiamento',
     icon: ASSETS.images.icons.aging
   },
   {
     id: 'pores',
-    name: 'Visible pores and blackheads',
+    name: 'Pori visibili e punti neri',
     icon: ASSETS.images.icons.poreDilation
   },
   {
     id: 'none',
-    name: 'No specific concerns',
+    name: 'Nessuna preoccupazione specifica',
     icon: ''
   }
 ];
@@ -64,7 +64,7 @@ export default function SkinConcernsStep({ selectedConcerns, onConcernToggle, on
       <div className="flex flex-col px-4 py-4 overflow-y-auto bg-white/50 backdrop-blur-sm p-4 overflow-y-auto mt-auto mx-4 mb-4 rounded-lg">
         <div className="text-center mb-4">
           <h1 className="text-xl font-bold text-gray-900 mb-2">
-            What do you think about your skin? Indicate what are the main concerns of your skin, if any.
+            Cosa pensi della tua pelle? Indica quali sono le principali preoccupazioni della tua pelle, se ce ne sono.
           </h1>
         </div>
         
@@ -73,7 +73,7 @@ export default function SkinConcernsStep({ selectedConcerns, onConcernToggle, on
             <div 
               key={concern.id} 
               role="checkbox"
-              aria-checked={selectedConcerns.includes(concern.id)}
+              aria-checked={selectedConcerns.includes(concern.id) ? 'true' : 'false'}
               tabIndex={0}
               className={`relative cursor-pointer transition-all duration-200 ${
                 selectedConcerns.includes(concern.id) 
@@ -125,7 +125,7 @@ export default function SkinConcernsStep({ selectedConcerns, onConcernToggle, on
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
           >
-            Next
+            Avanti
           </motion.button>
         </div>
       </div>

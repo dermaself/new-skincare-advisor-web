@@ -59,11 +59,11 @@ export default function BottomToolbar({
               <div className="flex items-center space-x-2">
                 <ShoppingBag className="w-5 h-5 text-primary-600" />
                 <span className="text-sm font-medium text-gray-900">
-                  {cartItemCount} {cartItemCount === 1 ? 'item' : 'items'}
+                  {cartItemCount} {cartItemCount === 1 ? 'articolo' : 'articoli'}
                 </span>
               </div>
               <div className="text-sm text-gray-600">
-                Total: {currencyCode} {(totalAmount / 100).toFixed(2)}
+                Totale: {currencyCode} {(totalAmount / 100).toFixed(2)}
               </div>
             </div>
 
@@ -72,7 +72,7 @@ export default function BottomToolbar({
               onClick={onProceedToCheckout}
               className="flex items-center space-x-2 bg-primary-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-primary-700 transition-colors"
             >
-              <span>Proceed to Checkout</span>
+              <span>Procedi al Checkout</span>
               <ArrowRight className="w-4 h-4" />
             </button>
           </div>

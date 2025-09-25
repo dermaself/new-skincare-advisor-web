@@ -53,7 +53,7 @@ export default function AgeStep({ selectedAge, onAgeSelect, onNext, onBack }: Ag
       <div className="flex flex-col px-4 py-4 overflow-y-auto bg-white/50 backdrop-blur-sm p-4 overflow-y-auto mt-auto mx-4 mb-4 rounded-lg">
         <div className="text-center mb-4">
           <h1 className="text-xl font-bold text-gray-900 mb-2">
-            What age group do you belong to?
+            A quale fascia d'età appartieni?
           </h1>
         </div>
         
@@ -62,7 +62,7 @@ export default function AgeStep({ selectedAge, onAgeSelect, onNext, onBack }: Ag
             <div 
               key={option.id} 
               role="radio"
-              aria-checked={selectedAge === option.id}
+              aria-checked={selectedAge === option.id ? 'true' : 'false'}
               tabIndex={0}
               className={`relative cursor-pointer transition-all duration-200 ${
                 selectedAge === option.id 
@@ -97,7 +97,7 @@ export default function AgeStep({ selectedAge, onAgeSelect, onNext, onBack }: Ag
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
           >
-            Next
+            Avanti
           </motion.button>
         </div>
       </div>

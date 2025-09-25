@@ -7,6 +7,7 @@ import SkinAnalysisImage from './SkinAnalysisImage';
 import SkincareRoutineCard from './SkincareRoutineCard';
 import { useCart } from './CartContext';
 import { fetchProductsByVariantIds, TransformedProduct } from '../lib/shopify-product-fetcher';
+import { translateModuleName } from '../lib/moduleTranslations';
 import { useState, useEffect } from 'react';
 
 interface AnalysisResultsProps {
@@ -154,7 +155,7 @@ export default function AnalysisResults({ result, onReset }: AnalysisResultsProp
             if (mainProduct) {
               const step = {
                 stepNumber: globalStepNumber,
-                stepTitle: `STEP ${globalStepNumber}: ${module.module?.toUpperCase() || 'SKINCARE STEP'}`,
+                stepTitle: `STEP ${globalStepNumber}: ${translateModuleName(module.module?.toUpperCase() || 'SKINCARE STEP')}`,
                 category: category.category, // Use category from JSON for section title
                 mainProduct,
                 alternativeProducts,
@@ -260,10 +261,10 @@ export default function AnalysisResults({ result, onReset }: AnalysisResultsProp
         className="text-center"
       >
         <h2 className="text-3xl font-bold text-gray-900 mb-2">
-          Your Skin Analysis Results
+          I Risultati della Tua Analisi della Pelle
         </h2>
         <p className="text-gray-600">
-          Based on AI analysis of your skin, here are your personalized insights
+          Basato sull'analisi AI della tua pelle, ecco le tue intuizioni personalizzate
         </p>
       </motion.div>
 
@@ -314,7 +315,7 @@ export default function AnalysisResults({ result, onReset }: AnalysisResultsProp
             {/* Health Score */}
             <div className="text-center">
               <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                Overall Skin Health
+                Salute Generale della Pelle
               </h3>
               <div className={`text-4xl font-bold mb-2 ${getHealthScoreColor(result.overallHealth)}`}>
                 {result.overallHealth}%
@@ -329,9 +330,9 @@ export default function AnalysisResults({ result, onReset }: AnalysisResultsProp
                 ></div>
               </div>
               <p className="text-sm text-gray-600">
-                {result.overallHealth >= 80 ? 'Excellent skin health!' :
-                 result.overallHealth >= 60 ? 'Good skin health with room for improvement' :
-                 'Some concerns detected - see recommendations below'}
+                {result.overallHealth >= 80 ? 'Eccellente salute della pelle!' :
+                 result.overallHealth >= 60 ? 'Buona salute della pelle con margine di miglioramento' :
+                 'Alcune preoccupazioni rilevate - vedi le raccomandazioni qui sotto'}
               </p>
             </div>
           </div>
@@ -347,13 +348,13 @@ export default function AnalysisResults({ result, onReset }: AnalysisResultsProp
           {/* Skin Concerns */}
           <div className="card">
             <h3 className="text-xl font-semibold text-gray-900 mb-4">
-              Detected Skin Concerns
+              Preoccupazioni della Pelle Rilevate
             </h3>
             
             {result.concerns.length === 0 ? (
               <div className="text-center py-8">
                 <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-4" />
-                <p className="text-gray-600">No significant skin concerns detected!</p>
+                <p className="text-gray-600">Nessuna preoccupazione significativa della pelle rilevata!</p>
               </div>
             ) : (
               <div className="space-y-4">
@@ -377,10 +378,10 @@ export default function AnalysisResults({ result, onReset }: AnalysisResultsProp
                       </div>
                       <div className="text-right">
                         <div className="text-sm font-medium text-gray-900">
-                          {Math.round(concern.confidence)}% confidence
+                          {Math.round(concern.confidence)}% confidenza
                         </div>
                         <div className={`text-xs px-2 py-1 rounded-full ${getSeverityColor(concern.severity)}`}>
-                          {concern.severity} severity
+                          gravità {concern.severity}
                         </div>
                       </div>
                     </div>
@@ -393,7 +394,7 @@ export default function AnalysisResults({ result, onReset }: AnalysisResultsProp
           {/* Text Recommendations */}
           <div className="card">
             <h3 className="text-xl font-semibold text-gray-900 mb-4">
-              Personalized Recommendations
+              Raccomandazioni Personalizzate
             </h3>
             
             <div className="space-y-3">
@@ -421,7 +422,7 @@ export default function AnalysisResults({ result, onReset }: AnalysisResultsProp
                   <p className="text-gray-700">
                     {typeof result.recommendations === 'string' 
                       ? result.recommendations 
-                      : 'Personalized routine generated based on your analysis'}
+                      : 'Routine personalizzata generata basata sulla tua analisi'}
                   </p>
                 </motion.div>
               )}
@@ -440,23 +441,23 @@ export default function AnalysisResults({ result, onReset }: AnalysisResultsProp
         >
           <div className="text-center">
             <h3 className="text-2xl font-bold text-gray-900 mb-2">
-              Your Personalized Skincare Routine
+              La Tua Routine di Cura della Pelle Personalizzata
             </h3>
             <p className="text-gray-600">
-              Based on your skin analysis, here are the products we recommend for your routine
+              Basato sulla tua analisi della pelle, ecco i prodotti che raccomandiamo per la tua routine
             </p>
             {isLoadingProducts ? (
               <div className="mt-4 p-4 bg-blue-50 rounded-lg">
                 <div className="flex items-center justify-center space-x-2">
                   <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-                  <p className="text-sm text-blue-700">Loading products from Shopify...</p>
+                  <p className="text-sm text-blue-700">Caricamento prodotti da Shopify...</p>
                 </div>
               </div>
             ) : (
               <div className="mt-4 p-4 bg-blue-50 rounded-lg">
                 <p className="text-sm text-blue-700">
-                  Found {routineSteps.length} main products and{' '}
-                  {routineSteps.reduce((total: number, step: any) => total + step.alternativeProducts.length, 0)} alternative products
+                  Trovati {routineSteps.length} prodotti principali e{' '}
+                  {routineSteps.reduce((total: number, step: any) => total + step.alternativeProducts.length, 0)} prodotti alternativi
                 </p>
               </div>
             )}
@@ -494,7 +495,7 @@ export default function AnalysisResults({ result, onReset }: AnalysisResultsProp
               className="card"
             >
               <h4 className="text-xl font-semibold text-gray-900 mb-4">
-                Alternative Products
+                Prodotti Alternativi
               </h4>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {routineSteps.map((step: any, stepIndex: number) => 
@@ -532,7 +533,7 @@ export default function AnalysisResults({ result, onReset }: AnalysisResultsProp
                           ) : (
                             <ShoppingCart className="w-4 h-4" />
                           )}
-                          <span>{state.loading ? 'Adding...' : 'Add to Cart'}</span>
+                          <span>{state.loading ? 'Aggiungendo...' : 'Aggiungi al Carrello'}</span>
                         </button>
                       </div>
                     </motion.div>
@@ -556,17 +557,17 @@ export default function AnalysisResults({ result, onReset }: AnalysisResultsProp
           className="btn-secondary"
         >
           <ArrowLeft className="w-5 h-5 mr-2" />
-          New Analysis
+          Nuova Analisi
         </button>
         
         <button className="btn-secondary">
           <Share2 className="w-5 h-5 mr-2" />
-          Share Results
+          Condividi Risultati
         </button>
         
         <button className="btn-primary">
           <Download className="w-5 h-5 mr-2" />
-          Download Report
+          Scarica Report
         </button>
       </motion.div>
 
@@ -578,8 +579,8 @@ export default function AnalysisResults({ result, onReset }: AnalysisResultsProp
         className="text-center text-xs text-gray-500 bg-gray-50 p-4 rounded-lg"
       >
         <p>
-          This analysis is for informational purposes only and should not replace professional medical advice. 
-          Always consult with a dermatologist for medical concerns.
+          Questa analisi è solo a scopo informativo e non deve sostituire il consiglio medico professionale. 
+          Consulta sempre un dermatologo per le preoccupazioni mediche.
         </p>
       </motion.div>
     </div>

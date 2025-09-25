@@ -69,8 +69,8 @@ export default function CartDebug() {
           <Bug className="w-6 h-6 text-white" />
         </div>
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Cart Debug</h2>
-          <p className="text-gray-600">Test cart configuration and API</p>
+          <h2 className="text-xl font-semibold text-gray-900">Debug Carrello</h2>
+          <p className="text-gray-600">Testa la configurazione del carrello e l'API</p>
         </div>
       </div>
 
@@ -85,7 +85,7 @@ export default function CartDebug() {
           ) : (
             <CheckCircle className="w-5 h-5" />
           )}
-          <span>Test Cart Configuration</span>
+          <span>Testa Configurazione Carrello</span>
         </button>
 
         <button
@@ -98,13 +98,13 @@ export default function CartDebug() {
           ) : (
             <AlertCircle className="w-5 h-5" />
           )}
-          <span>Test Cart Creation</span>
+          <span>Testa Creazione Carrello</span>
         </button>
       </div>
 
       {testResults && (
         <div className="border border-gray-200 rounded-lg p-4">
-          <h3 className="font-semibold mb-2">Test Results</h3>
+          <h3 className="font-semibold mb-2">Risultati del Test</h3>
           <div className={`p-3 rounded-lg mb-3 ${
             testResults.success 
               ? 'bg-green-50 border border-green-200' 
@@ -117,19 +117,19 @@ export default function CartDebug() {
                 <AlertCircle className="w-5 h-5 text-red-600" />
               )}
               <span className="font-medium">
-                {testResults.success ? 'Success' : 'Error'}
+                {testResults.success ? 'Successo' : 'Errore'}
               </span>
             </div>
             
             {testResults.error && (
               <p className="text-sm text-red-600 mb-2">
-                Error: {testResults.error}
+                Errore: {testResults.error}
               </p>
             )}
             
             {testResults.details && (
               <p className="text-sm text-gray-600 mb-2">
-                Details: {testResults.details}
+                Dettagli: {testResults.details}
               </p>
             )}
 

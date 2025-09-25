@@ -319,7 +319,7 @@ export default function CameraCaptureStep({ onNext, onBack }: CameraCaptureStepP
           <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-75 z-10">
             <div className="text-white text-center">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
-              <p>Starting camera...</p>
+              <p>Avvio fotocamera...</p>
             </div>
           </div>
         )}
@@ -335,7 +335,7 @@ export default function CameraCaptureStep({ onNext, onBack }: CameraCaptureStepP
                 }}
                 className="px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 transition-colors"
               >
-                Try Again
+                Riprova
               </button>
             </div>
           </div>
@@ -367,7 +367,7 @@ export default function CameraCaptureStep({ onNext, onBack }: CameraCaptureStepP
             {/* Camera indicator */}
             <div className="absolute top-4 right-4 bg-black/50 backdrop-blur-sm rounded-full px-3 py-1">
               <span className="text-white text-sm font-medium">
-                {currentCamera === 'front' ? 'Front Camera' : 'Back Camera'}
+                {currentCamera === 'front' ? 'Fotocamera Anteriore' : 'Fotocamera Posteriore'}
               </span>
             </div>
           </div>
@@ -411,6 +411,7 @@ export default function CameraCaptureStep({ onNext, onBack }: CameraCaptureStepP
           accept="image/*"
           onChange={handleFileUpload}
           className="hidden"
+          aria-label="Seleziona file immagine"
         />
       </div>
 
@@ -422,8 +423,8 @@ export default function CameraCaptureStep({ onNext, onBack }: CameraCaptureStepP
             <button
               onClick={switchCamera}
               className="p-3 sm:p-4 bg-white/20 hover:bg-white/30 rounded-full transition-colors touch-manipulation"
-              title="Switch Camera"
-              aria-label="Switch between front and back camera"
+              title="Cambia Fotocamera"
+              aria-label="Cambia tra fotocamera anteriore e posteriore"
             >
               <SwitchCameraIcon size={24} className="text-white" />
             </button>
@@ -432,8 +433,8 @@ export default function CameraCaptureStep({ onNext, onBack }: CameraCaptureStepP
             <button
               onClick={capturePhoto}
               className="p-4 sm:p-5 bg-pink-600 hover:bg-pink-700 active:bg-pink-800 rounded-full transition-colors shadow-lg touch-manipulation min-w-[60px] min-h-[60px] sm:min-w-[70px] sm:min-h-[70px]"
-              title="Take Photo"
-              aria-label="Take photo"
+              title="Scatta Foto"
+              aria-label="Scatta foto"
             >
               <Camera size={28} className="text-white" />
             </button>
@@ -442,8 +443,8 @@ export default function CameraCaptureStep({ onNext, onBack }: CameraCaptureStepP
             <button
               onClick={openFileDialog}
               className="p-3 sm:p-4 bg-white/20 hover:bg-white/30 rounded-full transition-colors touch-manipulation"
-              title="Upload Photo"
-              aria-label="Upload photo from gallery"
+              title="Carica Foto"
+              aria-label="Carica foto dalla galleria"
             >
               <Upload size={24} className="text-white" />
             </button>
@@ -455,20 +456,20 @@ export default function CameraCaptureStep({ onNext, onBack }: CameraCaptureStepP
             <button
               onClick={retakePhoto}
               className="px-6 py-3 sm:px-8 sm:py-4 bg-gray-200 hover:bg-gray-300 active:bg-gray-400 text-gray-700 rounded-lg transition-colors touch-manipulation font-semibold"
-              title="Retake Photo"
-              aria-label="Retake photo"
+              title="Scatta di nuovo"
+              aria-label="Scatta di nuovo"
             >
-              Retake
+              Scatta di nuovo
             </button>
             
             <button
               onClick={confirmPhoto}
               className="px-6 py-3 sm:px-8 sm:py-4 bg-pink-600 hover:bg-pink-700 active:bg-pink-800 text-white rounded-lg transition-colors flex items-center gap-2 touch-manipulation font-semibold"
-              title="Use Photo"
-              aria-label="Use this photo for analysis"
+              title="Usa Foto"
+              aria-label="Usa questa foto per l'analisi"
             >
               <CheckCircle size={20} />
-              Use Photo
+              Usa Foto
             </button>
           </div>
         )}

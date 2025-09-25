@@ -19,29 +19,29 @@ interface SkinTypeStepProps {
 
 const skinTypes: SkinType[] = [
   {
-    name: 'Normal',
+    name: 'Normale',
     image: ASSETS.images.skinTypes.normal,
-    description: 'Regular skin texture with no significant problems'
+    description: 'Tessuto cutaneo regolare senza problemi significativi'
   },
   {
-    name: 'Dry',
+    name: 'Seca',
     image: ASSETS.images.skinTypes.dry,
-    description: 'Dull, sometimes tight and irritated'
+    description: 'Opaca, a volte tesa e irritata'
   },
   {
-    name: 'Oily',
+    name: 'Grassa',
     image: ASSETS.images.skinTypes.oily,
-    description: 'Shiny in the T-zone, with visible pores and blackheads.'
+    description: 'Lucida nella zona T, con pori visibili e punti neri.'
   },
   {
-    name: 'Combination',
+    name: 'Mista',
     image: ASSETS.images.skinTypes.combination,
-    description: 'Oily in the T-zone (forehead, nose and chin) and dry or normal on the cheeks.'
+    description: 'Grassa nella zona T (fronte, naso e mento) e secca o normale sulle guance.'
   },
   {
-    name: 'I don\'t know',
+    name: 'Non lo so',
     image: ASSETS.images.skinTypes.dontKnow,
-    description: 'Let\'s find out!'
+    description: 'Scopriamolo insieme!'
   }
 ];
 
@@ -59,7 +59,7 @@ export default function SkinTypeStep({ selectedSkinType, onSkinTypeSelect, onNex
       <div className="flex flex-col px-4 py-4 overflow-y-auto bg-white/50 backdrop-blur-sm p-4 overflow-y-auto mt-auto mx-4 mb-4 rounded-lg">
         <div className="text-center mb-4">
           <h1 className="text-xl font-bold text-gray-900 mb-2">
-            What is your skin type?
+            Qual è il tuo tipo di pelle?
           </h1>
         </div>
         
@@ -69,7 +69,7 @@ export default function SkinTypeStep({ selectedSkinType, onSkinTypeSelect, onNex
             <div 
               key={type.name} 
               role="radio"
-              aria-checked={selectedSkinType === type.name}
+              aria-checked={selectedSkinType === type.name ? 'true' : 'false'}
               tabIndex={0}
               className={`relative cursor-pointer transition-all duration-200 ${
                 selectedSkinType === type.name 
@@ -114,7 +114,7 @@ export default function SkinTypeStep({ selectedSkinType, onSkinTypeSelect, onNex
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
           >
-              Next
+              Avanti
           </motion.button>
         </div>
       </div>

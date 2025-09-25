@@ -34,7 +34,7 @@ export default function ModalFooter({
               width={30}
               height={30}
             />
-            <p className="heading-4">RESULTS</p>
+            <p className="heading-4">RISULTATI</p>
           </button>
           <button
             onClick={() => onTabChange('routine')}

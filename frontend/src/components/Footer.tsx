@@ -14,58 +14,58 @@ export default function Footer() {
               </div>
               <div>
                 <h3 className="text-xl font-bold">Dermaself</h3>
-                <p className="text-gray-400">AI-Powered Skin Analysis</p>
+                <p className="text-gray-400">Analisi della Pelle Powered by AI</p>
               </div>
             </div>
             <p className="text-gray-400 mb-6 max-w-md">
-              Advanced AI technology that analyzes your skin and provides personalized 
-              skincare recommendations. Get professional insights from the comfort of your home.
+              Tecnologia AI avanzata che analizza la tua pelle e fornisce raccomandazioni 
+              personalizzate per la cura della pelle. Ottieni intuizioni professionali dal comfort di casa tua.
             </p>
             <div className="flex space-x-4">
               <div className="flex items-center space-x-2 text-gray-400">
                 <Shield className="w-5 h-5" />
-                <span>Secure & Private</span>
+                <span>Sicuro e Privato</span>
               </div>
               <div className="flex items-center space-x-2 text-gray-400">
                 <Zap className="w-5 h-5" />
-                <span>Instant Results</span>
+                <span>Risultati Istantanei</span>
               </div>
               <div className="flex items-center space-x-2 text-gray-400">
                 <Users className="w-5 h-5" />
-                <span>Expert Backed</span>
+                <span>Sostenuto da Esperti</span>
               </div>
             </div>
           </div>
           
           <div>
-            <h4 className="font-semibold mb-4">Product</h4>
+            <h4 className="font-semibold mb-4">Prodotto</h4>
             <ul className="space-y-2 text-gray-400">
-              <li><a href="#" className="hover:text-white transition-colors">Features</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">Pricing</a></li>
+              <li><a href="#" className="hover:text-white transition-colors">Funzionalità</a></li>
+              <li><a href="#" className="hover:text-white transition-colors">Prezzi</a></li>
               <li><a href="#" className="hover:text-white transition-colors">API</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">Integrations</a></li>
+              <li><a href="#" className="hover:text-white transition-colors">Integrazioni</a></li>
             </ul>
           </div>
           
           <div>
-            <h4 className="font-semibold mb-4">Company</h4>
+            <h4 className="font-semibold mb-4">Azienda</h4>
             <ul className="space-y-2 text-gray-400">
-              <li><a href="#" className="hover:text-white transition-colors">About</a></li>
+              <li><a href="#" className="hover:text-white transition-colors">Chi Siamo</a></li>
               <li><a href="#" className="hover:text-white transition-colors">Blog</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">Careers</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">Contact</a></li>
+              <li><a href="#" className="hover:text-white transition-colors">Carriere</a></li>
+              <li><a href="#" className="hover:text-white transition-colors">Contatti</a></li>
             </ul>
           </div>
         </div>
         
         <div className="border-t border-gray-800 mt-8 pt-8 flex flex-col md:flex-row justify-between items-center">
-          <p className="text-gray-400 text-sm">
-            © 2024 Dermaself. All rights reserved.
-          </p>
+                <p className="text-gray-400 text-sm">
+                  © 2024 Dermaself. Tutti i diritti riservati.
+                </p>
           <div className="flex space-x-6 mt-4 md:mt-0">
-            <a href="#" className="text-gray-400 hover:text-white transition-colors text-sm">Privacy Policy</a>
-            <a href="#" className="text-gray-400 hover:text-white transition-colors text-sm">Terms of Service</a>
-            <a href="#" className="text-gray-400 hover:text-white transition-colors text-sm">Cookie Policy</a>
+            <a href="#" className="text-gray-400 hover:text-white transition-colors text-sm">Informativa sulla Privacy</a>
+            <a href="#" className="text-gray-400 hover:text-white transition-colors text-sm">Termini di Servizio</a>
+            <a href="#" className="text-gray-400 hover:text-white transition-colors text-sm">Politica sui Cookie</a>
           </div>
         </div>
       </div>

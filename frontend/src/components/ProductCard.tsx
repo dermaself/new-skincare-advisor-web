@@ -129,7 +129,7 @@ export default function ProductCard({ product }: ProductCardProps) {
           >
             <div className="text-white text-center">
               <CheckCircle className="w-12 h-12 mx-auto mb-2" />
-              <p className="font-semibold">Added to Cart!</p>
+              <p className="font-semibold">Aggiunto al Carrello!</p>
             </div>
           </motion.div>
         )}
@@ -181,15 +181,15 @@ export default function ProductCard({ product }: ProductCardProps) {
         {/* Quantity Selector */}
         <div className="mb-4">
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            Quantity
+            Quantità
           </label>
           <div className="flex items-center space-x-2">
             <button
               onClick={() => handleQuantityChange(quantity - 1)}
               disabled={quantity <= 1}
               className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-50 disabled:opacity-50"
-              aria-label="Decrease quantity"
-              title="Decrease quantity"
+              aria-label="Diminuisci quantità"
+              title="Diminuisci quantità"
             >
               <Minus className="w-4 h-4" />
             </button>
@@ -202,8 +202,8 @@ export default function ProductCard({ product }: ProductCardProps) {
               onClick={() => handleQuantityChange(quantity + 1)}
               disabled={quantity >= 99}
               className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-50 disabled:opacity-50"
-              aria-label="Increase quantity"
-              title="Increase quantity"
+              aria-label="Aumenta quantità"
+              title="Aumenta quantità"
             >
               <Plus className="w-4 h-4" />
             </button>
@@ -228,12 +228,12 @@ export default function ProductCard({ product }: ProductCardProps) {
           )}
           <span>
             {isAddingToCart
-              ? 'Adding...'
+              ? 'Aggiungendo...'
               : !selectedVariant
-              ? 'Select Variant'
+              ? 'Seleziona Variante'
               : !isVariantAvailable(selectedVariant)
-              ? 'Out of Stock'
-              : 'Add to Cart'}
+              ? 'Esaurito'
+              : 'Aggiungi al Carrello'}
           </span>
         </button>
 

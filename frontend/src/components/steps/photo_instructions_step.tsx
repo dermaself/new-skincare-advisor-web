@@ -19,22 +19,22 @@ const photoInstructions: PhotoInstruction[] = [
   {
     id: 'glasses',
     icon: ASSETS.images.icons.glasses,
-    text: 'Remove glasses'
+    text: 'Rimuovi gli occhiali'
   },
   {
     id: 'hair',
     icon: ASSETS.images.icons.hair,
-    text: 'Pull back hair'
+    text: 'Tira indietro i capelli'
   },
   {
     id: 'position',
     icon: ASSETS.images.icons.position,
-    text: 'Position yourself in front of the camera'
+    text: 'Posizionati davanti alla fotocamera'
   },
   {
     id: 'expression',
     icon: ASSETS.images.icons.expression,
-    text: 'Maintain a neutral expression'
+    text: 'Mantieni un\'espressione neutra'
   }
 ];
 
@@ -52,7 +52,7 @@ export default function PhotoInstructionsStep({ onNext, onBack }: PhotoInstructi
       <div className="flex flex-col px-4 py-4 overflow-y-auto bg-white/50 backdrop-blur-sm p-4 overflow-y-auto mt-auto mx-4 mb-4 rounded-lg">
         <div className="text-center mb-6">
           <h1 className="text-xl font-bold text-gray-900 mb-2">
-            Your photo will allow us to better analyze your skin and recommend the most suitable products
+            La tua foto ci permetterà di analizzare meglio la tua pelle e raccomandare i prodotti più adatti
           </h1>
         </div>
         
@@ -91,7 +91,7 @@ export default function PhotoInstructionsStep({ onNext, onBack }: PhotoInstructi
             whileTap={{ scale: 0.98 }}
           >
             <Camera className="w-5 h-5 mr-2" />
-            Go to selfie
+            Vai al selfie
           </motion.button>
         </div>
       </div>

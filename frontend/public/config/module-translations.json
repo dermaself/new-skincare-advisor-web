@@ -1,0 +1,41 @@
+{
+  "skincare_morning": {
+    "Cleansing": "Detergente",
+    "Tonic/Serum": "Tonico/Siero", 
+    "Pimple Patches": "Cerotti Anti-Brufolo",
+    "Eye Contour": "Contorno Occhi",
+    "Hydration": "Idratazione",
+    "Lip Balm": "Balsamo Labbra",
+    "SPF": "Protezione Solare"
+  },
+  "skincare_evening": {
+    "Cleansing": "Detergente",
+    "Tonic/Serum": "Tonico/Siero",
+    "Pimple Patches": "Cerotti Anti-Brufolo", 
+    "Eye Contour": "Contorno Occhi",
+    "Night Cream": "Crema Notturna",
+    "Lip Balm": "Balsamo Labbra"
+  },
+  "skincare_weekly": {
+    "Face Mask/Scrub": "Maschera/Scrub Viso",
+    "Eye Patches": "Cerotti Occhi",
+    "Lip Scrub": "Scrub Labbra"
+  },
+  "makeup": {
+    "Eye Makeup Remover": "Struccante Occhi",
+    "Makeup Remover": "Struccante",
+    "BB Cream": "BB Cream",
+    "Concealer": "Correttore", 
+    "Foundation": "Fondotinta",
+    "Powder": "Cipria",
+    "Bronzer": "Bronzer",
+    "Blush": "Fard",
+    "Fixing Spray": "Spray Fissante",
+    "Makeup Brush Disinfectant": "Disinfettante Pennelli",
+    "Beauty Blender Disinfectant": "Disinfettante Beauty Blender"
+  },
+  "fallback": {
+    "Skincare Step": "Passo Skincare",
+    "SKINCARE STEP": "PASSO SKINCARE"
+  }
+}

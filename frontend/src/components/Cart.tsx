@@ -17,8 +17,8 @@ export default function Cart() {
             <ShoppingCart className="w-6 h-6 text-gray-400" />
           </div>
           <div>
-            <h2 className="text-xl font-semibold text-gray-900">Shopping Cart</h2>
-            <p className="text-gray-600">Your cart is empty</p>
+            <h2 className="text-xl font-semibold text-gray-900">Carrello</h2>
+            <p className="text-gray-600">Il tuo carrello è vuoto</p>
           </div>
         </div>
       </div>
@@ -54,15 +54,15 @@ export default function Cart() {
             <ShoppingCart className="w-6 h-6 text-white" />
           </div>
           <div>
-            <h2 className="text-xl font-semibold text-gray-900">Shopping Cart</h2>
-            <p className="text-gray-600">{totalItems} item{totalItems !== 1 ? 's' : ''}</p>
+            <h2 className="text-xl font-semibold text-gray-900">Carrello</h2>
+            <p className="text-gray-600">{totalItems} articol{totalItems !== 1 ? 'i' : 'o'}</p>
           </div>
         </div>
         <button
           onClick={clearCart}
           className="text-red-600 hover:text-red-700 text-sm font-medium"
         >
-          Clear Cart
+          Svuota Carrello
         </button>
       </div>
 
@@ -118,6 +118,7 @@ export default function Cart() {
                 onClick={() => handleQuantityChange(item.id, item.quantity - 1)}
                 disabled={loading}
                 className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-50 disabled:opacity-50"
+                aria-label="Diminuisci quantità"
               >
                 <Minus className="w-4 h-4" />
               </button>
@@ -134,6 +135,7 @@ export default function Cart() {
                 onClick={() => handleQuantityChange(item.id, item.quantity + 1)}
                 disabled={loading}
                 className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-50 disabled:opacity-50"
+                aria-label="Aumenta quantità"
               >
                 <Plus className="w-4 h-4" />
               </button>
@@ -144,6 +146,7 @@ export default function Cart() {
               onClick={() => handleRemoveItem(item.id)}
               disabled={loading}
               className="text-red-600 hover:text-red-700 p-2 rounded-lg hover:bg-red-50 disabled:opacity-50"
+              aria-label="Rimuovi articolo"
             >
               <Trash2 className="w-4 h-4" />
             </button>
@@ -155,7 +158,7 @@ export default function Cart() {
       <div className="border-t border-gray-200 pt-4 mt-6">
         <div className="space-y-2">
           <div className="flex justify-between text-sm">
-            <span className="text-gray-600">Subtotal</span>
+            <span className="text-gray-600">Subtotale</span>
             <span className="font-medium">
               {new Intl.NumberFormat('en-US', {
                 style: 'currency',
@@ -166,7 +169,7 @@ export default function Cart() {
           
           {total !== subtotal && (
             <div className="flex justify-between text-sm">
-              <span className="text-gray-600">Total</span>
+              <span className="text-gray-600">Totale</span>
               <span className="font-medium">
                 {new Intl.NumberFormat('en-US', {
                   style: 'currency',
@@ -187,14 +190,14 @@ export default function Cart() {
             <Loader2 className="w-5 h-5 animate-spin" />
           ) : (
             <>
-              <span>Proceed to Checkout</span>
+              <span>Procedi al Checkout</span>
               <ExternalLink className="w-4 h-4" />
             </>
           )}
         </button>
 
         <p className="text-xs text-gray-500 text-center mt-2">
-          You'll be redirected to Shopify's secure checkout
+          Sarai reindirizzato al checkout sicuro di Shopify
         </p>
       </div>
     </div>

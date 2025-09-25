@@ -18,7 +18,7 @@ export default function ImagePreloader({
 }: ImagePreloaderProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [progress, setProgress] = useState(0);
-  const [loadingText, setLoadingText] = useState('Preparing your skincare analysis...');
+  const [loadingText, setLoadingText] = useState('Preparando la tua analisi della pelle...');
   const [currentPhase, setCurrentPhase] = useState<'preparing' | 'analyzing' | 'complete'>('preparing');
 
   useEffect(() => {
@@ -26,7 +26,7 @@ export default function ImagePreloader({
       try {
         if (mode === 'initial') {
           // Initial image preloading
-          setLoadingText('Dermaself - AI Skin Analysis');
+          setLoadingText('Dermaself - Analisi della Pelle AI');
           setCurrentPhase('preparing');
           
           // Start preloading images
@@ -54,10 +54,10 @@ export default function ImagePreloader({
           
           if (successful === 0) {
             console.warn('⚠️ No images loaded successfully, but continuing...');
-            setLoadingText('Continuing without image cache...');
+            setLoadingText('Continuando senza cache delle immagini...');
           } else {
             console.log(`✅ Image preloading completed: ${successful}/${total} images loaded`);
-            setLoadingText('Images cached successfully!');
+            setLoadingText('Immagini memorizzate con successo!');
           }
           
           // Small delay to show completion
@@ -68,7 +68,7 @@ export default function ImagePreloader({
           
         } else if (mode === 'analysis') {
           // Analysis loading mode
-          setLoadingText('Analyzing Your Photo');
+          setLoadingText('Analizzando la Tua Foto');
           setCurrentPhase('analyzing');
           
           // Simulate analysis progress
@@ -78,7 +78,7 @@ export default function ImagePreloader({
             if (analysisProgress >= 100) {
               clearInterval(analysisInterval);
               setCurrentPhase('complete');
-              setLoadingText('Analysis Complete!');
+              setLoadingText('Analisi Completata!');
               
               setTimeout(() => {
                 setIsLoading(false);
@@ -92,7 +92,7 @@ export default function ImagePreloader({
         
       } catch (error) {
         console.error('Loading failed:', error);
-        setLoadingText('Continuing...');
+        setLoadingText('Continuando...');
         // Even if loading fails, continue with the app
         setTimeout(() => {
           setIsLoading(false);

@@ -19,19 +19,19 @@ interface GenderStepProps {
 const genderOptions: GenderOption[] = [
   {
     id: 'woman',
-    name: 'Woman'
+    name: 'Donna'
   },
   {
     id: 'man',
-    name: 'Man'
+    name: 'Uomo'
   },
   {
     id: 'non-binary',
-    name: 'Non-binary'
+    name: 'Non-binario'
   },
   {
     id: 'prefer-not-to-specify',
-    name: 'I prefer not to specify'
+    name: 'Preferisco non specificare'
   }
 ];
 
@@ -49,7 +49,7 @@ export default function GenderStep({ selectedGender, onGenderSelect, onNext, onB
       <div className="flex flex-col px-4 py-4 overflow-y-auto bg-white/50 backdrop-blur-sm p-4 overflow-y-auto mt-auto mx-4 mb-4 rounded-lg">
         <div className="text-center mb-4">
           <h1 className="text-xl font-bold text-gray-900 mb-2">
-            What gender do you identify with?
+            Con quale genere ti identifichi?
           </h1>
         </div>
         
@@ -58,7 +58,7 @@ export default function GenderStep({ selectedGender, onGenderSelect, onNext, onB
             <div 
               key={option.id} 
               role="radio"
-              aria-checked={selectedGender === option.id}
+              aria-checked={selectedGender === option.id ? 'true' : 'false'}
               tabIndex={0}
               className={`relative cursor-pointer transition-all duration-200 ${
                 selectedGender === option.id 
@@ -93,7 +93,7 @@ export default function GenderStep({ selectedGender, onGenderSelect, onNext, onB
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
           >
-            Next
+            Avanti
           </motion.button>
         </div>
       </div>

@@ -19,9 +19,9 @@ export default function LoadingStep({}: LoadingStepProps) {
         <div className="loader__wrapper">
           <div className="loader">&nbsp;</div>
         </div>
-        <h2 className="text-xl font-bold text-gray-900 mb-2 mt-4">Analyzing Your Photo</h2>
+        <h2 className="text-xl font-bold text-gray-900 mb-2 mt-4">Analizzando la Tua Foto</h2>
         <p className="text-gray-600 text-center max-w-md">
-          Our AI is analyzing your skin and creating personalized recommendations...
+          La nostra AI sta analizzando la tua pelle e creando raccomandazioni personalizzate...
         </p>
       </div>
     </motion.div>

@@ -6,6 +6,7 @@ import { ASSETS } from '../../lib/assets';
 import { fetchProductsByVariantIds, TransformedProduct } from '../../lib/shopify-product-fetcher';
 import { useCart } from '../CartContext';
 import { loadModuleOrderConfig, reorderRoutineSteps, findBestModuleMatch } from '../../lib/moduleOrderConfig';
+import { translateModuleName } from '../../lib/moduleTranslations';
 
 // Import components
 import RoutineProductCard from '../RoutineProductCard';
@@ -259,10 +260,11 @@ export default function ResultsStep({
                   // Heuristic fallback if no config match
                   if (targetCategories.length === 0) {
                     const nameLc = (moduleName || '').toLowerCase();
-                    if (/(night|notte)/.test(nameLc)) {
+                    
+                    if (/(night|notte|evening|sera)/.test(nameLc)) {
                       targetCategories.push('skincare_evening');
                     }
-                    if (/(mask|scrub|patch)/.test(nameLc)) {
+                    if (/(mask|scrub|patch|weekly|settimanale)/.test(nameLc)) {
                       targetCategories.push('skincare_weekly');
                     }
                     // If still none, default to morning
@@ -271,8 +273,14 @@ export default function ResultsStep({
                     }
                   }
                 } else {
-                  // If no config, default to skincare_morning
-                  targetCategories.push('skincare_morning');
+                  // If no config, use API category or default to skincare_morning
+                  if (apiCategory === 'skincare_evening' || apiCategory === 'evening') {
+                    targetCategories.push('skincare_evening');
+                  } else if (apiCategory === 'skincare_weekly' || apiCategory === 'weekly') {
+                    targetCategories.push('skincare_weekly');
+                  } else {
+                    targetCategories.push('skincare_morning');
+                  }
                 }
               }
 
@@ -289,7 +297,6 @@ export default function ResultsStep({
                 };
                 steps.push(step);
                 globalStepNumber++;
-                console.log('Step created successfully in category:', catKey);
               }
             } else {
               console.log('No main product found, skipping step');
@@ -363,32 +370,32 @@ export default function ResultsStep({
                   {/* Analysis Results */}
                   {analysisData && (
                     <div className="bg-white rounded-2xl shadow-lg p-6 space-y-4">
-                      <h3 className="text-xl font-bold text-gray-800 mb-4">Your Skin Analysis</h3>
+                      <h3 className="text-xl font-bold text-gray-800 mb-4">La Tua Analisi della Pelle</h3>
                       <div className="grid grid-cols-1 gap-4">
                         <div className="flex justify-between items-center p-3 bg-pink-50 rounded-xl">
-                          <span className="text-sm font-medium text-gray-700">Skin Type</span>
-                          <span className="text-sm font-semibold text-pink-600">{analysisData.skin_type || 'Normal'}</span>
+                          <span className="text-sm font-medium text-gray-700">Tipo di Pelle</span>
+                          <span className="text-sm font-semibold text-pink-600">{analysisData.skin_type || 'Normale'}</span>
                         </div>
                         <div className="flex justify-between items-center p-3 bg-pink-50 rounded-xl">
-                          <span className="text-sm font-medium text-gray-700">Acne Analysis</span>
-                          <span className="text-sm font-semibold text-pink-600">{analysisData.acne?.severity || 'None detected'}</span>
+                          <span className="text-sm font-medium text-gray-700">Analisi Acne</span>
+                          <span className="text-sm font-semibold text-pink-600">{analysisData.acne?.severity || 'Nessuna rilevata'}</span>
                         </div>
                         <div className="flex justify-between items-center p-3 bg-pink-50 rounded-xl">
-                          <span className="text-sm font-medium text-gray-700">Redness</span>
-                          <span className="text-sm font-semibold text-pink-600">{analysisData.redness ? `${analysisData.redness.redness_perc}%` : 'None detected'}</span>
+                          <span className="text-sm font-medium text-gray-700">Rossore</span>
+                          <span className="text-sm font-semibold text-pink-600">{analysisData.redness ? `${analysisData.redness.redness_perc}%` : 'Nessuno rilevato'}</span>
                         </div>
                         <div className="flex justify-between items-center p-3 bg-pink-50 rounded-xl">
-                          <span className="text-sm font-medium text-gray-700">Wrinkles</span>
-                          <span className="text-sm font-semibold text-pink-600">{analysisData.wrinkles?.severity || 'None detected'}</span>
+                          <span className="text-sm font-medium text-gray-700">Rughe</span>
+                          <span className="text-sm font-semibold text-pink-600">{analysisData.wrinkles?.severity || 'Nessuna rilevata'}</span>
                         </div>
                         <div className="p-3 bg-gradient-to-r from-pink-100 to-rose-100 rounded-xl">
-                          <span className="text-sm font-medium text-gray-700 block mb-1">Recommendations</span>
+                          <span className="text-sm font-medium text-gray-700 block mb-1">Raccomandazioni</span>
                           <span className="text-sm text-gray-600">
                             {typeof analysisData.recommendations === 'string' 
                               ? analysisData.recommendations 
                               : analysisData.recommendations?.skincare_routine 
-                                ? 'Personalized routine generated' 
-                                : 'Personalized routine suggested'}
+                                ? 'Routine personalizzata generata' 
+                                : 'Routine personalizzata suggerita'}
                           </span>
                         </div>
                       </div>
@@ -409,7 +416,7 @@ export default function ResultsStep({
                 <button
                   className={`px-3 py-2 rounded-md text-sm font-semibold transition-colors inline-flex items-center gap-1 ${selectedCategory === 'skincare_morning' ? 'bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow' : 'text-gray-700 hover:bg-pink-50 hover:text-pink-700'}`}
                   onClick={() => setSelectedCategory('skincare_morning')}
-                  title="Skincare Morning"
+                  title="Skincare Mattina"
                 >
                   <Sun className="w-4 h-4" />
                   {selectedCategory === 'skincare_morning' && <span>Skincare</span>}
@@ -418,7 +425,7 @@ export default function ResultsStep({
                 <button
                   className={`px-3 py-2 rounded-md text-sm font-semibold transition-colors inline-flex items-center gap-1 ${selectedCategory === 'skincare_evening' ? 'bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow' : 'text-gray-700 hover:bg-pink-50 hover:text-pink-700'}`}
                   onClick={() => setSelectedCategory('skincare_evening')}
-                  title="Skincare Evening"
+                  title="Skincare Sera"
                 >
                   <Moon className="w-4 h-4" />
                   {selectedCategory === 'skincare_evening' && <span>Skincare</span>}
@@ -427,10 +434,10 @@ export default function ResultsStep({
                 <button
                   className={`px-3 py-2 rounded-md text-sm font-semibold transition-colors inline-flex items-center gap-1 ${selectedCategory === 'skincare_weekly' ? 'bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow' : 'text-gray-700 hover:bg-pink-50 hover:text-pink-700'}`}
                   onClick={() => setSelectedCategory('skincare_weekly')}
-                  title="Skincare Weekly"
+                  title="Skincare Settimanale"
                 >
                   <CalendarDays className="w-4 h-4" />
-                  {selectedCategory === 'skincare_weekly' && <span>Weekly</span>}
+                  {selectedCategory === 'skincare_weekly' && <span>Settimanale</span>}
                 </button>
                 {/* Makeup */}
                 <button
@@ -512,8 +519,8 @@ export default function ResultsStep({
                     <div className="w-16 h-16 bg-pink-100 rounded-full flex items-center justify-center mx-auto mb-4">
                       <span className="text-2xl">💄</span>
                     </div>
-                    <p className="text-gray-600 font-medium">No routine data available</p>
-                    <p className="text-sm text-gray-400 mt-2">Please try the analysis again</p>
+                    <p className="text-gray-600 font-medium">Nessun dato di routine disponibile</p>
+                    <p className="text-sm text-gray-400 mt-2">Per favore riprova l'analisi</p>
                   </div>
                 )}
               </div>
@@ -531,7 +538,7 @@ export default function ResultsStep({
           whileTap={{ scale: 0.98 }}
         >
           <RotateCcw className="w-5 h-5 mr-2" />
-          Start New Analysis
+          Inizia Nuova Analisi
         </motion.button>
       </div>
     </motion.div>

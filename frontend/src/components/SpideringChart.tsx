@@ -129,8 +129,8 @@ export default function SpideringChart({
     color: '#22c55e' // green
   }));
   // Increase canvas and padding to avoid label clipping at the edges
-  const centerX = 130;
-  const centerY = 130;
+  const centerX = 150;
+  const centerY = 150;
   const radius = 88;
 
   // Calculate points for the polygon
@@ -157,22 +157,23 @@ export default function SpideringChart({
   // Calculate label positions
   const getLabelPosition = (index: number) => {
     const angle = (index * 2 * Math.PI) / metrics.length - Math.PI / 2;
-    const labelRadius = radius + 28; // extra padding for labels
+    const labelRadius = radius + 35; // extra padding for labels
     const x = centerX + Math.cos(angle) * labelRadius;
     const y = centerY + Math.sin(angle) * labelRadius;
     return { x, y };
   };
 
   return (
-    <div className="bg-white rounded-2xl shadow-lg p-6">
-      <h3 className="text-xl font-bold text-gray-800 mb-4 text-center">Panoramica Analisi della Pelle</h3>
+    <div className="bg-white rounded-2xl shadow-lg p-4 sm:p-6">
+      <h3 className="text-lg sm:text-xl font-bold text-gray-800 mb-3 sm:mb-4 text-center">Panoramica Analisi della Pelle</h3>
       
-      <div className="flex items-center justify-center w-full">
+      <div className="flex items-center justify-center w-full max-w-sm sm:max-w-md mx-auto">
         <motion.svg
           width="100%"
           height="auto"
-          viewBox="0 0 260 260"
+          viewBox="0 0 300 300"
           preserveAspectRatio="xMidYMid meet"
+          className="max-w-[280px] sm:max-w-none"
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.6 }}
@@ -242,10 +243,10 @@ export default function SpideringChart({
                 key={index}
                 cx={x}
                 cy={y}
-                r="4"
+                r="3.5"
                 fill={metric.color}
                 stroke="white"
-                strokeWidth="2"
+                strokeWidth="1.5"
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
                 transition={{ duration: 0.5, delay: 0.3 + index * 0.1 }}
@@ -265,7 +266,7 @@ export default function SpideringChart({
                 key={`ref-${index}`}
                 cx={x}
                 cy={y}
-                r="3"
+                r="2.5"
                 fill="#22c55e"
                 stroke="white"
                 strokeWidth="1"
@@ -286,7 +287,7 @@ export default function SpideringChart({
                 y={pos.y}
                 textAnchor="middle"
                 dominantBaseline="middle"
-                className="text-xs font-medium fill-gray-600"
+                className="text-[10px] sm:text-xs font-medium fill-gray-600"
               >
                 {metric.label}
               </text>
@@ -296,33 +297,33 @@ export default function SpideringChart({
       </div>
 
       {/* Legend */}
-      <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <div className="mt-3 sm:mt-4 grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
         {metrics.map((metric, index) => (
           <motion.div
             key={index}
-            className="flex items-center space-x-3 p-2 rounded-lg border border-gray-100"
+            className="flex items-center space-x-2 sm:space-x-3 p-2 sm:p-3 rounded-lg border border-gray-100"
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.5, delay: 0.5 + index * 0.1 }}
           >
-            <svg width="12" height="12" viewBox="0 0 12 12" className="shrink-0">
+            <svg width="10" height="10" viewBox="0 0 12 12" className="shrink-0 sm:w-3 sm:h-3">
               <circle cx="6" cy="6" r="6" fill={metric.color} />
             </svg>
-            <span className="text-sm text-gray-600">{metric.label}</span>
+            <span className="text-xs sm:text-sm text-gray-600">{metric.label}</span>
             <span className="ml-auto flex items-center space-x-2">
               {metric.level <= (referenceLevels[metric.label] ?? metric.max) ? (
-                <span className="inline-flex items-center text-green-600 text-sm">
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4 mr-1">
+                <span className="inline-flex items-center text-green-600 text-xs sm:text-sm">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3 h-3 sm:w-4 sm:h-4 mr-1">
                     <path fillRule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-7.5 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 6.973-9.764a.75.75 0 011.057-.196z" clipRule="evenodd" />
                   </svg>
-                  <span className="font-medium">Ok</span>
+                  <span className="font-medium text-xs sm:text-sm">Ok</span>
                 </span>
               ) : (
-                <span className="inline-flex items-center text-amber-600 text-sm">
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4 mr-1">
+                <span className="inline-flex items-center text-amber-600 text-xs sm:text-sm">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3 h-3 sm:w-4 sm:h-4 mr-1">
                     <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.721-1.36 3.486 0l6.518 11.59c.75 1.335-.213 2.99-1.743 2.99H3.482c-1.53 0-2.492-1.655-1.743-2.99L8.257 3.1zM11 14a1 1 0 10-2 0 1 1 0 002 0zm-.25-6.75a.75.75 0 00-1.5 0v3.5a.75.75 0 001.5 0v-3.5z" clipRule="evenodd" />
                   </svg>
-                  <span className="font-medium">Da Migliorare</span>
+                  <span className="font-medium text-xs sm:text-sm">Da Migliorare</span>
                 </span>
               )}
             </span>

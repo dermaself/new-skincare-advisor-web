@@ -1,12 +1,28 @@
 "use client";
 import React, { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Camera, X, SwitchCameraIcon, ArrowLeft, CheckCircle, Upload } from 'lucide-react';
+import { Camera, X, SwitchCameraIcon, ArrowLeft, CheckCircle, Upload, Target, MoveHorizontal, Sun, Check, Move, RotateCcw } from 'lucide-react';
 import { ASSETS } from '../../lib/assets';
+
+// Dynamic import to avoid SSR issues
+let faceapi: any = null;
+if (typeof window !== 'undefined') {
+  // Only import on client side
+  import('face-api.js').then(module => {
+    faceapi = module;
+  });
+}
 
 interface CameraCaptureStepProps {
   onNext: (imageData: string) => void;
   onBack: () => void;
+}
+
+interface FacePosition {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
 }
 
 // Device detection function
@@ -24,6 +40,17 @@ export default function CameraCaptureStep({ onNext, onBack }: CameraCaptureStepP
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [currentCamera, setCurrentCamera] = useState<'front' | 'back'>('front');
   const [cameraState, setCameraState] = useState<'live' | 'preview'>('live');
+  const [luminosity, setLuminosity] = useState<number>(0);
+  const [facePosition, setFacePosition] = useState<FacePosition | null>(null);
+  const [detectionInterval, setDetectionInterval] = useState<NodeJS.Timeout | null>(null);
+  const [faceDetected, setFaceDetected] = useState(false);
+  const [faceAngle, setFaceAngle] = useState<{x: number, y: number, z: number} | null>(null);
+  const [modelsLoaded, setModelsLoaded] = useState(false);
+  const [faceApiAvailable, setFaceApiAvailable] = useState(false);
+  const [detectedFaces, setDetectedFaces] = useState<any[]>([]);
+  const detectedFacesRef = useRef<any[]>([]);
+  const [guidanceMessage, setGuidanceMessage] = useState<string>('Posiziona il tuo viso al centro');
+  const [guidanceType, setGuidanceType] = useState<'default' | 'position' | 'distance' | 'angle' | 'lighting'>('default');
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -33,6 +60,44 @@ export default function CameraCaptureStep({ onNext, onBack }: CameraCaptureStepP
 
   useEffect(() => {
     isMountedRef.current = true;
+    
+    // Load face-api.js models
+    const loadModels = async () => {
+      try {
+        console.log('Loading face-api.js models...');
+        
+        // Try to load face-api.js dynamically
+        try {
+          const module = await import('face-api.js');
+          faceapi = module;
+          setFaceApiAvailable(true);
+          
+          // Load models from the correct CDN URL
+          const MODEL_URL = 'https://justadudewhohacks.github.io/face-api.js/models';
+          
+          await Promise.all([
+            faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
+            faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
+            faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL)
+          ]);
+          
+          setModelsLoaded(true);
+          console.log('face-api.js models loaded successfully');
+        } catch (faceApiError) {
+          console.warn('face-api.js not available, continuing without face detection:', faceApiError);
+          setModelsLoaded(true); // Mark as loaded so we can continue without face detection
+        }
+      } catch (error) {
+        console.error('Error in loadModels:', error);
+        setModelsLoaded(true); // Mark as loaded so we can continue
+      }
+    };
+
+    // Only load models if we're not in SSR
+    if (typeof window !== 'undefined') {
+      loadModels();
+    }
+    
     startCamera();
     
     return () => {
@@ -40,6 +105,14 @@ export default function CameraCaptureStep({ onNext, onBack }: CameraCaptureStepP
       stopCamera();
     };
   }, []);
+
+  // Restart face detection when models are loaded
+  useEffect(() => {
+    if (modelsLoaded && isCameraActive && !detectionInterval) {
+      console.log('Models loaded, restarting face detection...');
+      startFaceDetection();
+    }
+  }, [modelsLoaded, isCameraActive]);
 
   const startCamera = async (desiredFacing?: 'front' | 'back') => {
     if (initializationInProgressRef.current || !isMountedRef.current) {
@@ -111,6 +184,13 @@ export default function CameraCaptureStep({ onNext, onBack }: CameraCaptureStepP
         setIsCameraActive(true);
         setIsLoading(false);
         
+        // Start face detection after a delay
+        setTimeout(() => {
+          if (modelsLoaded && isMountedRef.current) {
+            startFaceDetection();
+          }
+        }, 1000);
+        
       }
       
     } catch (err) {
@@ -163,6 +243,13 @@ export default function CameraCaptureStep({ onNext, onBack }: CameraCaptureStepP
           await video.play();
           setIsCameraActive(true);
           setIsLoading(false);
+          
+          // Start face detection after a delay
+          setTimeout(() => {
+            if (modelsLoaded && isMountedRef.current) {
+              startFaceDetection();
+            }
+          }, 1000);
         }
         
       } catch (fallbackErr) {
@@ -180,7 +267,15 @@ export default function CameraCaptureStep({ onNext, onBack }: CameraCaptureStepP
       stream.getTracks().forEach(track => track.stop());
       setStream(null);
     }
+    
+    if (detectionInterval) {
+      clearInterval(detectionInterval);
+      setDetectionInterval(null);
+    }
+    
     setIsCameraActive(false);
+    setFacePosition(null);
+    initializationInProgressRef.current = false;
   };
 
   const switchCamera = () => {
@@ -196,6 +291,291 @@ export default function CameraCaptureStep({ onNext, onBack }: CameraCaptureStepP
       }, 100);
     }
   };
+
+  const startFaceDetection = () => {
+    if (!videoRef.current) {
+      console.log('Cannot start face detection - no video element');
+      return;
+    }
+    
+    console.log('Starting face detection (face-api.js:', !!modelsLoaded, ')');
+    
+    // Wait for models to be loaded before starting detection
+    if (!modelsLoaded) {
+      console.log('Waiting for models to load before starting face detection...');
+      return;
+    }
+    
+    // Add a small delay to ensure video is fully loaded
+    setTimeout(() => {
+      if (!videoRef.current || !isMountedRef.current) return;
+      
+      const interval = setInterval(async () => {
+        if (!videoRef.current || !isMountedRef.current) {
+          clearInterval(interval);
+          return;
+        }
+        
+        await detectFacePosition();
+        getLuminosityStatus();
+      }, 200); // Faster detection for better responsiveness
+      
+      setDetectionInterval(interval);
+    }, 1000); // Increased delay to ensure video is ready
+  };
+
+
+  const isFaceInPosition = (face: FacePosition): boolean => {
+    if (!videoRef.current) return false;
+    
+    const video = videoRef.current;
+    const centerX = video.videoWidth / 2;
+    const centerY = video.videoHeight / 2;
+    const tolerance = 50;
+    
+    return Math.abs(face.x + face.width / 2 - centerX) < tolerance &&
+           Math.abs(face.y + face.height / 2 - centerY) < tolerance;
+  };
+
+  const getLuminosityStatus = () => {
+    // Luminosity detection disabled for now
+    console.log('Luminosity detection disabled');
+  };
+
+  const calculateFaceAngle = (landmarks: any) => {
+    if (!landmarks || !landmarks.positions) {
+      return { yaw: 0, pitch: 0, roll: 0 };
+    }
+
+    const points = landmarks.positions;
+    
+    // Key landmark points for angle calculation
+    const noseTip = points[30];        // Nose tip
+    const leftEye = points[36];        // Left eye outer corner
+    const rightEye = points[45];       // Right eye outer corner
+    const leftMouth = points[48];      // Left mouth corner
+    const rightMouth = points[54];     // Right mouth corner
+    const chin = points[8];            // Chin center
+    const leftCheek = points[1];       // Left face contour
+    const rightCheek = points[15];     // Right face contour
+
+    // Calculate yaw (left-right rotation)
+    const eyeVector = {
+      x: rightEye.x - leftEye.x,
+      y: rightEye.y - leftEye.y
+    };
+    const mouthVector = {
+      x: rightMouth.x - leftMouth.x,
+      y: rightMouth.y - leftMouth.y
+    };
+    
+    // Average the vectors for more stable yaw calculation
+    const avgHorizontalVector = {
+      x: (eyeVector.x + mouthVector.x) / 2,
+      y: (eyeVector.y + mouthVector.y) / 2
+    };
+    
+    const yaw = Math.atan2(avgHorizontalVector.y, avgHorizontalVector.x) * (180 / Math.PI);
+
+    // Calculate pitch (up-down rotation)
+    const faceHeight = Math.abs(chin.y - ((leftEye.y + rightEye.y) / 2));
+    const noseToEyeDistance = Math.abs(noseTip.y - ((leftEye.y + rightEye.y) / 2));
+    const pitchRatio = noseToEyeDistance / faceHeight;
+    const pitch = (pitchRatio - 0.3) * 90; // Normalize to degrees
+
+    // Calculate roll (tilt rotation)
+    const roll = Math.atan2(eyeVector.y, eyeVector.x) * (180 / Math.PI);
+
+    return {
+      yaw: Math.max(-45, Math.min(45, yaw)),      // Clamp between -45 and 45 degrees
+      pitch: Math.max(-30, Math.min(30, pitch)), // Clamp between -30 and 30 degrees
+      roll: Math.max(-30, Math.min(30, roll))    // Clamp between -30 and 30 degrees
+    };
+  };
+
+  const detectFacePosition = async () => {
+    if (!videoRef.current) {
+      console.log('Face detection skipped - no video element');
+      return;
+    }
+    
+    try {
+      const video = videoRef.current;
+      
+      // Only process if video is ready
+      if (video.readyState < 2) {
+        console.log('Video not ready, skipping face detection');
+        return;
+      }
+      
+      // If models are loaded and face-api.js is available, use it
+      if (modelsLoaded && faceApiAvailable && faceapi) {
+        try {
+          // Detect faces with landmarks for angle calculation
+          const detections = await faceapi.detectAllFaces(video, new faceapi.TinyFaceDetectorOptions({
+            inputSize: 224,
+            scoreThreshold: 0.5
+          })).withFaceLandmarks();
+          
+          console.log('Face detection results:', detections.length, 'faces detected');
+          if (detections.length > 0) {
+            console.log('First face detection with landmarks:', detections[0]);
+          }
+          
+          detectedFacesRef.current = detections;
+          setDetectedFaces(detections);
+          setFaceDetected(detections.length > 0);
+          
+          if (detections.length > 0) {
+            const detection = detections[0];
+            const { detection: box, landmarks } = detection;
+            
+            console.log('Face detected:', box);
+            console.log('Landmarks detected:', landmarks ? 'Yes' : 'No');
+            
+            const facePos = {
+              x: box.x,
+              y: box.y,
+              width: box.width,
+              height: box.height
+            };
+            
+            setFacePosition(facePos);
+            
+            // Calculate face angles from landmarks
+            if (landmarks) {
+              const angles = calculateFaceAngle(landmarks);
+              console.log('Calculated face angles:', angles);
+              setFaceAngle(angles as any);
+            } else {
+              setFaceAngle({ x: 0, y: 0, z: 0 });
+            }
+            
+            // Update guidance based on detection results (including angles)
+            updateGuidance(detections, facePos, 0.5);
+          } else {
+            console.log('No face detected');
+            setFaceDetected(false);
+            setFacePosition(null);
+            setFaceAngle(null);
+            
+            // Update guidance for no face detected
+            updateGuidance([], null, 0.5);
+          }
+        } catch (faceApiError) {
+          console.error('face-api.js face detection error:', faceApiError);
+        }
+      } else {
+        console.log('face-api.js models not loaded yet');
+      }
+      
+    } catch (error) {
+      console.error('Face detection error:', error);
+    }
+  };
+
+  const updateGuidance = (detections: any[], facePosition: any, luminosity: number) => {
+    // If face detection is not available, show default guidance
+    if (!faceApiAvailable) {
+      setGuidanceMessage('Place your face in the center');
+      setGuidanceType('position');
+      return;
+    }
+    
+    if (detections.length === 0) {
+      setGuidanceMessage('Place the face inside the box');
+      setGuidanceType('position');
+      return;
+    }
+
+    const detection = detections[0];
+    const { detection: box, landmarks } = detection;
+    
+    // Check if face is too far (too small)
+    const faceArea = box.width * box.height;
+    const videoArea = videoRef.current ? videoRef.current.videoWidth * videoRef.current.videoHeight : 0;
+    const faceRatio = videoArea > 0 ? faceArea / videoArea : 0;
+    
+    if (faceRatio < 0.1) { // Face is too small (too far)
+      setGuidanceMessage('Move the camera closer');
+      setGuidanceType('distance');
+      return;
+    }
+    
+    // Check if face is too close (too large)
+    if (faceRatio > 0.6) {
+      setGuidanceMessage('Move the camera away');
+      setGuidanceType('distance');
+      return;
+    }
+    
+    // Check if face is centered
+    const videoWidth = videoRef.current?.videoWidth || 640;
+    const videoHeight = videoRef.current?.videoHeight || 480;
+    const centerX = videoWidth / 2;
+    const centerY = videoHeight / 2;
+    const faceCenterX = box.x + box.width / 2;
+    const faceCenterY = box.y + box.height / 2;
+    
+    const xOffset = Math.abs(faceCenterX - centerX) / centerX;
+    const yOffset = Math.abs(faceCenterY - centerY) / centerY;
+    
+    if (xOffset > 0.3 || yOffset > 0.3) {
+      setGuidanceMessage('Center your face in the box');
+      setGuidanceType('position');
+      return;
+    }
+    
+    // Check face angle if landmarks are available
+    if (landmarks && faceAngle) {
+      const { yaw, pitch, roll } = faceAngle as any;
+      
+      // Check yaw (left-right rotation)
+      if (Math.abs(yaw) > 20) {
+        if (yaw > 0) {
+          setGuidanceMessage('Turn your head slightly left');
+        } else {
+          setGuidanceMessage('Turn your head slightly right');
+        }
+        setGuidanceType('angle');
+        return;
+      }
+      
+      // Check pitch (up-down rotation)
+      if (Math.abs(pitch) > 15) {
+        if (pitch > 0) {
+          setGuidanceMessage('Tilt your head down slightly');
+        } else {
+          setGuidanceMessage('Tilt your head up slightly');
+        }
+        setGuidanceType('angle');
+        return;
+      }
+      
+      // Check roll (tilt rotation)
+      if (Math.abs(roll) > 15) {
+        if (roll > 0) {
+          setGuidanceMessage('Straighten your head (tilt left)');
+        } else {
+          setGuidanceMessage('Straighten your head (tilt right)');
+        }
+        setGuidanceType('angle');
+        return;
+      }
+    }
+    
+    // Check lighting (if we had luminosity detection)
+    if (luminosity < 0.3) {
+      setGuidanceMessage('Turn towards the light source');
+      setGuidanceType('lighting');
+      return;
+    }
+    
+    // All good!
+    setGuidanceMessage('Perfect! Stay still.');
+    setGuidanceType('default');
+  };
+
 
   const capturePhoto = () => {
     if (!videoRef.current || !canvasRef.current) return;
@@ -364,6 +744,27 @@ export default function CameraCaptureStep({ onNext, onBack }: CameraCaptureStepP
               <div className="w-48 h-60 border-2 border-white border-dashed rounded-lg opacity-50"></div>
             </div>
             
+            {/* Dynamic Guidance Text */}
+            <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-20">
+              <div className={`px-6 py-3 rounded-lg text-sm text-center max-w-xs transition-all duration-300 ${
+                guidanceType === 'default' ? 'bg-green-500 bg-opacity-90 text-white' :
+                guidanceType === 'position' ? 'bg-blue-500 bg-opacity-90 text-white' :
+                guidanceType === 'distance' ? 'bg-yellow-500 bg-opacity-90 text-black' :
+                guidanceType === 'angle' ? 'bg-purple-500 bg-opacity-90 text-white' :
+                guidanceType === 'lighting' ? 'bg-orange-500 bg-opacity-90 text-white' :
+                'bg-black bg-opacity-75 text-white'
+              }`}>
+                <div className="font-medium flex items-center justify-center gap-2">
+                  {guidanceType === 'default' && <Check size={16} />}
+                  {guidanceType === 'position' && <Target size={16} />}
+                  {guidanceType === 'distance' && <MoveHorizontal size={16} />}
+                  {guidanceType === 'angle' && <RotateCcw size={16} />}
+                  {guidanceType === 'lighting' && <Sun size={16} />}
+                  {guidanceMessage}
+                </div>
+              </div>
+            </div>
+            
             {/* Camera indicator */}
             <div className="absolute top-4 right-4 bg-black/50 backdrop-blur-sm rounded-full px-3 py-1">
               <span className="text-white text-sm font-medium">
@@ -418,37 +819,51 @@ export default function CameraCaptureStep({ onNext, onBack }: CameraCaptureStepP
       {/* Controls */}
       <div className="bg-white/50 backdrop-blur-sm border-t border-white/30 p-4">
         {cameraState === 'live' && (
-          <div className="flex items-center justify-center gap-4 sm:gap-6">
-            {/* Switch Camera Button - Mobile optimized */}
-            <button
-              onClick={switchCamera}
-              className="p-3 sm:p-4 bg-white/20 hover:bg-white/30 rounded-full transition-colors touch-manipulation"
-              title="Cambia Fotocamera"
-              aria-label="Cambia tra fotocamera anteriore e posteriore"
-            >
-              <SwitchCameraIcon size={24} className="text-white" />
-            </button>
+          <>
+            <div className="flex items-center justify-center gap-4 sm:gap-6">
+              {/* Switch Camera Button - Mobile optimized */}
+              <button
+                onClick={switchCamera}
+                className="p-3 sm:p-4 bg-white/20 hover:bg-white/30 rounded-full transition-colors touch-manipulation"
+                title="Cambia Fotocamera"
+                aria-label="Cambia tra fotocamera anteriore e posteriore"
+              >
+                <SwitchCameraIcon size={24} className="text-white" />
+              </button>
+              
+              {/* Capture Button - Mobile optimized */}
+              <button
+                onClick={capturePhoto}
+                className="p-4 sm:p-5 bg-pink-600 hover:bg-pink-700 active:bg-pink-800 rounded-full transition-colors shadow-lg touch-manipulation min-w-[60px] min-h-[60px] sm:min-w-[70px] sm:min-h-[70px]"
+                title="Scatta Foto"
+                aria-label="Scatta foto"
+              >
+                <Camera size={28} className="text-white" />
+              </button>
+              
+              {/* Upload Button - Mobile optimized */}
+              <button
+                onClick={openFileDialog}
+                className="p-3 sm:p-4 bg-white/20 hover:bg-white/30 rounded-full transition-colors touch-manipulation"
+                title="Carica Foto"
+                aria-label="Carica foto dalla galleria"
+              >
+                <Upload size={24} className="text-white" />
+              </button>
+            </div>
             
-            {/* Capture Button - Mobile optimized */}
-            <button
-              onClick={capturePhoto}
-              className="p-4 sm:p-5 bg-pink-600 hover:bg-pink-700 active:bg-pink-800 rounded-full transition-colors shadow-lg touch-manipulation min-w-[60px] min-h-[60px] sm:min-w-[70px] sm:min-h-[70px]"
-              title="Scatta Foto"
-              aria-label="Scatta foto"
-            >
-              <Camera size={28} className="text-white" />
-            </button>
-            
-            {/* Upload Button - Mobile optimized */}
-            <button
-              onClick={openFileDialog}
-              className="p-3 sm:p-4 bg-white/20 hover:bg-white/30 rounded-full transition-colors touch-manipulation"
-              title="Carica Foto"
-              aria-label="Carica foto dalla galleria"
-            >
-              <Upload size={24} className="text-white" />
-            </button>
-          </div>
+            {/* Tips */}
+            <div className="text-center text-xs text-white mt-4">
+              <p className="flex items-center justify-center gap-1 mb-1">
+                <Move className="w-3 h-3" />
+                <span>Posiziona il tuo viso al centro</span>
+              </p>
+              <p className="flex items-center justify-center gap-1">
+                <CheckCircle className="w-3 h-3" />
+                <span>Buona illuminazione per i migliori risultati</span>
+              </p>
+            </div>
+          </>
         )}
         
         {cameraState === 'preview' && (

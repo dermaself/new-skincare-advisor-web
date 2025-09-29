@@ -49,11 +49,13 @@ export default function CameraCaptureStep({ onNext, onBack }: CameraCaptureStepP
   const [faceApiAvailable, setFaceApiAvailable] = useState(false);
   const [detectedFaces, setDetectedFaces] = useState<any[]>([]);
   const detectedFacesRef = useRef<any[]>([]);
-  const [guidanceMessage, setGuidanceMessage] = useState<string>('Posiziona il tuo viso al centro');
-  const [guidanceType, setGuidanceType] = useState<'default' | 'position' | 'distance' | 'angle' | 'lighting'>('default');
+  const [guidanceMessage, setGuidanceMessage] = useState<string>('Loading face detection...');
+  const [guidanceType, setGuidanceType] = useState<'loading' | 'detecting' | 'positioning' | 'ready'>('loading');
+  const [lastFaceDetectionTime, setLastFaceDetectionTime] = useState<number>(0);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const overlayCanvasRef = useRef<HTMLCanvasElement>(null); // Add overlay canvas ref
   const fileInputRef = useRef<HTMLInputElement>(null);
   const isMountedRef = useRef(true);
   const initializationInProgressRef = useRef(false);
@@ -408,8 +410,19 @@ export default function CameraCaptureStep({ onNext, onBack }: CameraCaptureStepP
         return;
       }
       
+      // Clear overlay canvas first
+      clearOverlayCanvas();
+      
       // If models are loaded and face-api.js is available, use it
       if (modelsLoaded && faceApiAvailable && faceapi) {
+        console.log('=== FACE DETECTION DEBUG ===');
+        console.log('Models loaded:', modelsLoaded);
+        console.log('Face API available:', faceApiAvailable);
+        console.log('Face API object:', !!faceapi);
+        console.log('Video ready state:', video.readyState);
+        console.log('Video dimensions:', video.videoWidth, 'x', video.videoHeight);
+        console.log('Video client dimensions:', video.clientWidth, 'x', video.clientHeight);
+        
         try {
           // Detect faces with landmarks for angle calculation
           const detections = await faceapi.detectAllFaces(video, new faceapi.TinyFaceDetectorOptions({
@@ -420,11 +433,23 @@ export default function CameraCaptureStep({ onNext, onBack }: CameraCaptureStepP
           console.log('Face detection results:', detections.length, 'faces detected');
           if (detections.length > 0) {
             console.log('First face detection with landmarks:', detections[0]);
+          } else {
+            console.log('No faces detected - this is the issue!');
+            // Let's try with more relaxed settings
+            console.log('Trying with more relaxed detection settings...');
+            const relaxedDetections = await faceapi.detectAllFaces(video, new faceapi.TinyFaceDetectorOptions({
+              inputSize: 320,
+              scoreThreshold: 0.3
+            })).withFaceLandmarks();
+            console.log('Relaxed detection results:', relaxedDetections.length, 'faces detected');
           }
           
           detectedFacesRef.current = detections;
           setDetectedFaces(detections);
           setFaceDetected(detections.length > 0);
+          
+          // Draw detection results on overlay
+          drawDetectionResults(detections);
           
           if (detections.length > 0) {
             const detection = detections[0];
@@ -454,7 +479,7 @@ export default function CameraCaptureStep({ onNext, onBack }: CameraCaptureStepP
             // Update guidance based on detection results (including angles)
             updateGuidance(detections, facePos, 0.5);
           } else {
-            console.log('No face detected');
+            console.log('- No face detected -');
             setFaceDetected(false);
             setFacePosition(null);
             setFaceAngle(null);
@@ -466,7 +491,7 @@ export default function CameraCaptureStep({ onNext, onBack }: CameraCaptureStepP
           console.error('face-api.js face detection error:', faceApiError);
         }
       } else {
-        console.log('face-api.js models not loaded yet');
+        console.log('face-api.js not ready - Models loaded:', modelsLoaded, 'API available:', faceApiAvailable);
       }
       
     } catch (error) {
@@ -474,107 +499,565 @@ export default function CameraCaptureStep({ onNext, onBack }: CameraCaptureStepP
     }
   };
 
+  // Add visualization functions
+  const clearOverlayCanvas = () => {
+    if (!overlayCanvasRef.current) return;
+    const ctx = overlayCanvasRef.current.getContext('2d');
+    if (!ctx) return;
+    
+    ctx.clearRect(0, 0, overlayCanvasRef.current.width, overlayCanvasRef.current.height);
+  };
+
+  const drawDetectionResults = (detections: any[]) => {
+    if (!overlayCanvasRef.current || !videoRef.current) return;
+    
+    const canvas = overlayCanvasRef.current;
+    const ctx = canvas.getContext('2d');
+    const video = videoRef.current;
+    
+    if (!ctx) return;
+    
+    // Update canvas size to match container (video element's parent)
+    const container = video.parentElement;
+    if (!container) return;
+    
+    canvas.width = container.clientWidth;
+    canvas.height = container.clientHeight;
+    
+    // Get the exact video element position and size within the container
+    const videoRect = video.getBoundingClientRect();
+    const containerRect = container.getBoundingClientRect();
+    
+    // Calculate offset of video within the container
+    const videoOffsetX = videoRect.left - containerRect.left;
+    const videoOffsetY = videoRect.top - containerRect.top;
+    const videoDisplayWidth = videoRect.width;
+    const videoDisplayHeight = videoRect.height;
+    
+    // Calculate scale factors from video natural size to actual display size
+    const scaleX = videoDisplayWidth / video.videoWidth;
+    const scaleY = videoDisplayHeight / video.videoHeight;
+    
+    console.log('=== OVERLAY DEBUG ===');
+    console.log('Container dimensions:', containerRect.width, 'x', containerRect.height);
+    console.log('Video natural size:', video.videoWidth, 'x', video.videoHeight);
+    console.log('Video display size:', videoDisplayWidth, 'x', videoDisplayHeight);
+    console.log('Video offset in container:', videoOffsetX.toFixed(1), videoOffsetY.toFixed(1));
+    console.log('Scale factors:', scaleX.toFixed(3), scaleY.toFixed(3));
+    console.log('Canvas size:', canvas.width, 'x', canvas.height);
+    
+    ctx.strokeStyle = '#00ff00';
+    ctx.fillStyle = '#00ff00';
+    ctx.lineWidth = 2;
+    
+    detections.forEach((detection, faceIndex) => {
+      const { detection: box, landmarks } = detection;
+      
+      // Draw bounding box with proper offset
+      ctx.strokeStyle = faceIndex === 0 ? '#00ff00' : '#ff0000';
+      ctx.lineWidth = 3;
+      
+      const scaledBox = {
+        x: (box.x * scaleX) + videoOffsetX,
+        y: (box.y * scaleY) + videoOffsetY,
+        width: box.width * scaleX,
+        height: box.height * scaleY
+      };
+      
+      ctx.strokeRect(scaledBox.x, scaledBox.y, scaledBox.width, scaledBox.height);
+      
+      // Draw face confidence score
+      ctx.fillStyle = ctx.strokeStyle;
+      ctx.font = '14px Arial';
+      ctx.fillText(`Face ${faceIndex + 1}: ${(detection.detection.score * 100).toFixed(1)}%`, 
+                   scaledBox.x, scaledBox.y - 10);
+      
+      // Draw landmarks if available
+      if (landmarks && landmarks.positions) {
+        ctx.fillStyle = '#ffff00';
+        ctx.strokeStyle = '#ffff00';
+        
+        landmarks.positions.forEach((point: any, index: number) => {
+          // Scale landmark coordinates with proper offset
+          const scaledX = (point.x * scaleX) + videoOffsetX;
+          const scaledY = (point.y * scaleY) + videoOffsetY;
+          
+          // Draw landmark point
+          ctx.beginPath();
+          ctx.arc(scaledX, scaledY, 2, 0, 2 * Math.PI);
+          ctx.fill();
+          
+          // Draw landmark number every 10th point to avoid clutter
+          if (index % 10 === 0) {
+            ctx.fillStyle = '#ffffff';
+            ctx.font = '10px Arial';
+            ctx.fillText(index.toString(), scaledX + 3, scaledY - 3);
+            ctx.fillStyle = '#ffff00';
+          }
+        });
+        
+        // Draw key facial features connections
+        drawFacialFeatureLines(ctx, landmarks.positions, scaleX, scaleY, videoOffsetX, videoOffsetY);
+      }
+      
+      // Draw face angle information
+      if (faceAngle && faceIndex === 0) {
+        const angleX = scaledBox.x + scaledBox.width + 10;
+        const angleY = scaledBox.y + 20;
+        
+        ctx.fillStyle = '#ffffff';
+        ctx.font = '12px Arial';
+        ctx.fillText(`Yaw: ${(faceAngle as any).yaw?.toFixed(1) || 'N/A'}°`, angleX, angleY);
+        ctx.fillText(`Pitch: ${(faceAngle as any).pitch?.toFixed(1) || 'N/A'}°`, angleX, angleY + 15);
+        ctx.fillText(`Roll: ${(faceAngle as any).roll?.toFixed(1) || 'N/A'}°`, angleX, angleY + 30);
+      }
+    });
+    
+    console.log('=== DRAWN', detections.length, 'faces on overlay ===');
+  };
+
+  const drawFacialFeatureLines = (ctx: CanvasRenderingContext2D, positions: any[], scaleX: number, scaleY: number, videoOffsetX: number, videoOffsetY: number) => {
+    // Draw eye connections
+    drawEyeLines(ctx, positions, scaleX, scaleY, videoOffsetX, videoOffsetY);
+    
+    // Draw eyebrow connections
+    drawEyebrowLines(ctx, positions, scaleX, scaleY, videoOffsetX, videoOffsetY);
+    
+    // Draw nose connections
+    drawNoseLines(ctx, positions, scaleX, scaleY, videoOffsetX, videoOffsetY);
+    
+    // Draw mouth connections
+    drawMouthLines(ctx, positions, scaleX, scaleY, videoOffsetX, videoOffsetY);
+    
+    // Draw jawline
+    drawJawline(ctx, positions, scaleX, scaleY, videoOffsetX, videoOffsetY);
+  };
+
+  const drawEyeLines = (ctx: CanvasRenderingContext2D, positions: any[], scaleX: number, scaleY: number, videoOffsetX: number, videoOffsetY: number) => {
+    // Left eye outline (indices 36-47)
+    const leftEyePoints = positions.slice(36, 47);
+    if (leftEyePoints.length > 0) {
+      ctx.beginPath();
+      ctx.moveTo(leftEyePoints[0][0] * scaleX + videoOffsetX, leftEyePoints[0][1] * scaleY + videoOffsetY);
+      for (let i = 1; i < leftEyePoints.length; i++) {
+        ctx.lineTo(leftEyePoints[i][0] * scaleX + videoOffsetX, leftEyePoints[i][1] * scaleY + videoOffsetY);
+      }
+      ctx.closePath();
+      ctx.strokeStyle = '#00ffff';
+      ctx.stroke();
+    }
+    
+    // Right eye outline (indices 42-47, but use 39-47 for right eye)
+    const rightEyePoints = positions.slice(42, 48);
+    if (rightEyePoints.length > 0) {
+      ctx.beginPath();
+      ctx.moveTo(rightEyePoints[0][0] * scaleX + videoOffsetX, rightEyePoints[0][1] * scaleY + videoOffsetY);
+      for (let i = 1; i < rightEyePoints.length; i++) {
+        ctx.lineTo(rightEyePoints[i][0] * scaleX + videoOffsetX, rightEyePoints[i][1] * scaleY + videoOffsetY);
+      }
+      ctx.closePath();
+      ctx.strokeStyle = '#00ffff';
+      ctx.stroke();
+    }
+  };
+
+  const drawEyebrowLines = (ctx: CanvasRenderingContext2D, positions: any[], scaleX: number, scaleY: number, videoOffsetX: number, videoOffsetY: number) => {
+    // Left eyebrow (indices 17-21)
+    const leftEyebrow = positions.slice(17, 22);
+    drawPolyline(ctx, leftEyebrow, scaleX, scaleY, '#ff00ff', videoOffsetX, videoOffsetY);
+    
+    // Right eyebrow (indices 22-26)
+    const rightEyebrow = positions.slice(22, 27);
+    drawPolyline(ctx, rightEyebrow, scaleX, scaleY, '#ff00ff', videoOffsetX, videoOffsetY);
+  };
+
+  const drawNoseLines = (ctx: CanvasRenderingContext2D, positions: any[], scaleX: number, scaleY: number, videoOffsetX: number, videoOffsetY: number) => {
+    // Nose outline (indices 27-35)
+    const nosePoints = positions.slice(27, 36);
+    drawPolyline(ctx, nosePoints, scaleX, scaleY, '#ffff00', videoOffsetX, videoOffsetY);
+  };
+
+  const drawMouthLines = (ctx: CanvasRenderingContext2D, positions: any[], scaleX: number, scaleY: number, videoOffsetX: number, videoOffsetY: number) => {
+    // Outer mouth (indices 48-58)
+    const outerMouth = positions.slice(48, 59);
+    drawPolyline(ctx, outerMouth, scaleX, scaleY, '#ff8800', videoOffsetX, videoOffsetY);
+    
+    // Inner mouth (indices 60-67)
+    const innerMouth = positions.slice(60, 68);
+    drawPolyline(ctx, innerMouth, scaleX, scaleY, '#ff8800', videoOffsetX, videoOffsetY);
+  };
+
+  const drawJawline = (ctx: CanvasRenderingContext2D, positions: any[], scaleX: number, scaleY: number, videoOffsetX: number, videoOffsetY: number) => {
+    // Jawline (indices 0-16)
+    const jawlinePoints = positions.slice(0, 17);
+    drawPolyline(ctx, jawlinePoints, scaleX, scaleY, '#34e7d3', videoOffsetX, videoOffsetY);
+  };
+
+  const drawPolyline = (ctx: CanvasRenderingContext2D, points: any[], scaleX: number, scaleY: number, color: string, videoOffsetX: number, videoOffsetY: number) => {
+    if (points.length === 0) return;
+    
+    ctx.strokeStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(points[0][0] * scaleX + videoOffsetX, points[0][1] * scaleY + videoOffsetY);
+    
+    for (let i = 1; i < points.length; i++) {
+      ctx.lineTo(points[i][0] * scaleX + videoOffsetX, points[i][1] * scaleY + videoOffsetY);
+    }
+    
+    ctx.stroke();
+  };
+
   const updateGuidance = (detections: any[], facePosition: any, luminosity: number) => {
-    // If face detection is not available, show default guidance
+    // If face detection is not available, show loading
     if (!faceApiAvailable) {
-      setGuidanceMessage('Place your face in the center');
-      setGuidanceType('position');
+      const newMessage = 'Loading recognition models...';
+      if (guidanceMessage !== newMessage) {
+        setGuidanceMessage(newMessage);
+        setGuidanceType('loading');
+      }
       return;
     }
     
+    // Update last detection time
+    const now = Date.now();
+    setLastFaceDetectionTime(now);
+    
+    // If no faces detected
     if (detections.length === 0) {
-      setGuidanceMessage('Place the face inside the box');
-      setGuidanceType('position');
+      const newMessage = 'Place your face in front of the camera';
+      if (guidanceMessage !== newMessage) {
+        setGuidanceMessage(newMessage);
+        setGuidanceType('detecting');
+      }
       return;
     }
 
     const detection = detections[0];
     const { detection: box, landmarks } = detection;
     
-    // Check if face is too far (too small)
-    const faceArea = box.width * box.height;
-    const videoArea = videoRef.current ? videoRef.current.videoWidth * videoRef.current.videoHeight : 0;
-    const faceRatio = videoArea > 0 ? faceArea / videoArea : 0;
-    
-    if (faceRatio < 0.1) { // Face is too small (too far)
-      setGuidanceMessage('Move the camera closer');
-      setGuidanceType('distance');
-      return;
-    }
-    
-    // Check if face is too close (too large)
-    if (faceRatio > 0.6) {
-      setGuidanceMessage('Move the camera away');
-      setGuidanceType('distance');
-      return;
-    }
-    
-    // Check if face is centered
-    const videoWidth = videoRef.current?.videoWidth || 640;
-    const videoHeight = videoRef.current?.videoHeight || 480;
-    const centerX = videoWidth / 2;
-    const centerY = videoHeight / 2;
-    const faceCenterX = box.x + box.width / 2;
-    const faceCenterY = box.y + box.height / 2;
-    
-    const xOffset = Math.abs(faceCenterX - centerX) / centerX;
-    const yOffset = Math.abs(faceCenterY - centerY) / centerY;
-    
-    if (xOffset > 0.3 || yOffset > 0.3) {
-      setGuidanceMessage('Center your face in the box');
-      setGuidanceType('position');
-      return;
-    }
-    
-    // Check face angle if landmarks are available
-    if (landmarks && faceAngle) {
-      const { yaw, pitch, roll } = faceAngle as any;
-      
-      // Check yaw (left-right rotation)
-      if (Math.abs(yaw) > 20) {
-        if (yaw > 0) {
-          setGuidanceMessage('Turn your head slightly left');
-        } else {
-          setGuidanceMessage('Turn your head slightly right');
+    // Check lighting first - this is critical for good photo capture
+    if (landmarks && landmarks.positions.length > 0) {
+      const lightingGuidance = getLightingGuidance(landmarks.positions, box);
+      if (lightingGuidance.needsImprovement) {
+        if (guidanceMessage !== lightingGuidance.message) {
+          setGuidanceMessage(lightingGuidance.message);
+          setGuidanceType('positioning');
         }
-        setGuidanceType('angle');
-        return;
-      }
-      
-      // Check pitch (up-down rotation)
-      if (Math.abs(pitch) > 15) {
-        if (pitch > 0) {
-          setGuidanceMessage('Tilt your head down slightly');
-        } else {
-          setGuidanceMessage('Tilt your head up slightly');
-        }
-        setGuidanceType('angle');
-        return;
-      }
-      
-      // Check roll (tilt rotation)
-      if (Math.abs(roll) > 15) {
-        if (roll > 0) {
-          setGuidanceMessage('Straighten your head (tilt left)');
-        } else {
-          setGuidanceMessage('Straighten your head (tilt right)');
-        }
-        setGuidanceType('angle');
-        return;
+      return;
       }
     }
     
-    // Check lighting (if we had luminosity detection)
-    if (luminosity < 0.3) {
-      setGuidanceMessage('Turn towards the light source');
-      setGuidanceType('lighting');
+    // Always check face angle second - this takes priority over positioning
+    if (landmarks && landmarks.positions.length > 0) {
+      const angleGuidance = getAngleGuidance(landmarks.positions, box);
+      if (angleGuidance.shouldCorrect) {
+        if (guidanceMessage !== angleGuidance.message) {
+          setGuidanceMessage(angleGuidance.message);
+          setGuidanceType('positioning');
+        }
+      return;
+      }
+    }
+    
+    // Only check positioning if lighting and angle are good
+    if (landmarks && landmarks.positions.length > 0) {
+      const allLandmarksInBox = areLandmarksInGuideBox(landmarks.positions, box);
+      
+      if (allLandmarksInBox) {
+        const newMessage = 'Perfect! Keep this position';
+        if (guidanceMessage !== newMessage) {
+          setGuidanceMessage(newMessage);
+          setGuidanceType('ready');
+        }
+        return;
+      }
+      
+      // If landmarks are detected but not in box, guide positioning
+      const newMessage = 'Center your face in the guide box';
+      if (guidanceMessage !== newMessage) {
+        setGuidanceMessage(newMessage);
+        setGuidanceType('positioning');
+      }
       return;
     }
     
-    // All good!
-    setGuidanceMessage('Perfect! Stay still.');
-    setGuidanceType('default');
+    // Fallback for when landmarks are not available
+    const newMessage = 'Place your face in front of the camera';
+    if (guidanceMessage !== newMessage) {
+      setGuidanceMessage(newMessage);
+      setGuidanceType('detecting');
+    }
   };
+
+  const getLightingGuidance = (landmarks: any[], faceBox: any): { needsImprovement: boolean; message: string } => {
+    console.log('=== LIGHTING GUIDANCE CALLED ===');
+    
+    if (!landmarks || landmarks.length < 68 || !videoRef.current) {
+      console.log('Lighting: Missing prerequisites');
+      return { needsImprovement: false, message: '' };
+    }
+
+    const video = videoRef.current;
+    
+    // Check if video is ready
+    if (video.readyState < 2) {
+      console.log('Lighting: Video not ready');
+      return { needsImprovement: false, message: '' };
+    }
+
+    // Validate faceBox object and its properties
+    if (!faceBox || typeof faceBox !== 'object') {
+      console.log('Lighting: Invalid faceBox object');
+      return { needsImprovement: false, message: '' };
+    }
+
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    
+    if (!ctx) {
+      console.log('Lighting: No canvas context');
+      return { needsImprovement: false, message: '' };
+    }
+
+    // Set canvas dimensions to match video size
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+
+    console.log('=== FACE BOX DEBUG ===');
+    console.log('Raw faceBox:', faceBox);
+    console.log('faceBox.x:', faceBox.x, typeof faceBox.x);
+    console.log('faceBox.y:', faceBox.y, typeof faceBox.y);
+    console.log('faceBox.width:', faceBox.width, typeof faceBox.width);
+    console.log('faceBox.height:', faceBox.height, typeof faceBox.height);
+
+    // Validate and sanitize face box coordinates
+    const rawFaceX = Number(faceBox.x);
+    const rawFaceY = Number(faceBox.y);
+    const rawFaceWidth = Number(faceBox.width);
+    const rawFaceHeight = Number(faceBox.height);
+
+    // Check for valid numbers
+    if (!Number.isFinite(rawFaceX) || !Number.isFinite(rawFaceY) || 
+        !Number.isFinite(rawFaceWidth) || !Number.isFinite(rawFaceHeight)) {
+      console.log('Lighting: Invalid numeric values in faceBox');
+      return { needsImprovement: false, message: '' };
+    }
+
+    // Draw current video frame to canvas
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    
+    // Validate and clamp face box coordinates to canvas bounds
+    const faceX = Math.floor(Math.max(0, Math.min(rawFaceX, canvas.width)));
+    const faceY = Math.floor(Math.max(0, Math.min(rawFaceY, canvas.height)));
+    const maxWidth = canvas.width - faceX;
+    const maxHeight = canvas.height - faceY;
+    const faceWidth = Math.floor(Math.max(1, Math.min(rawFaceWidth, maxWidth)));
+    const faceHeight = Math.floor(Math.max(1, Math.min(rawFaceHeight, maxHeight)));
+    
+    console.log('=== VALIDATED COORDINATES ===');
+    console.log('faceX:', faceX, 'faceY:', faceY);
+    console.log('faceWidth:', faceWidth, 'faceHeight:', faceHeight);
+    console.log('canvas:', canvas.width, 'x', canvas.height);
+    
+    // Ensure dimensions are valid positive integers within bounds
+    if (faceWidth <= 0 || faceHeight <= 0 || 
+        faceX < 0 || faceY < 0 || 
+        faceX >= canvas.width || faceY >= canvas.height ||
+        faceX + faceWidth > canvas.width || faceY + faceHeight > canvas.height) {
+      console.warn('Invalid face dimensions after validation:', { 
+        faceX, faceY, faceWidth, faceHeight, 
+        canvasWidth: canvas.width, 
+        canvasHeight: canvas.height 
+      });
+      return { needsImprovement: false, message: '' };
+    }
+    
+    try {
+      // Extract face region image data with validated coordinates
+      const faceImageData = ctx.getImageData(faceX, faceY, faceWidth, faceHeight);
+      
+      // Calculate luminance for the face region
+      const luminance = calculateLuminance(faceImageData);
+      
+      console.log('=== LIGHTING DEBUG ===');
+      console.log('Face region luminance:', luminance.toFixed(3));
+      console.log('ImageData size:', faceImageData.width, 'x', faceImageData.height);
+
+      // More aggressive lighting thresholds for better guidance
+      if (luminance < 0.20) {
+        console.log('Lighting: Too dark');
+        return {
+          needsImprovement: true,
+          message: 'Face toward a light source - lighting is too dark'
+        };
+      } else if (luminance > 0.80) {
+        console.log('Lighting: Too bright');
+        return {
+          needsImprovement: true,
+          message: 'Move away from bright light - lighting is too bright'
+        };
+      } else if (luminance < 0.35) {
+        console.log('Lighting: Poor lighting');
+        return {
+          needsImprovement: true,
+          message: 'Turn toward more light for better visibility'
+        };
+      } else if (luminance > 0.65) {
+        console.log('Lighting: Harsh lighting');
+        return {
+          needsImprovement: true,
+          message: 'Reduce screen brightness or move away from window'
+        };
+      }
+
+      console.log('Lighting: Good lighting');
+      return { needsImprovement: false, message: '' };
+      
+    } catch (error) {
+      console.error('Error in lighting analysis:', error);
+      console.error('Failed coordinates:', { faceX, faceY, faceWidth, faceHeight });
+      return { needsImprovement: false, message: '' };
+    }
+  };
+
+  const calculateLuminance = (imageData: ImageData): number => {
+    const data = imageData.data;
+    let totalLuminance = 0;
+    let pixelCount = 0;
+
+    // Sample every 4th pixel to reduce computation
+    for (let i = 0; i < data.length; i += 16) { // 4 pixels * 4 channels = 16
+      const r = data[i];
+      const g = data[i + 1];
+      const b = data[i + 2];
+      
+      // Calculate luminance using standard RGB to luminance conversion
+      const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+      
+      totalLuminance += luminance;
+      pixelCount++;
+    }
+
+    return pixelCount > 0 ? totalLuminance / pixelCount : 0;
+  };
+
+  const getAngleGuidance = (landmarks: any[], faceBox: any): { shouldCorrect: boolean; message: string } => {
+    if (!landmarks || landmarks.length < 68) {
+      return { shouldCorrect: false, message: '' };
+    }
+
+    // Get key landmarks
+    const leftCheek = landmarks[0];    // Left face contour (leftmost point)
+    const rightCheek = landmarks[16]; // Right face contour (rightmost point)
+    const noseTip = landmarks[30];    // Nose tip
+    const noseBridge = landmarks[27]; // Nose bridge
+
+    // Check if landmarks are valid
+    if (!leftCheek || !rightCheek || !noseTip || !noseBridge) {
+      return { shouldCorrect: false, message: '' };
+    }
+
+    // Calculate distances from nose tip to each cheek
+    const leftDistance = Math.sqrt(
+      Math.pow(leftCheek.x - noseTip.x, 2) + Math.pow(leftCheek.y - noseTip.y, 2)
+    );
+    
+    const rightDistance = Math.sqrt(
+      Math.pow(rightCheek.x - noseTip.x, 2) + Math.pow(rightCheek.y - noseTip.y, 2)
+    );
+
+    // Calculate asymmetry (difference in distances)
+    const asymmetry = Math.abs(leftDistance - rightDistance);
+    const avgDistance = (leftDistance + rightDistance) / 2;
+    const asymmetryRatio = avgDistance > 0 ? asymmetry / avgDistance : 0;
+
+    console.log('=== ANGLE DEBUG ===');
+    console.log('Left distance:', leftDistance.toFixed(2));
+    console.log('Right distance:', rightDistance.toFixed(2));
+    console.log('Asymmetry ratio:', asymmetryRatio.toFixed(3));
+    console.log('Threshold: 0.15');
+
+    // If asymmetry is significant (more than 15% difference), guide user to turn
+    if (asymmetryRatio > 0.15) {
+      if (leftDistance > rightDistance) {
+        // Left cheek is farther than right, user needs to turn right
+        return { 
+          shouldCorrect: true, 
+          message: 'Turn your head slightly right' 
+        };
+      } else {
+        // Right cheek is farther than left, user needs to turn left
+        return { 
+          shouldCorrect: true, 
+          message: 'Turn your head slightly left' 
+        };
+      }
+    }
+
+    return { shouldCorrect: false, message: '' };
+  };
+
+  const areLandmarksInGuideBox = (landmarks: any[], faceBox: any): boolean => {
+    if (!videoRef.current) return false;
+    
+    const video = videoRef.current;
+    
+    // Calculate guide box dimensions (the white dashed rectangle)
+    const guideBoxWidth = 192; // 12rem = 48 * 4 = 192px
+    const guideBoxHeight = 240; // 15rem = 60 * 4 = 240px
+    
+    // Calculate guide box center position in video coordinates
+    const videoCenterX = video.clientWidth / 2;
+    const videoCenterY = video.clientHeight / 2;
+    
+    // Calculate scale factors
+    const scaleX = video.clientWidth / video.videoWidth;
+    const scaleY = video.clientHeight / video.videoHeight;
+    
+    // Map guide box to video coordinates
+    const guideBoxLeft = (videoCenterX - 96) / scaleX; // Half guide box width
+    const guideBoxRight = (videoCenterX + 96) / scaleX;
+    const guideBoxTop = (videoCenterY - 120) / scaleY; // Half guide box height
+    const guideBoxBottom = (videoCenterY + 120) / scaleY;
+    
+    // Check if key landmarks are within the guide box
+    const keyLandmarks = [
+      0, 16,    // Chin corners
+      8,        // Chin center
+      36, 45,   // Eye outer corners
+      48, 54,   // Mouth corners
+      27, 30,   // Nose bridge, tip
+    ];
+    
+    let landmarksInBox = 0;
+    const requiredLandmarks = 5; // At least 5 key landmarks must be in box
+    
+    for (const index of keyLandmarks.slice(0, requiredLandmarks)) {
+      const landmark = landmarks[index];
+      if (landmark && 
+          landmark.x >= guideBoxLeft && 
+          landmark.x <= guideBoxRight &&
+          landmark.y >= guideBoxTop && 
+          landmark.y <= guideBoxBottom) {
+        landmarksInBox++;
+      }
+    }
+    
+    return landmarksInBox >= requiredLandmarks;
+  };
+
+  // Effect to handle guidance timeout
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      const timeSinceDetection = Date.now() - lastFaceDetectionTime;
+      if (timeSinceDetection > 3000 && guidanceType !== 'loading') { // 3 seconds timeout
+        setGuidanceMessage('Place your face in front of the camera');
+        setGuidanceType('detecting');
+      }
+    }, 1000);
+    
+    return () => clearTimeout(timeout);
+  }, [lastFaceDetectionTime, guidanceType]);
 
 
   const capturePhoto = () => {
@@ -739,29 +1222,33 @@ export default function CameraCaptureStep({ onNext, onBack }: CameraCaptureStepP
               }}
             />
             
+            {/* Face Detection Overlay Canvas */}
+            <canvas
+              ref={overlayCanvasRef}
+              className="absolute inset-0 pointer-events-none z-10"
+              style={{
+                transform: currentCamera === 'front' ? 'scaleX(-1)' : 'none'
+              }}
+            />
+            
             {/* Face guide overlay */}
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-5">
               <div className="w-48 h-60 border-2 border-white border-dashed rounded-lg opacity-50"></div>
             </div>
             
             {/* Dynamic Guidance Text */}
             <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-20">
-              <div className={`px-6 py-3 rounded-lg text-sm text-center max-w-xs transition-all duration-300 ${
-                guidanceType === 'default' ? 'bg-green-500 bg-opacity-90 text-white' :
-                guidanceType === 'position' ? 'bg-blue-500 bg-opacity-90 text-white' :
-                guidanceType === 'distance' ? 'bg-yellow-500 bg-opacity-90 text-black' :
-                guidanceType === 'angle' ? 'bg-purple-500 bg-opacity-90 text-white' :
-                guidanceType === 'lighting' ? 'bg-orange-500 bg-opacity-90 text-white' :
-                'bg-black bg-opacity-75 text-white'
-              }`}>
-                <div className="font-medium flex items-center justify-center gap-2">
-                  {guidanceType === 'default' && <Check size={16} />}
-                  {guidanceType === 'position' && <Target size={16} />}
-                  {guidanceType === 'distance' && <MoveHorizontal size={16} />}
-                  {guidanceType === 'angle' && <RotateCcw size={16} />}
-                  {guidanceType === 'lighting' && <Sun size={16} />}
+              <div className="px-6 py-3 text-sm text-center max-w-xs transition-all duration-300 text-white footer-medium">
+                {guidanceType === 'loading' ? (
+                  <div className="flex items-center justify-center gap-2">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    <span>{guidanceMessage}</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-center">
                   {guidanceMessage}
                 </div>
+                )}
               </div>
             </div>
             
@@ -771,6 +1258,17 @@ export default function CameraCaptureStep({ onNext, onBack }: CameraCaptureStepP
                 {currentCamera === 'front' ? 'Fotocamera Anteriore' : 'Fotocamera Posteriore'}
               </span>
             </div>
+            
+            {/* Face Detection Debug Info */}
+            {faceApiAvailable && (
+              <div className="absolute top-4 left-4 bg-black/50 backdrop-blur-sm rounded-lg px-3 py-2 z-20">
+                <div className="text-white text-xs">
+                  <div>Faces: {detectedFaces.length}</div>
+                  <div>Model: {modelsLoaded ? '✓' : '✗'}</div>
+                  <div>API: {faceApiAvailable ? '✓' : '✗'}</div>
+                </div>
+              </div>
+            )}
           </div>
         )}
         

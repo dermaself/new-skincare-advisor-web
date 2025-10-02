@@ -549,6 +549,30 @@ export default function SkinAnalysisImage({
     }
   };
 
+  // Helper function to convert snake_case class names to human-readable format
+  const getReadableClassName = (className: string): string => {
+    // Handle special cases first
+    const specialCases: Record<string, string> = {
+      'crows_feet': 'Crow\'s feet',
+      'marionette_line': 'Marionette line',
+      'droppy_eyelid': 'Droopy eyelid',
+      'tear_through': 'Tear through',
+      'mental_crease': 'Mental crease',
+      'purse_string': 'Purse string lines',
+      'neck_lines': 'Neck lines'
+    };
+
+    if (specialCases[className]) {
+      return specialCases[className];
+    }
+
+    return className
+      .split('_')
+      .join(' ')
+      .toLowerCase()
+      .replace(/^./, match => match.toUpperCase());
+  };
+
   return (
     <div className={`relative ${className}`}>
       {/* Image Carousel */}
@@ -674,7 +698,7 @@ export default function SkinAnalysisImage({
                     color: textColor
                   }}
                 >
-                  {className}
+                  {getReadableClassName(className)}
                 </div>
               );
             })}

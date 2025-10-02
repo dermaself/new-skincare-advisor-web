@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useEffect, Suspense, lazy } from 'react';
+import Image from 'next/image';
+import LogoViolet from './RGB_Logo_Violet.avif';
 
 // Lazy load the modal to reduce initial bundle size
 const SkinAnalysisModal = lazy(() => import('@/components/SkinAnalysisModal'));
@@ -117,8 +119,11 @@ export default function Home() {
 
   // For standalone mode, show a simple trigger button
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white flex items-center justify-center">
-      <div className="text-center">
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-white">
+      <div className="bg-[#e9d5ff] border-b border-purple-200/70 flex items-center justify-center py-2">
+        <Image src={LogoViolet} alt="Dermaself" className="h-8 w-auto" priority />
+      </div>
+      <div className="text-center flex items-center justify-center py-16">
         <h1 className="text-4xl font-bold text-gray-900 mb-6">
           Dermaself - AI Skin Analysis
         </h1>

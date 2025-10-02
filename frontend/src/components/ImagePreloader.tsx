@@ -1,7 +1,9 @@
 "use client";
 import React, { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { preloadStepImages, getLoadingProgress } from '../lib/imagePreloader';
+import LogoViolet from '../app/RGB_Logo_Violet.avif';
 
 interface ImagePreloaderProps {
   onComplete: () => void;
@@ -121,24 +123,19 @@ export default function ImagePreloader({
         className="relative w-full bg-white overflow-hidden flex flex-col h-full md:max-w-[540px] w-full h-full md:max-h-[95vh]"
       >
         {/* Header - Same as modal */}
-        <div className="bg-black px-4 py-3 flex items-center justify-center border-b border-gray-700">
-          <div className="flex-1 text-center">
-            <h2 className="text-lg font-semibold text-white">
-              {mode === 'initial' ? 'Dermaself - AI Skin Analysis' : 'AI Analysis'}
-            </h2>
-            {mode === 'analysis' && (
-              <p className="text-gray-300 text-sm mt-1">Personalized Recommendations</p>
-            )}
+        <div className="px-4 py-3 flex items-center justify-center border-b border-gray-200 bg-[#e9d5ff]">
+          <div className="flex-1 text-center flex items-center justify-center">
+            <Image src={LogoViolet} alt="Dermaself" className="h-8 w-auto" priority />
           </div>
         </div>
 
         {/* Loading Content */}
-        <div className="flex-1 flex items-center justify-center bg-gradient-to-br from-pink-50 to-purple-50">
+        <div className="flex-1 flex items-center justify-center bg-gradient-to-br from-purple-50 to-purple-100">
           <div className="text-center max-w-sm w-full mx-4">
             {/* Loading Animation */}
             <div className="mb-6">
               <motion.div
-                className="w-16 h-16 bg-gradient-to-r from-pink-500 to-purple-500 rounded-full mx-auto mb-4"
+                className="w-16 h-16 bg-gradient-to-r from-purple-600 to-purple-500 rounded-full mx-auto mb-4"
                 animate={{ 
                   scale: [1, 1.1, 1],
                   rotate: [0, 180, 360]
@@ -165,7 +162,7 @@ export default function ImagePreloader({
             {/* Progress Bar */}
             <div className="w-full bg-gray-200 rounded-full h-2 mb-4">
               <motion.div
-                className="bg-gradient-to-r from-pink-500 to-purple-500 h-2 rounded-full"
+                className="bg-gradient-to-r from-purple-600 to-purple-500 h-2 rounded-full"
                 initial={{ width: 0 }}
                 animate={{ width: `${progress}%` }}
                 transition={{ duration: 0.3, ease: "easeOut" }}
@@ -181,9 +178,9 @@ export default function ImagePreloader({
             {/* Phase Indicator for Analysis Mode */}
             {mode === 'analysis' && (
               <div className="mt-4 flex justify-center space-x-2">
-                <div className={`w-2 h-2 rounded-full ${currentPhase === 'preparing' ? 'bg-pink-500' : 'bg-gray-300'}`} />
-                <div className={`w-2 h-2 rounded-full ${currentPhase === 'analyzing' ? 'bg-pink-500' : 'bg-gray-300'}`} />
-                <div className={`w-2 h-2 rounded-full ${currentPhase === 'complete' ? 'bg-pink-500' : 'bg-gray-300'}`} />
+                <div className={`w-2 h-2 rounded-full ${currentPhase === 'preparing' ? 'bg-purple-600' : 'bg-gray-300'}`} />
+                <div className={`w-2 h-2 rounded-full ${currentPhase === 'analyzing' ? 'bg-purple-600' : 'bg-gray-300'}`} />
+                <div className={`w-2 h-2 rounded-full ${currentPhase === 'complete' ? 'bg-purple-600' : 'bg-gray-300'}`} />
               </div>
             )}
           </div>

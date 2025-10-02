@@ -35,7 +35,7 @@ export default function OnboardingStep({ onNext, onClose }: OnboardingStepProps)
               href="https://dermaself-dev.myshopify.com/pages/privacy-policy" 
               target="_blank" 
               rel="noopener noreferrer"
-              className="text-pink-600 hover:text-pink-700 underline"
+              className="text-purple-600 hover:text-purple-700 underline"
             >
               Informativa sulla Privacy
             </a>
@@ -50,7 +50,7 @@ export default function OnboardingStep({ onNext, onClose }: OnboardingStepProps)
               type="checkbox"
               checked={consentGiven}
               onChange={(e) => setConsentGiven(e.target.checked)}
-              className="mt-1 w-4 h-4 text-pink-600 border-gray-300 rounded focus:ring-pink-500"
+              className="mt-1 w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
             />
             <span className="text-sm text-gray-700">
               Acconsento al trattamento dei miei dati personali per ricevere raccomandazioni personalizzate per la cura della pelle.
@@ -66,9 +66,9 @@ export default function OnboardingStep({ onNext, onClose }: OnboardingStepProps)
             }
           }}
           disabled={!consentGiven}
-          className={`py-3 px-8 rounded-lg transition-colors duration-200 w-full md:w-auto mx-auto ${
+            className={`py-3 px-8 rounded-lg transition-colors duration-200 w-full md:w-auto mx-auto ${
             consentGiven 
-              ? 'bg-pink-600 hover:bg-pink-700 text-white' 
+              ? 'bg-purple-600 hover:bg-purple-700 text-white' 
               : 'bg-gray-300 text-gray-500 cursor-not-allowed'
           }`}
           whileHover={consentGiven ? { scale: 1.02 } : {}}

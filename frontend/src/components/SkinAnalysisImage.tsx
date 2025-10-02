@@ -3,6 +3,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Eye, EyeOff, Info, AlertTriangle, ChevronLeft, ChevronRight, Zap } from 'lucide-react';
+import { getLegendLabel } from '@/lib/legendLabels';
 
 // Test comment to verify compilation
 interface Prediction {
@@ -638,15 +639,15 @@ export default function SkinAnalysisImage({
 
         {/* View Toggle Buttons */}
         <div className="flex justify-center mb-4 mt-8">
-          <div className="flex space-x-2 bg-white rounded-lg p-1 shadow-sm border border-pink-100">
+          <div className="flex space-x-2 bg-white rounded-lg p-1 shadow-sm border border-purple-100">
             {carouselImages.map((image, index) => (
               <button
                 key={index}
                 onClick={() => goToImage(index)}
                 className={`px-4 py-2 rounded-md text-sm font-semibold transition-colors ${
                   currentImageIndex === index
-                    ? 'bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow'
-                    : 'text-gray-700 hover:bg-pink-50 hover:text-pink-700'
+                    ? 'bg-gradient-to-r from-purple-600 to-purple-500 text-white shadow'
+                    : 'text-gray-700 hover:bg-purple-50 hover:text-purple-700'
                 }`}
               >
                 {image.label}
@@ -658,12 +659,13 @@ export default function SkinAnalysisImage({
         {/* Color Legend Bar */}
         <div className="bg-white rounded-lg p-4 shadow-sm border">
           <h3 className="text-sm font-medium text-gray-700 mb-3">
-            {carouselImages[currentImageIndex].label} - Color Legend
+            {carouselImages[currentImageIndex].label} - Legenda
           </h3>
           <div className="flex flex-wrap gap-2 align-center justify-center">
             {getUniqueClasses().map((className) => {
               const color = getClassColor(className);
               const textColor = getTextColor(color);
+              const translated = getLegendLabel(currentView, className, 'it');
               
               return (
                 <div
@@ -674,7 +676,7 @@ export default function SkinAnalysisImage({
                     color: textColor
                   }}
                 >
-                  {className}
+                  {translated}
                 </div>
               );
             })}

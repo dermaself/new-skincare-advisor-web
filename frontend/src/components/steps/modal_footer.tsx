@@ -56,7 +56,7 @@ export default function ModalFooter({
               <div
                 key={index}
                 className={`w-3 h-3 rounded-full ${
-                  index < currentStep ? 'bg-pink-600' : 'bg-gray-300'
+                  index < currentStep ? 'bg-purple-600' : 'bg-gray-300'
                 }`}
               />
             ))}

@@ -25,7 +25,7 @@ const skinTypes: SkinType[] = [
     description: 'Tessuto cutaneo regolare senza problemi significativi'
   },
   {
-    name: 'Seca',
+    name: 'Secca',
     image: ASSETS.images.skinTypes.dry,
     description: 'Opaca, a volte tesa e irritata'
   },

@@ -36,7 +36,7 @@ const skinConcerns: SkinConcern[] = [
   },
   {
     id: 'aging',
-    name: 'Primi segni dell\'invecchiamento',
+    name: 'Primi segni di invecchiamento',
     icon: ASSETS.images.icons.aging
   },
   {
@@ -73,8 +73,6 @@ export default function SkinConcernsStep({ selectedConcerns, onConcernToggle, on
           {skinConcerns.map((concern) => (
             <div 
               key={concern.id} 
-              role="checkbox"
-              aria-checked={selectedConcerns.includes(concern.id)}
               tabIndex={0}
               className={`relative cursor-pointer transition-all duration-200 ${
                 selectedConcerns.includes(concern.id) 
@@ -83,13 +81,13 @@ export default function SkinConcernsStep({ selectedConcerns, onConcernToggle, on
               }`}
               onClick={() => onConcernToggle(concern.id)}
             >
-              <div className={`relative rounded-2xl overflow-hidden h-full border-2 transition-all duration-200 ${
+              <div className={`relative rounded-2xl overflow-hidden border-2 transition-all duration-200 ${
                 selectedConcerns.includes(concern.id)
                   ? 'border-purple-500 shadow-lg shadow-purple-100'
                   : 'border-transparent hover:border-purple-300'
               }`}>
-                <div className="flex h-full bg-white">
-                  <div className="w-16 overflow-hidden flex-shrink-0 bg-gray-100 flex items-center justify-center">
+                <div className="flex bg-white">
+                  <div className="w-16 overflow-hidden flex-shrink-0 bg-gray-100 flex items-center justify-center py-2">
                     {concern.icon ? (
                       <img
                         src={concern.icon}
@@ -106,8 +104,8 @@ export default function SkinConcernsStep({ selectedConcerns, onConcernToggle, on
                       </div>
                     )}
                   </div>
-                  <div className="flex-1 min-w-0 px-3 flex flex-col justify-center items-center">
-                    <div className="font-semibold text-gray-900 text-sm mb-1">
+                  <div className="flex-1 min-w-0 px-3 py-2 flex flex-col justify-center items-center">
+                    <div className="font-semibold text-gray-900 text-center text-xs sm:text-sm leading-tight break-words">
                       {concern.name}
                     </div>
                   </div>

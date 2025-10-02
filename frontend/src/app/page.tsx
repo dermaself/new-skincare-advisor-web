@@ -123,7 +123,7 @@ export default function Home() {
       <div className="bg-[#e9d5ff] border-b border-purple-200/70 flex items-center justify-center py-2">
         <Image src={LogoViolet} alt="Dermaself" className="h-8 w-auto" priority />
       </div>
-      <div className="text-center flex items-center justify-center py-16">
+      <div className="text-center flex flex-col items-center gap-6 py-16">
         <h1 className="text-4xl font-bold text-gray-900 mb-6">
           Dermaself - AI Skin Analysis
         </h1>

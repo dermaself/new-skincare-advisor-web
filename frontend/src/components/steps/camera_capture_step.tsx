@@ -1196,7 +1196,7 @@ export default function CameraCaptureStep({ onNext, onBack }: CameraCaptureStepP
                   setError(null);
                   startCamera();
                 }}
-                className="px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 transition-colors"
+                className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
               >
                 Riprova
               </button>
@@ -1332,7 +1332,7 @@ export default function CameraCaptureStep({ onNext, onBack }: CameraCaptureStepP
               {/* Capture Button - Mobile optimized */}
               <button
                 onClick={capturePhoto}
-                className="p-4 sm:p-5 bg-pink-600 hover:bg-pink-700 active:bg-pink-800 rounded-full transition-colors shadow-lg touch-manipulation min-w-[60px] min-h-[60px] sm:min-w-[70px] sm:min-h-[70px]"
+                className="p-4 sm:p-5 bg-purple-600 hover:bg-purple-700 active:bg-purple-800 rounded-full transition-colors shadow-lg touch-manipulation min-w-[60px] min-h-[60px] sm:min-w-[70px] sm:min-h-[70px]"
                 title="Scatta Foto"
                 aria-label="Scatta foto"
               >
@@ -1377,7 +1377,7 @@ export default function CameraCaptureStep({ onNext, onBack }: CameraCaptureStepP
             
             <button
               onClick={confirmPhoto}
-              className="px-6 py-3 sm:px-8 sm:py-4 bg-pink-600 hover:bg-pink-700 active:bg-pink-800 text-white rounded-lg transition-colors flex items-center gap-2 touch-manipulation font-semibold"
+              className="px-6 py-3 sm:px-8 sm:py-4 bg-purple-600 hover:bg-purple-700 active:bg-purple-800 text-white rounded-lg transition-colors flex items-center gap-2 touch-manipulation font-semibold"
               title="Usa Foto"
               aria-label="Usa questa foto per l'analisi"
             >

@@ -1,5 +1,6 @@
 "use client";
 import React from 'react';
+/* eslint-disable jsx-a11y/aria-proptypes */
 import { motion } from 'framer-motion';
 import { CheckCircle } from 'lucide-react';
 import { ASSETS } from '../../lib/assets';
@@ -35,7 +36,7 @@ const skinConcerns: SkinConcern[] = [
   },
   {
     id: 'aging',
-    name: 'Primi segni dell\'invecchiamento',
+    name: 'Primi segni di invecchiamento',
     icon: ASSETS.images.icons.aging
   },
   {
@@ -72,8 +73,6 @@ export default function SkinConcernsStep({ selectedConcerns, onConcernToggle, on
           {skinConcerns.map((concern) => (
             <div 
               key={concern.id} 
-              role="checkbox"
-              aria-checked={selectedConcerns.includes(concern.id) ? 'true' : 'false'}
               tabIndex={0}
               className={`relative cursor-pointer transition-all duration-200 ${
                 selectedConcerns.includes(concern.id) 
@@ -82,13 +81,13 @@ export default function SkinConcernsStep({ selectedConcerns, onConcernToggle, on
               }`}
               onClick={() => onConcernToggle(concern.id)}
             >
-              <div className={`relative rounded-2xl overflow-hidden h-full border-2 transition-all duration-200 ${
+              <div className={`relative rounded-2xl overflow-hidden border-2 transition-all duration-200 ${
                 selectedConcerns.includes(concern.id)
-                  ? 'border-pink-500 shadow-lg shadow-pink-100'
-                  : 'border-transparent hover:border-pink-300'
+                  ? 'border-purple-500 shadow-lg shadow-purple-100'
+                  : 'border-transparent hover:border-purple-300'
               }`}>
-                <div className="flex h-full bg-white">
-                  <div className="w-16 overflow-hidden flex-shrink-0 bg-gray-100 flex items-center justify-center">
+                <div className="flex bg-white">
+                  <div className="w-16 overflow-hidden flex-shrink-0 bg-gray-100 flex items-center justify-center py-2">
                     {concern.icon ? (
                       <img
                         src={concern.icon}
@@ -105,8 +104,8 @@ export default function SkinConcernsStep({ selectedConcerns, onConcernToggle, on
                       </div>
                     )}
                   </div>
-                  <div className="flex-1 min-w-0 px-3 flex flex-col justify-center items-center">
-                    <div className="font-semibold text-gray-900 text-sm mb-1">
+                  <div className="flex-1 min-w-0 px-3 py-2 flex flex-col justify-center items-center">
+                    <div className="font-semibold text-gray-900 text-center text-xs sm:text-sm leading-tight break-words">
                       {concern.name}
                     </div>
                   </div>
@@ -121,7 +120,7 @@ export default function SkinConcernsStep({ selectedConcerns, onConcernToggle, on
           <motion.button
             onClick={onNext}
             disabled={selectedConcerns.length === 0}
-            className="py-3 px-8 rounded-lg transition-all duration-200 bg-pink-600 text-white hover:bg-pink-700 shadow-lg w-full md:w-48 disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed"
+            className="py-3 px-8 rounded-lg transition-all duration-200 bg-purple-600 text-white hover:bg-purple-700 shadow-lg w-full md:w-48 disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed"
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
           >

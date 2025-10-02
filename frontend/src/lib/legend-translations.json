@@ -1,0 +1,34 @@
+{
+  "acne": {
+    "Post-Acne Spot": { "en": "Post-Acne Spot", "it": "Macchia post-acne" },
+    "Post-Acne Scar": { "en": "Post-Acne Scar", "it": "Cicatrice post-acne" },
+    "Comedones": { "en": "Comedones", "it": "Comedoni" },
+    "Microcysts": { "en": "Microcysts", "it": "Microcisti" },
+    "Mole": { "en": "Mole", "it": "Neo" },
+    "Papules": { "en": "Papules", "it": "Papule" },
+    "Pustules": { "en": "Pustules", "it": "Pustole" },
+    "Cistic": { "en": "Cystic", "it": "Cistico" },
+    "Nodules": { "en": "Nodules", "it": "Noduli" },
+    "Freckles": { "en": "Freckles", "it": "Lentiggini" },
+    "Cysts": { "en": "Cysts", "it": "Cisti" },
+    "Redness": { "en": "Redness", "it": "Rossore" }
+  },
+  "redness": {
+    "Redness": { "en": "Redness", "it": "Rossore" }
+  },
+  "wrinkles": {
+    "forehead": { "en": "Forehead", "it": "Fronte" },
+    "nasolabial_fold": { "en": "Nasolabial Fold", "it": "Naso-labiali" },
+    "frown": { "en": "Frown Lines", "it": "Gabellari" },
+    "mental_crease": { "en": "Mental Crease", "it": "Mento" },
+    "crows_feet": { "en": "Crow's Feet", "it": "Zampe di gallina" },
+    "tear_through": { "en": "Tear Trough", "it": "Solco lacrimale" },
+    "bunny_line": { "en": "Bunny Lines", "it": "Rughe del coniglio" },
+    "droppy_eyelid": { "en": "Droopy Eyelid", "it": "Palpebra cadente" },
+    "marionette_line": { "en": "Marionette Lines", "it": "Rughe della marionetta" },
+    "neck_lines": { "en": "Neck Lines", "it": "Rughe del collo" },
+    "purse_string": { "en": "Purse String", "it": "Rughe periorali" }
+  }
+}
+
+

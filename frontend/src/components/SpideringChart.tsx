@@ -223,8 +223,8 @@ export default function SpideringChart({
           {/* Data polygon */}
           <motion.polygon
             points={getPolygonPoints()}
-            fill="rgba(255, 107, 157, 0.2)"
-            stroke="#ff6b9d"
+            fill="rgba(139, 92, 246, 0.2)"
+            stroke="#8b5cf6"
             strokeWidth="2"
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}

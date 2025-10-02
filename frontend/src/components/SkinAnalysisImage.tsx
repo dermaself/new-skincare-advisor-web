@@ -656,7 +656,7 @@ export default function SkinAnalysisImage({
         </div>
 
         {/* Color Legend Bar */}
-        <div className="bg-white rounded-lg p-4 shadow-sm border hidden">
+        <div className="bg-white rounded-lg p-4 shadow-sm border">
           <h3 className="text-sm font-medium text-gray-700 mb-3">
             {carouselImages[currentImageIndex].label} - Color Legend
           </h3>
@@ -668,7 +668,7 @@ export default function SkinAnalysisImage({
               return (
                 <div
                   key={className}
-                  className="px-3 py-1 rounded text-sm font-medium transition-all hover:opacity-80"
+                  className="px-3 py-1 rounded rounded-full text-sm font-medium transition-all hover:opacity-80"
                   style={{
                     backgroundColor: color,
                     color: textColor

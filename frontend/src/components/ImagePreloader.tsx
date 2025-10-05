@@ -56,10 +56,8 @@ export default function ImagePreloader({
           
           if (successful === 0) {
             console.warn('⚠️ No images loaded successfully, but continuing...');
-            setLoadingText('Continuando senza cache delle immagini...');
           } else {
             console.log(`✅ Image preloading completed: ${successful}/${total} images loaded`);
-            setLoadingText('Immagini memorizzate con successo!');
           }
           
           // Small delay to show completion

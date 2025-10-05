@@ -4,6 +4,9 @@ import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Camera } from 'lucide-react';
 
+// Import face detection hook
+import { useFaceDetection } from '../lib/useFaceDetection';
+
 // Import step components
 import {
   OnboardingStep,
@@ -81,6 +84,9 @@ const getProducts = async (): Promise<Product[]> => {
 };
 
 export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, onReady }: SkinAnalysisModalProps) {
+  // Initialize face detection models when modal opens
+  const faceDetection = useFaceDetection();
+
   // Prevent body scrolling when modal is open
   useEffect(() => {
     if (isOpen) {
@@ -444,6 +450,7 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
               <CameraCaptureStep
                 onNext={handleImageCapture}
                 onBack={handleBack}
+                faceDetection={faceDetection}
               />
             )}
 

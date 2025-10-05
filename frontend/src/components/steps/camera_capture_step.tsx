@@ -4,18 +4,16 @@ import { motion } from 'framer-motion';
 import { Camera, X, SwitchCameraIcon, ArrowLeft, CheckCircle, Upload, Target, MoveHorizontal, Sun, Check, Move, RotateCcw } from 'lucide-react';
 import { ASSETS } from '../../lib/assets';
 
-// Dynamic import to avoid SSR issues
-let faceapi: any = null;
-if (typeof window !== 'undefined') {
-  // Only import on client side
-  import('face-api.js').then(module => {
-    faceapi = module;
-  });
-}
-
 interface CameraCaptureStepProps {
   onNext: (imageData: string) => void;
   onBack: () => void;
+  faceDetection?: {
+    modelsLoaded: boolean;
+    faceApiAvailable: boolean;
+    isLoading: boolean;
+    error: string | null;
+    faceapi: any;
+  };
 }
 
 interface FacePosition {
@@ -32,7 +30,7 @@ const isMobileDevice = () => {
          window.innerWidth <= 768;
 };
 
-export default function CameraCaptureStep({ onNext, onBack }: CameraCaptureStepProps) {
+export default function CameraCaptureStep({ onNext, onBack, faceDetection }: CameraCaptureStepProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [stream, setStream] = useState<MediaStream | null>(null);
@@ -45,13 +43,20 @@ export default function CameraCaptureStep({ onNext, onBack }: CameraCaptureStepP
   const [detectionInterval, setDetectionInterval] = useState<NodeJS.Timeout | null>(null);
   const [faceDetected, setFaceDetected] = useState(false);
   const [faceAngle, setFaceAngle] = useState<{x: number, y: number, z: number} | null>(null);
-  const [modelsLoaded, setModelsLoaded] = useState(false);
-  const [faceApiAvailable, setFaceApiAvailable] = useState(false);
   const [detectedFaces, setDetectedFaces] = useState<any[]>([]);
   const detectedFacesRef = useRef<any[]>([]);
-  const [guidanceMessage, setGuidanceMessage] = useState<string>('Loading face detection...');
-  const [guidanceType, setGuidanceType] = useState<'loading' | 'detecting' | 'positioning' | 'ready'>('loading');
+  const [guidanceMessage, setGuidanceMessage] = useState<string>(
+    faceDetection?.isLoading ? 'Loading face detection...' : 'Place your face in front of the camera'
+  );
+  const [guidanceType, setGuidanceType] = useState<'loading' | 'detecting' | 'positioning' | 'ready'>(
+    faceDetection?.isLoading ? 'loading' : 'detecting'
+  );
   const [lastFaceDetectionTime, setLastFaceDetectionTime] = useState<number>(0);
+
+  // Use face detection state from props or fallback to local state
+  const modelsLoaded = faceDetection?.modelsLoaded ?? false;
+  const faceApiAvailable = faceDetection?.faceApiAvailable ?? false;
+  const faceapi = faceDetection?.faceapi ?? null;
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -62,43 +67,6 @@ export default function CameraCaptureStep({ onNext, onBack }: CameraCaptureStepP
 
   useEffect(() => {
     isMountedRef.current = true;
-    
-    // Load face-api.js models
-    const loadModels = async () => {
-      try {
-        console.log('Loading face-api.js models...');
-        
-        // Try to load face-api.js dynamically
-        try {
-          const module = await import('face-api.js');
-          faceapi = module;
-          setFaceApiAvailable(true);
-          
-          // Load models from the correct CDN URL
-          const MODEL_URL = 'https://justadudewhohacks.github.io/face-api.js/models';
-          
-          await Promise.all([
-            faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
-            faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
-            faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL)
-          ]);
-          
-          setModelsLoaded(true);
-          console.log('face-api.js models loaded successfully');
-        } catch (faceApiError) {
-          console.warn('face-api.js not available, continuing without face detection:', faceApiError);
-          setModelsLoaded(true); // Mark as loaded so we can continue without face detection
-        }
-      } catch (error) {
-        console.error('Error in loadModels:', error);
-        setModelsLoaded(true); // Mark as loaded so we can continue
-      }
-    };
-
-    // Only load models if we're not in SSR
-    if (typeof window !== 'undefined') {
-      loadModels();
-    }
     
     startCamera();
     

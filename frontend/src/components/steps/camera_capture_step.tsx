@@ -1,8 +1,7 @@
 "use client";
 import React, { useState, useRef, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { Camera, X, SwitchCameraIcon, ArrowLeft, CheckCircle, Upload, Target, MoveHorizontal, Sun, Check, Move, RotateCcw } from 'lucide-react';
-import { ASSETS } from '../../lib/assets';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Camera, SwitchCameraIcon, CheckCircle, Upload, Move } from 'lucide-react';
 
 interface CameraCaptureStepProps {
   onNext: (imageData: string) => void;
@@ -16,19 +15,8 @@ interface CameraCaptureStepProps {
   };
 }
 
-interface FacePosition {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-}
+// removed unused FacePosition interface
 
-// Device detection function
-const isMobileDevice = () => {
-  if (typeof window === 'undefined') return false;
-  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
-         window.innerWidth <= 768;
-};
 
 export default function CameraCaptureStep({ onNext, onBack, faceDetection }: CameraCaptureStepProps) {
   const [isLoading, setIsLoading] = useState(false);
@@ -38,10 +26,7 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [currentCamera, setCurrentCamera] = useState<'front' | 'back'>('front');
   const [cameraState, setCameraState] = useState<'live' | 'preview'>('live');
-  const [luminosity, setLuminosity] = useState<number>(0);
-  const [facePosition, setFacePosition] = useState<FacePosition | null>(null);
   const [detectionInterval, setDetectionInterval] = useState<NodeJS.Timeout | null>(null);
-  const [faceDetected, setFaceDetected] = useState(false);
   const [faceAngle, setFaceAngle] = useState<{x: number, y: number, z: number} | null>(null);
   const [detectedFaces, setDetectedFaces] = useState<any[]>([]);
   const detectedFacesRef = useRef<any[]>([]);
@@ -244,7 +229,6 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
     }
     
     setIsCameraActive(false);
-    setFacePosition(null);
     initializationInProgressRef.current = false;
   };
 
@@ -287,30 +271,14 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
         }
         
         await detectFacePosition();
-        getLuminosityStatus();
-      }, 200); // Faster detection for better responsiveness
+      }, 1000); // Faster detection for better responsiveness
       
       setDetectionInterval(interval);
     }, 1000); // Increased delay to ensure video is ready
   };
 
 
-  const isFaceInPosition = (face: FacePosition): boolean => {
-    if (!videoRef.current) return false;
-    
-    const video = videoRef.current;
-    const centerX = video.videoWidth / 2;
-    const centerY = video.videoHeight / 2;
-    const tolerance = 50;
-    
-    return Math.abs(face.x + face.width / 2 - centerX) < tolerance &&
-           Math.abs(face.y + face.height / 2 - centerY) < tolerance;
-  };
-
-  const getLuminosityStatus = () => {
-    // Luminosity detection disabled for now
-    console.log('Luminosity detection disabled');
-  };
+  // removed unused isFaceInPosition and getLuminosityStatus
 
   const calculateFaceAngle = (landmarks: any) => {
     if (!landmarks || !landmarks.positions) {
@@ -414,7 +382,6 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
           
           detectedFacesRef.current = detections;
           setDetectedFaces(detections);
-          setFaceDetected(detections.length > 0);
           
           // Draw detection results on overlay
           drawDetectionResults(detections);
@@ -426,15 +393,6 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
             console.log('Face detected:', box);
             console.log('Landmarks detected:', landmarks ? 'Yes' : 'No');
             
-            const facePos = {
-              x: box.x,
-              y: box.y,
-              width: box.width,
-              height: box.height
-            };
-            
-            setFacePosition(facePos);
-            
             // Calculate face angles from landmarks
             if (landmarks) {
               const angles = calculateFaceAngle(landmarks);
@@ -445,15 +403,13 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
             }
             
             // Update guidance based on detection results (including angles)
-            updateGuidance(detections, facePos, 0.5);
+            updateGuidance(detections);
           } else {
             console.log('- No face detected -');
-            setFaceDetected(false);
-            setFacePosition(null);
             setFaceAngle(null);
             
             // Update guidance for no face detected
-            updateGuidance([], null, 0.5);
+            updateGuidance([]);
           }
         } catch (faceApiError) {
           console.error('face-api.js face detection error:', faceApiError);
@@ -675,7 +631,7 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
     ctx.stroke();
   };
 
-  const updateGuidance = (detections: any[], facePosition: any, luminosity: number) => {
+  const updateGuidance = (detections: any[]) => {
     // If face detection is not available, show loading
     if (!faceApiAvailable) {
       const newMessage = 'Loading recognition models...';
@@ -1206,17 +1162,33 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
             
             {/* Dynamic Guidance Text */}
             <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-20">
-              <div className="px-6 py-3 text-sm text-center max-w-xs transition-all duration-300 text-white footer-medium">
-                {guidanceType === 'loading' ? (
-                  <div className="flex items-center justify-center gap-2">
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                    <span>{guidanceMessage}</span>
-                  </div>
-                ) : (
-                  <div className="flex items-center justify-center">
-                  {guidanceMessage}
-                </div>
-                )}
+              <div className="px-6 py-3 text-sm text-center max-w-xs text-white footer-medium">
+                <AnimatePresence mode="wait" initial={false}>
+                  {guidanceType === 'loading' ? (
+                    <motion.div
+                      key={`loading-${guidanceMessage}`}
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -6 }}
+                      transition={{ duration: 0.25, ease: 'easeOut' }}
+                      className="flex items-center justify-center gap-2"
+                    >
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      <span>{guidanceMessage}</span>
+                    </motion.div>
+                  ) : (
+                    <motion.div
+                      key={`msg-${guidanceMessage}`}
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -6 }}
+                      transition={{ duration: 0.25, ease: 'easeOut' }}
+                      className="flex items-center justify-center"
+                    >
+                      {guidanceMessage}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
             </div>
             

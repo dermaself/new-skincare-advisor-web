@@ -15,8 +15,18 @@ interface CameraCaptureStepProps {
   };
 }
 
-// removed unused FacePosition interface
+interface FacePosition {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
 
+const isMobileDevice = () => {
+  if (typeof window === 'undefined') return false;
+  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+         window.innerWidth <= 768;
+};
 
 export default function CameraCaptureStep({ onNext, onBack, faceDetection }: CameraCaptureStepProps) {
   const [isLoading, setIsLoading] = useState(false);

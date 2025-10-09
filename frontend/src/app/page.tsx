@@ -132,6 +132,7 @@ export default function Home() {
           skincare recommendations. Get professional insights from the comfort of your home.
         </p>
         <button
+          suppressHydrationWarning
           onClick={() => setShowModal(true)}
           className="bg-primary-600 hover:bg-primary-700 text-white font-semibold py-3 px-8 rounded-lg transition-colors"
         >

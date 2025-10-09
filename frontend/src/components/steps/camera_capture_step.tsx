@@ -38,7 +38,9 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [currentCamera, setCurrentCamera] = useState<'front' | 'back'>('front');
   const [cameraState, setCameraState] = useState<'live' | 'preview'>('live');
-  const [luminosity, setLuminosity] = useState<number>(0);
+  const [isMobile, setIsMobile] = useState<boolean>(false);
+  const [showDesktopGate, setShowDesktopGate] = useState<boolean>(false);
+  const [qrImageUrl, setQrImageUrl] = useState<string>('');
   const [facePosition, setFacePosition] = useState<FacePosition | null>(null);
   const [detectionInterval, setDetectionInterval] = useState<NodeJS.Timeout | null>(null);
   const [faceDetected, setFaceDetected] = useState(false);
@@ -46,7 +48,7 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
   const [detectedFaces, setDetectedFaces] = useState<any[]>([]);
   const detectedFacesRef = useRef<any[]>([]);
   const [guidanceMessage, setGuidanceMessage] = useState<string>(
-    faceDetection?.isLoading ? 'Loading face detection...' : 'Place your face in front of the camera'
+    faceDetection?.isLoading ? 'Loading face detection...' : ''
   );
   const [guidanceType, setGuidanceType] = useState<'loading' | 'detecting' | 'positioning' | 'ready'>(
     faceDetection?.isLoading ? 'loading' : 'detecting'
@@ -67,8 +69,17 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
 
   useEffect(() => {
     isMountedRef.current = true;
-    
-    startCamera();
+    const mobile = isMobileDevice();
+    setIsMobile(mobile);
+    if (typeof window !== 'undefined' && !mobile) {
+      setShowDesktopGate(true);
+      // Build QR pointing to the same page (mobile users will go straight into camera)
+      const targetUrl = window.location.href;
+      const url = `https://api.qrserver.com/v1/create-qr-code/?size=256x256&data=${encodeURIComponent(targetUrl)}`;
+      setQrImageUrl(url);
+    } else {
+      startCamera();
+    }
     
     return () => {
       isMountedRef.current = false;
@@ -426,12 +437,13 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
             console.log('Face detected:', box);
             console.log('Landmarks detected:', landmarks ? 'Yes' : 'No');
             
-            const facePos = {
-              x: box.x,
-              y: box.y,
-              width: box.width,
-              height: box.height
-            };
+            const normalized = normalizeFaceBox(box);
+            const facePos = normalized ? {
+              x: normalized.x,
+              y: normalized.y,
+              width: normalized.width,
+              height: normalized.height
+            } : null;
             
             setFacePosition(facePos);
             
@@ -520,16 +532,18 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
     
     detections.forEach((detection, faceIndex) => {
       const { detection: box, landmarks } = detection;
+      const n = normalizeFaceBox(box);
+      if (!n) return;
       
       // Draw bounding box with proper offset
       ctx.strokeStyle = faceIndex === 0 ? '#00ff00' : '#ff0000';
       ctx.lineWidth = 3;
       
       const scaledBox = {
-        x: (box.x * scaleX) + videoOffsetX,
-        y: (box.y * scaleY) + videoOffsetY,
-        width: box.width * scaleX,
-        height: box.height * scaleY
+        x: (n.x * scaleX) + videoOffsetX,
+        y: (n.y * scaleY) + videoOffsetY,
+        width: n.width * scaleX,
+        height: n.height * scaleY
       };
       
       ctx.strokeRect(scaledBox.x, scaledBox.y, scaledBox.width, scaledBox.height);
@@ -692,7 +706,7 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
     
     // If no faces detected
     if (detections.length === 0) {
-      const newMessage = 'Place your face in front of the camera';
+      const newMessage = '';
       if (guidanceMessage !== newMessage) {
         setGuidanceMessage(newMessage);
         setGuidanceType('detecting');
@@ -702,66 +716,70 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
 
     const detection = detections[0];
     const { detection: box, landmarks } = detection;
-    
-    // Check lighting first - this is critical for good photo capture
+    const normalizedBox = normalizeFaceBox(box);
+    if (!normalizedBox) {
+      console.log('Normalized box invalid, skipping guidance');
+      return;
+    }
+
+    // 1) Lighting (independent of landmarks)
+    const lightingGuidance = getLightingGuidance(normalizedBox);
+    if (lightingGuidance.needsImprovement) {
+      if (guidanceMessage !== lightingGuidance.message) {
+        setGuidanceMessage(lightingGuidance.message);
+        setGuidanceType('positioning');
+      }
+      return;
+    }
+
+    // 2) Position in guide box
     if (landmarks && landmarks.positions.length > 0) {
-      const lightingGuidance = getLightingGuidance(landmarks.positions, box);
-      if (lightingGuidance.needsImprovement) {
-        if (guidanceMessage !== lightingGuidance.message) {
-          setGuidanceMessage(lightingGuidance.message);
+      const allLandmarksInBox = areLandmarksInGuideBox(landmarks.positions, normalizedBox);
+      if (!allLandmarksInBox) {
+        const newMessage = 'Center your face in the guide box';
+        if (guidanceMessage !== newMessage) {
+          setGuidanceMessage(newMessage);
           setGuidanceType('positioning');
         }
-      return;
+        return;
       }
     }
-    
-    // Always check face angle second - this takes priority over positioning
+
+    // 3) Distance from camera
+    const distanceGuidance = getDistanceGuidance(normalizedBox);
+    if (distanceGuidance.needsAdjustment) {
+      if (guidanceMessage !== distanceGuidance.message) {
+        setGuidanceMessage(distanceGuidance.message);
+        setGuidanceType('positioning');
+      }
+      return;
+    }
+
+    // 4) Face angle
     if (landmarks && landmarks.positions.length > 0) {
-      const angleGuidance = getAngleGuidance(landmarks.positions, box);
+      const angleGuidance = getAngleGuidance(landmarks.positions, normalizedBox);
       if (angleGuidance.shouldCorrect) {
         if (guidanceMessage !== angleGuidance.message) {
           setGuidanceMessage(angleGuidance.message);
           setGuidanceType('positioning');
         }
-      return;
-      }
-    }
-    
-    // Only check positioning if lighting and angle are good
-    if (landmarks && landmarks.positions.length > 0) {
-      const allLandmarksInBox = areLandmarksInGuideBox(landmarks.positions, box);
-      
-      if (allLandmarksInBox) {
-        const newMessage = 'Perfect! Keep this position';
-        if (guidanceMessage !== newMessage) {
-          setGuidanceMessage(newMessage);
-          setGuidanceType('ready');
-        }
         return;
       }
-      
-      // If landmarks are detected but not in box, guide positioning
-      const newMessage = 'Center your face in the guide box';
-      if (guidanceMessage !== newMessage) {
-        setGuidanceMessage(newMessage);
-        setGuidanceType('positioning');
-      }
-      return;
     }
-    
-    // Fallback for when landmarks are not available
-    const newMessage = 'Place your face in front of the camera';
+
+    // All checks passed
+    const newMessage = 'Perfect! Keep this position';
     if (guidanceMessage !== newMessage) {
       setGuidanceMessage(newMessage);
-      setGuidanceType('detecting');
+      setGuidanceType('ready');
     }
   };
 
-  const getLightingGuidance = (landmarks: any[], faceBox: any): { needsImprovement: boolean; message: string } => {
+  const getLightingGuidance = (faceBox: any): { needsImprovement: boolean; message: string } => {
     console.log('=== LIGHTING GUIDANCE CALLED ===');
     
-    if (!landmarks || landmarks.length < 68 || !videoRef.current) {
-      console.log('Lighting: Missing prerequisites');
+    if (!videoRef.current) {
+      console.log('Lighting: Missing video element');
       return { needsImprovement: false, message: '' };
     }
 
@@ -909,6 +927,50 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
     return pixelCount > 0 ? totalLuminance / pixelCount : 0;
   };
 
+  const normalizeFaceBox = (rawBox: any): { x: number; y: number; width: number; height: number } | null => {
+    if (!rawBox || typeof rawBox !== 'object') return null;
+    const candidate = (rawBox.box && typeof rawBox.box === 'object') ? rawBox.box : rawBox;
+    const x = Number((candidate as any).x);
+    const y = Number((candidate as any).y);
+    const width = Number((candidate as any).width);
+    const height = Number((candidate as any).height);
+    if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(width) || !Number.isFinite(height)) {
+      return null;
+    }
+    return { x, y, width, height };
+  };
+
+  const getDistanceGuidance = (faceBox: any): { needsAdjustment: boolean; message: string } => {
+    if (!videoRef.current || !faceBox) {
+      return { needsAdjustment: false, message: '' };
+    }
+
+    const video = videoRef.current;
+
+    // Use video natural size; fallback to client size if unavailable
+    const frameWidth = video.videoWidth || video.clientWidth || 0;
+    const frameHeight = video.videoHeight || video.clientHeight || 0;
+    if (!frameWidth || !frameHeight) {
+      return { needsAdjustment: false, message: '' };
+    }
+
+    const faceArea = Math.max(1, Number(faceBox.width)) * Math.max(1, Number(faceBox.height));
+    const frameArea = frameWidth * frameHeight;
+    const faceAreaRatio = faceArea / frameArea; // 0..1
+
+    // Heuristics:
+    // - Too far: face occupies less than ~6% of frame
+    // - Too close: face occupies more than ~25% of frame
+    if (faceAreaRatio < 0.06) {
+      return { needsAdjustment: true, message: 'Move closer to the camera' };
+    }
+    if (faceAreaRatio > 0.25) {
+      return { needsAdjustment: true, message: 'Move a bit farther from the camera' };
+    }
+
+    return { needsAdjustment: false, message: '' };
+  };
+
   const getAngleGuidance = (landmarks: any[], faceBox: any): { shouldCorrect: boolean; message: string } => {
     if (!landmarks || landmarks.length < 68) {
       return { shouldCorrect: false, message: '' };
@@ -1019,7 +1081,7 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
     const timeout = setTimeout(() => {
       const timeSinceDetection = Date.now() - lastFaceDetectionTime;
       if (timeSinceDetection > 3000 && guidanceType !== 'loading') { // 3 seconds timeout
-        setGuidanceMessage('Place your face in front of the camera');
+        setGuidanceMessage('');
         setGuidanceType('detecting');
       }
     }, 1000);
@@ -1144,7 +1206,52 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
       transition={{ duration: 0.3 }}
       className="bg-main bg-cover bg-center h-full flex flex-col"
     >
+      {/* Desktop Gate (desktop only) */}
+      {showDesktopGate && !isMobile && (
+        <div className="flex-1 relative bg-black/60 overflow-hidden flex items-center justify-center p-6">
+          <div className="flex size-full flex-col items-center p-4 max-w-full">
+            <div className="my-auto flex flex-col items-center justify-center gap-6">
+              <div className="relative mb-10 flex w-64 h-64 items-center justify-center overflow-hidden rounded-2xl bg-white/5 text-white">
+                {qrImageUrl && (
+                  <img
+                    src={qrImageUrl}
+                    alt="Scan this QR code to take a photo with your smartphone"
+                    className="w-full h-full p-2 object-contain"
+                  />
+                )}
+              </div>
+              <div className="flex flex-col gap-2 text-center text-white">
+                <h2 className="text-xl sm:text-2xl">Scan this QR code to take a photo with your smartphone</h2>
+                <p className="text-base opacity-80">The results will be shown here</p>
+              </div>
+            </div>
+            <div className="flex w-full flex-col items-center justify-center gap-2 sm:flex-row mt-6">
+              <button
+                onClick={() => {
+                  setShowDesktopGate(false);
+                  startCamera();
+                }}
+                className="w-full sm:max-w-xs relative rounded-md bg-white/20 hover:bg-white/30 text-white px-4 py-3 transition"
+                aria-label="Continue on desktop"
+              >
+                Continue on desktop
+              </button>
+              <label
+                className="w-full sm:max-w-xs relative rounded-md bg-white/20 hover:bg-white/30 text-white px-4 py-3 text-center transition cursor-pointer"
+                aria-label="Upload from device"
+                role="button"
+                tabIndex={0}
+                onClick={() => fileInputRef.current?.click()}
+              >
+                Upload from device
+              </label>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Camera Content */}
+      {!showDesktopGate && (
       <div className="flex-1 relative bg-black overflow-hidden">
         {isLoading && (
           <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-75 z-10">
@@ -1281,8 +1388,10 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
           aria-label="Seleziona file immagine"
         />
       </div>
+      )}
 
       {/* Controls */}
+      {!showDesktopGate && (
       <div className="bg-white/50 backdrop-blur-sm border-t border-white/30 p-4">
         {cameraState === 'live' && (
           <>
@@ -1355,6 +1464,7 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
           </div>
         )}
       </div>
+      )}
     </motion.div>
   );
 }

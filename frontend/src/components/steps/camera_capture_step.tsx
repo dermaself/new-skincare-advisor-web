@@ -2,6 +2,9 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Camera, SwitchCameraIcon, CheckCircle, Upload, Move } from 'lucide-react';
+import { v4 as uuidv4 } from 'uuid';
+import { QRCodeSVG } from 'qrcode.react';
+import DesktopPhotoReceiver from './DesktopPhotoReceiver';
 
 interface CameraCaptureStepProps {
   onNext: (imageData: string) => void;
@@ -51,6 +54,7 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
     faceDetection?.isLoading ? 'loading' : 'detecting'
   );
   const [lastFaceDetectionTime, setLastFaceDetectionTime] = useState<number>(0);
+  const [session, setSession] = useState<string>('');
 
   // Use face detection state from props or fallback to local state
   const modelsLoaded = faceDetection?.modelsLoaded ?? false;
@@ -70,14 +74,12 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
     setIsMobile(mobile);
     if (typeof window !== 'undefined' && !mobile) {
       setShowDesktopGate(true);
-      // Build QR pointing to the same page (mobile users will go straight into camera)
-      const targetUrl = window.location.href;
-      const url = `https://api.qrserver.com/v1/create-qr-code/?size=256x256&data=${encodeURIComponent(targetUrl)}`;
-      setQrImageUrl(url);
+      // Generate unique session and QR code for desktop
+      const newSession = uuidv4();
+      setSession(newSession);
     } else {
       startCamera();
     }
-    
     return () => {
       isMountedRef.current = false;
       stopCamera();
@@ -1189,18 +1191,19 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
           <div className="flex size-full flex-col items-center p-4 max-w-full">
             <div className="my-auto flex flex-col items-center justify-center gap-6">
               <div className="relative mb-10 flex w-64 h-64 items-center justify-center overflow-hidden rounded-2xl bg-white/5 text-white">
-                {qrImageUrl && (
-                  <img
-                    src={qrImageUrl}
-                    alt="Scan this QR code to take a photo with your smartphone"
-                    className="w-full h-full p-2 object-contain"
+                {session && (
+                  <QRCodeSVG
+                    value={`${window.location.origin}/mobile-capture?session=${session}`}
+                    size={256}
                   />
                 )}
               </div>
               <div className="flex flex-col gap-2 text-center text-white">
                 <h2 className="text-xl sm:text-2xl">Scan this QR code to take a photo with your smartphone</h2>
-                <p className="text-base opacity-80">The results will be shown here</p>
               </div>
+            </div>
+            <div className="mt-8 w-full flex flex-col items-center justify-center">
+              {session && <DesktopPhotoReceiver session={session} />}
             </div>
             <div className="flex w-full flex-col items-center justify-center gap-2 sm:flex-row mt-6">
               <button

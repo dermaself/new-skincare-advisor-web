@@ -371,6 +371,60 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
         return;
       }
       
+      // --- Brightness Guidance First ---
+      // Analyze overall frame brightness before face detection
+      const tempCanvas = document.createElement('canvas');
+      tempCanvas.width = video.videoWidth;
+      tempCanvas.height = video.videoHeight;
+      const tempCtx = tempCanvas.getContext('2d');
+      if (tempCtx) {
+        tempCtx.drawImage(video, 0, 0, tempCanvas.width, tempCanvas.height);
+        const frameData = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
+        // Use the same luminance calculation as calculateLuminance
+        let totalLuminance = 0;
+        let pixelCount = 0;
+        const data = frameData.data;
+        for (let i = 0; i < data.length; i += 16) { // sample every 4th pixel
+          const r = data[i];
+          const g = data[i + 1];
+          const b = data[i + 2];
+          const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+          totalLuminance += luminance;
+          pixelCount++;
+        }
+        const avgLuminance = pixelCount > 0 ? totalLuminance / pixelCount : 0;
+        // Show guidance if lighting is poor
+        if (avgLuminance < 0.20) {
+          setGuidanceMessage('Face toward a light source - lighting is too dark');
+          setGuidanceType('positioning');
+          clearOverlayCanvas();
+          setDetectedFaces([]);
+          setFaceAngle(null);
+          return;
+        } else if (avgLuminance > 0.80) {
+          setGuidanceMessage('Move away from bright light - lighting is too bright');
+          setGuidanceType('positioning');
+          clearOverlayCanvas();
+          setDetectedFaces([]);
+          setFaceAngle(null);
+          return;
+        } else if (avgLuminance < 0.35) {
+          setGuidanceMessage('Turn toward more light for better visibility');
+          setGuidanceType('positioning');
+          clearOverlayCanvas();
+          setDetectedFaces([]);
+          setFaceAngle(null);
+          return;
+        } else if (avgLuminance > 0.65) {
+          setGuidanceMessage('Reduce screen brightness or move away from window');
+          setGuidanceType('positioning');
+          clearOverlayCanvas();
+          setDetectedFaces([]);
+          setFaceAngle(null);
+          return;
+        }
+      }
+
       // Clear overlay canvas first
       clearOverlayCanvas();
       

@@ -1,9 +1,10 @@
-"use client";
-
+'use client';
+import { Suspense } from 'react';
 import { useState, useRef, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
+function MobileCapturePageInner() {
+  
 
-export default function MobileCapturePage() {
   const searchParams = useSearchParams();
   const session = searchParams.get('session');
   const [image, setImage] = useState<string | null>(null);
@@ -90,5 +91,13 @@ export default function MobileCapturePage() {
       {status === 'error' && <p className="text-red-500">Upload failed. Try again.</p>}
       {image && <img src={image} alt="Preview" className="mt-4 max-w-xs rounded" />}
     </main>
+  );
+}
+
+export default function MobileCapturePage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <MobileCapturePageInner />
+    </Suspense>
   );
 }

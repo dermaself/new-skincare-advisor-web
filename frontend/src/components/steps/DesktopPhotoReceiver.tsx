@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 
-export default function DesktopPhotoReceiver({ session }: { session: string }) {
+export default function DesktopPhotoReceiver({ session, onPhotoReceived }: { session: string, onPhotoReceived: (image: any) => void }) {
   const [image, setImage] = useState<string | null>(null);
   const [status, setStatus] = useState<'pending' | 'ready'>('pending');
 
@@ -11,6 +11,7 @@ export default function DesktopPhotoReceiver({ session }: { session: string }) {
       const data = await res.json();
       if (data.status === 'ready' && data.image) {
         setImage(data.image);
+        onPhotoReceived(data.image)
         setStatus('ready');
         clearInterval(interval);
       }

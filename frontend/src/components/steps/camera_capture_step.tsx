@@ -1247,7 +1247,17 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
               </div>
             </div>
             <div className="mt-8 w-full flex flex-col items-center justify-center">
-              {session && <DesktopPhotoReceiver session={session} />}
+              {session && (
+                <DesktopPhotoReceiver
+                  session={session}
+                  onPhotoReceived={(image) => {
+                    setCapturedImage(image);
+                    setCameraState('preview');
+                    setShowDesktopGate(false); // Optional: hide desktop gate
+                    console.log('Photo received, switching to preview step');
+                  }}
+                />
+              )}
             </div>
             <div className="flex w-full flex-col items-center justify-center gap-2 sm:flex-row mt-6">
               <button

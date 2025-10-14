@@ -74,19 +74,19 @@ export default function SkinConcernsStep({ selectedConcerns, onConcernToggle, on
             <div 
               key={concern.id} 
               tabIndex={0}
-              className={`relative cursor-pointer transition-all duration-200 ${
+              className={`relative h-full cursor-pointer transition-all duration-200 ${
                 selectedConcerns.includes(concern.id) 
                   ? 'transform scale-[1.02]' 
                   : 'hover:transform hover:scale-[1.01]'
               }`}
               onClick={() => onConcernToggle(concern.id)}
             >
-              <div className={`relative rounded-2xl overflow-hidden border-2 transition-all duration-200 ${
+              <div className={`relative rounded-2xl overflow-hidden border-2 transition-all h-full duration-200 ${
                 selectedConcerns.includes(concern.id)
                   ? 'border-purple-500 shadow-lg shadow-purple-100'
                   : 'border-transparent hover:border-purple-300'
               }`}>
-                <div className="flex bg-white">
+                <div className="flex bg-white h-full">
                   <div className="w-16 overflow-hidden flex-shrink-0 bg-gray-100 flex items-center justify-center py-2">
                     {concern.icon ? (
                       <img

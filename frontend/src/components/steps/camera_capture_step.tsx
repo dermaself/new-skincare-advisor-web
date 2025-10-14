@@ -228,7 +228,7 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
             if (modelsLoaded && isMountedRef.current) {
               startFaceDetection();
             }
-          }, 1000);
+          }, 100);
         }
         
       } catch (fallbackErr) {
@@ -1035,10 +1035,10 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
     >
       {/* Desktop Gate (desktop only) */}
       {showDesktopGate && !isMobile && (
-        <div className="flex-1 relative bg-black/60 overflow-hidden flex items-center justify-center p-6">
+        <div className="flex-1 relative bg-black/70 backdrop-blur-md overflow-hidden flex items-center justify-center p-6">
           <div className="flex size-full flex-col items-center p-4 max-w-full">
             <div className="my-auto flex flex-col items-center justify-center gap-6">
-              <div className="relative mb-10 flex w-64 h-64 items-center justify-center overflow-hidden rounded-2xl bg-white/5 text-white">
+              <div className="relative mb-10 flex items-center justify-center overflow-hidden rounded-2xl bg-white text-white p-4">
                 {session && (
                   <QRCodeSVG
                     value={`${window.location.origin}/mobile-capture?session=${session}`}
@@ -1063,16 +1063,17 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
                 />
               )}
             </div>
-            <div className="flex w-full flex-col items-center justify-center gap-2 sm:flex-row mt-6">
+            <div className="flex w-full flex-col items-center justify-center gap-2 mt-6">
               <button
                 onClick={() => {
                   setShowDesktopGate(false);
                   startCamera();
                 }}
-                className="w-full sm:max-w-xs relative rounded-md bg-white/20 hover:bg-white/30 text-white px-4 py-3 transition"
+                className="w-full relative rounded-md bg-white/20 hover:bg-white/30 text-white px-4 py-3 transition flex items-center gap-4 justify-center gap-2 cursor-pointer"
                 aria-label="Continue on desktop"
               >
-                Continue on desktop
+                <Camera />
+                <span>Continue on desktop</span>
               </button>
               <input
                 ref={fileInputRef}
@@ -1083,13 +1084,14 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
                 aria-label="Seleziona file immagine"
               />
               <label
-                className="w-full sm:max-w-xs relative rounded-md bg-white/20 hover:bg-white/30 text-white px-4 py-3 text-center transition cursor-pointer"
+                className="w-full relative rounded-md bg-white/20 hover:bg-white/30 text-white px-4 py-3 text-center transition cursor-pointer flex items-center justify-center gap-4"
                 aria-label="Upload from device"
                 role="button"
                 tabIndex={0}
                 onClick={openFileDialog}
               >
-                Upload from device
+                <Upload />
+                <span>Upload from device</span>
               </label>
             </div>
           </div>

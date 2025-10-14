@@ -400,8 +400,8 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
           brightnessMsg = 'Move away from bright light - lighting is too bright';
         } else if (avgLuminance < 0.35) {
           brightnessMsg = 'Turn toward more light for better visibility';
-        } else if (avgLuminance > 0.65) {
-          brightnessMsg = 'Reduce screen brightness or move away from window';
+        } else {
+          brightnessMsg = '';
         }
         if (brightnessMsg) {
           setGuidanceMessage(brightnessMsg);
@@ -411,12 +411,80 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
           clearOverlayCanvas();
           setDetectedFaces([]);
           setFaceAngle(null);
+
+          clearOverlayCanvas();
+          
+
+          try {
+            // Detect faces with landmarks for angle calculation
+            const detections = await faceapi.detectAllFaces(video, new faceapi.TinyFaceDetectorOptions({
+              inputSize: 224,
+              scoreThreshold: 0.5
+            })).withFaceLandmarks();
+            
+            console.log('Face detection results:', detections.length, 'faces detected');
+            if (detections.length > 0) {
+              console.log('First face detection with landmarks:', detections[0]);
+            } else {
+              console.log('No faces detected - this is the issue!');
+              // Let's try with more relaxed settings
+              console.log('Trying with more relaxed detection settings...');
+              const relaxedDetections = await faceapi.detectAllFaces(video, new faceapi.TinyFaceDetectorOptions({
+                inputSize: 320,
+                scoreThreshold: 0.3
+              })).withFaceLandmarks();
+              console.log('Relaxed detection results:', relaxedDetections.length, 'faces detected');
+            }
+            
+            detectedFacesRef.current = detections;
+            setDetectedFaces(detections);
+            
+            // Draw detection results on overlay
+            drawDetectionResults(detections);
+            
+            if (detections.length > 0) {
+              const detection = detections[0];
+              const { detection: box, landmarks } = detection;
+              
+              console.log('Face detected:', box);
+              console.log('Landmarks detected:', landmarks ? 'Yes' : 'No');
+              
+              const normalized = normalizeFaceBox(box);
+              const facePos = normalized ? {
+                x: normalized.x,
+                y: normalized.y,
+                width: normalized.width,
+                height: normalized.height
+              } : null;
+              
+              setFacePosition(facePos);
+              
+              // Calculate face angles from landmarks
+              if (landmarks) {
+                const angles = calculateFaceAngle(landmarks);
+                console.log('Calculated face angles:', angles);
+                setFaceAngle(angles as any);
+              } else {
+                setFaceAngle({ x: 0, y: 0, z: 0 });
+              }
+              
+              // Update guidance based on detection results (including angles)
+              updateGuidance(detections);
+            } else {
+              console.log('- No face detected -');
+              setFaceAngle(null);
+              
+              // Update guidance for no face detected
+              updateGuidance([]);
+            }
+          } catch (faceApiError) {
+            console.error('face-api.js face detection error:', faceApiError);
+          }
           return;
         }
       }
 
       // Clear overlay canvas first
-      clearOverlayCanvas();
       
       // If models are loaded and face-api.js is available, use it
       if (modelsLoaded && faceApiAvailable && faceapi) {
@@ -428,71 +496,7 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
         console.log('Video dimensions:', video.videoWidth, 'x', video.videoHeight);
         console.log('Video client dimensions:', video.clientWidth, 'x', video.clientHeight);
         
-        try {
-          // Detect faces with landmarks for angle calculation
-          const detections = await faceapi.detectAllFaces(video, new faceapi.TinyFaceDetectorOptions({
-            inputSize: 224,
-            scoreThreshold: 0.5
-          })).withFaceLandmarks();
-          
-          console.log('Face detection results:', detections.length, 'faces detected');
-          if (detections.length > 0) {
-            console.log('First face detection with landmarks:', detections[0]);
-          } else {
-            console.log('No faces detected - this is the issue!');
-            // Let's try with more relaxed settings
-            console.log('Trying with more relaxed detection settings...');
-            const relaxedDetections = await faceapi.detectAllFaces(video, new faceapi.TinyFaceDetectorOptions({
-              inputSize: 320,
-              scoreThreshold: 0.3
-            })).withFaceLandmarks();
-            console.log('Relaxed detection results:', relaxedDetections.length, 'faces detected');
-          }
-          
-          detectedFacesRef.current = detections;
-          setDetectedFaces(detections);
-          
-          // Draw detection results on overlay
-          drawDetectionResults(detections);
-          
-          if (detections.length > 0) {
-            const detection = detections[0];
-            const { detection: box, landmarks } = detection;
-            
-            console.log('Face detected:', box);
-            console.log('Landmarks detected:', landmarks ? 'Yes' : 'No');
-            
-            const normalized = normalizeFaceBox(box);
-            const facePos = normalized ? {
-              x: normalized.x,
-              y: normalized.y,
-              width: normalized.width,
-              height: normalized.height
-            } : null;
-            
-            setFacePosition(facePos);
-            
-            // Calculate face angles from landmarks
-            if (landmarks) {
-              const angles = calculateFaceAngle(landmarks);
-              console.log('Calculated face angles:', angles);
-              setFaceAngle(angles as any);
-            } else {
-              setFaceAngle({ x: 0, y: 0, z: 0 });
-            }
-            
-            // Update guidance based on detection results (including angles)
-            updateGuidance(detections);
-          } else {
-            console.log('- No face detected -');
-            setFaceAngle(null);
-            
-            // Update guidance for no face detected
-            updateGuidance([]);
-          }
-        } catch (faceApiError) {
-          console.error('face-api.js face detection error:', faceApiError);
-        }
+        
       } else {
         console.log('face-api.js not ready - Models loaded:', modelsLoaded, 'API available:', faceApiAvailable);
       }

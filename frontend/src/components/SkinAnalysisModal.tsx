@@ -263,66 +263,6 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
     }
   };
 
-  // Cart handlers
-  const handleAddToCart = async (product: Product) => {
-    if (!isShopify) return;
-    
-    setCartLoading(prev => ({ ...prev, [product.id]: true }));
-    
-    try {
-      const response = await fetch('/api/shopify/cart', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          productId: product.shopifyProductId,
-          variantId: product.shopifyVariantId,
-          quantity: 1
-        })
-      });
-      
-      if (response.ok) {
-        setCartItems(prev => ({
-          ...prev,
-          [product.id]: (prev[product.id] || 0) + 1
-        }));
-      }
-    } catch (error) {
-      console.error('Failed to add to cart:', error);
-    } finally {
-      setCartLoading(prev => ({ ...prev, [product.id]: false }));
-    }
-  };
-
-  const handleRemoveFromCart = async (productId: string) => {
-    if (!isShopify) return;
-    
-    setCartLoading(prev => ({ ...prev, [productId]: true }));
-    
-    try {
-      const response = await fetch('/api/shopify/cart', {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ productId })
-      });
-      
-      if (response.ok) {
-        setCartItems(prev => {
-          const newItems = { ...prev };
-          if (newItems[productId] > 1) {
-            newItems[productId] -= 1;
-          } else {
-            delete newItems[productId];
-          }
-          return newItems;
-        });
-      }
-    } catch (error) {
-      console.error('Failed to remove from cart:', error);
-    } finally {
-      setCartLoading(prev => ({ ...prev, [productId]: false }));
-    }
-  };
-
   if (!isOpen) return null;
 
   return (

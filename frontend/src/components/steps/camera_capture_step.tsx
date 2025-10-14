@@ -41,7 +41,6 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
   const [cameraState, setCameraState] = useState<'live' | 'preview'>('live');
   const [isMobile, setIsMobile] = useState<boolean>(false);
   const [showDesktopGate, setShowDesktopGate] = useState<boolean>(false);
-  const [qrImageUrl, setQrImageUrl] = useState<string>('');
   const [facePosition, setFacePosition] = useState<FacePosition | null>(null);
   const [detectionInterval, setDetectionInterval] = useState<NodeJS.Timeout | null>(null);
   const [faceAngle, setFaceAngle] = useState<{x: number, y: number, z: number} | null>(null);
@@ -446,9 +445,6 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
               const detection = detections[0];
               const { detection: box, landmarks } = detection;
               
-              console.log('Face detected:', box);
-              console.log('Landmarks detected:', landmarks ? 'Yes' : 'No');
-              
               const normalized = normalizeFaceBox(box);
               const facePos = normalized ? {
                 x: normalized.x,
@@ -749,16 +745,6 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
       return;
     }
 
-    // 1) Lighting (independent of landmarks)
-    const lightingGuidance = getLightingGuidance(normalizedBox);
-    if (lightingGuidance.needsImprovement) {
-      if (guidanceMessage !== lightingGuidance.message) {
-        setGuidanceMessage(lightingGuidance.message);
-        setGuidanceType('positioning');
-      }
-      return;
-    }
-
     // 2) Position in guide box
     if (landmarks && landmarks.positions.length > 0) {
       const allLandmarksInBox = areLandmarksInGuideBox(landmarks.positions, normalizedBox);
@@ -800,158 +786,6 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
       setGuidanceMessage(newMessage);
       setGuidanceType('ready');
     }
-  };
-
-  const getLightingGuidance = (faceBox: any): { needsImprovement: boolean; message: string } => {
-    console.log('=== LIGHTING GUIDANCE CALLED ===');
-    
-    if (!videoRef.current) {
-      console.log('Lighting: Missing video element');
-      return { needsImprovement: false, message: '' };
-    }
-
-    const video = videoRef.current;
-    
-    // Check if video is ready
-    if (video.readyState < 2) {
-      console.log('Lighting: Video not ready');
-      return { needsImprovement: false, message: '' };
-    }
-
-    // Validate faceBox object and its properties
-    if (!faceBox || typeof faceBox !== 'object') {
-      console.log('Lighting: Invalid faceBox object');
-      return { needsImprovement: false, message: '' };
-    }
-
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-    
-    if (!ctx) {
-      console.log('Lighting: No canvas context');
-      return { needsImprovement: false, message: '' };
-    }
-
-    // Set canvas dimensions to match video size
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-
-    console.log('=== FACE BOX DEBUG ===');
-    console.log('Raw faceBox:', faceBox);
-    console.log('faceBox.x:', faceBox.x, typeof faceBox.x);
-    console.log('faceBox.y:', faceBox.y, typeof faceBox.y);
-    console.log('faceBox.width:', faceBox.width, typeof faceBox.width);
-    console.log('faceBox.height:', faceBox.height, typeof faceBox.height);
-
-    // Validate and sanitize face box coordinates
-    const rawFaceX = Number(faceBox.x);
-    const rawFaceY = Number(faceBox.y);
-    const rawFaceWidth = Number(faceBox.width);
-    const rawFaceHeight = Number(faceBox.height);
-
-    // Check for valid numbers
-    if (!Number.isFinite(rawFaceX) || !Number.isFinite(rawFaceY) || 
-        !Number.isFinite(rawFaceWidth) || !Number.isFinite(rawFaceHeight)) {
-      console.log('Lighting: Invalid numeric values in faceBox');
-      return { needsImprovement: false, message: '' };
-    }
-
-    // Draw current video frame to canvas
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-    
-    // Validate and clamp face box coordinates to canvas bounds
-    const faceX = Math.floor(Math.max(0, Math.min(rawFaceX, canvas.width)));
-    const faceY = Math.floor(Math.max(0, Math.min(rawFaceY, canvas.height)));
-    const maxWidth = canvas.width - faceX;
-    const maxHeight = canvas.height - faceY;
-    const faceWidth = Math.floor(Math.max(1, Math.min(rawFaceWidth, maxWidth)));
-    const faceHeight = Math.floor(Math.max(1, Math.min(rawFaceHeight, maxHeight)));
-    
-    console.log('=== VALIDATED COORDINATES ===');
-    console.log('faceX:', faceX, 'faceY:', faceY);
-    console.log('faceWidth:', faceWidth, 'faceHeight:', faceHeight);
-    console.log('canvas:', canvas.width, 'x', canvas.height);
-    
-    // Ensure dimensions are valid positive integers within bounds
-    if (faceWidth <= 0 || faceHeight <= 0 || 
-        faceX < 0 || faceY < 0 || 
-        faceX >= canvas.width || faceY >= canvas.height ||
-        faceX + faceWidth > canvas.width || faceY + faceHeight > canvas.height) {
-      console.warn('Invalid face dimensions after validation:', { 
-        faceX, faceY, faceWidth, faceHeight, 
-        canvasWidth: canvas.width, 
-        canvasHeight: canvas.height 
-      });
-      return { needsImprovement: false, message: '' };
-    }
-    
-    try {
-      // Extract face region image data with validated coordinates
-      const faceImageData = ctx.getImageData(faceX, faceY, faceWidth, faceHeight);
-      
-      // Calculate luminance for the face region
-      const luminance = calculateLuminance(faceImageData);
-      
-      console.log('=== LIGHTING DEBUG ===');
-      console.log('Face region luminance:', luminance.toFixed(3));
-      console.log('ImageData size:', faceImageData.width, 'x', faceImageData.height);
-
-      // More aggressive lighting thresholds for better guidance
-      if (luminance < 0.20) {
-        console.log('Lighting: Too dark');
-        return {
-          needsImprovement: true,
-          message: 'Face toward a light source - lighting is too dark'
-        };
-      } else if (luminance > 0.80) {
-        console.log('Lighting: Too bright');
-        return {
-          needsImprovement: true,
-          message: 'Move away from bright light - lighting is too bright'
-        };
-      } else if (luminance < 0.35) {
-        console.log('Lighting: Poor lighting');
-        return {
-          needsImprovement: true,
-          message: 'Turn toward more light for better visibility'
-        };
-      } else if (luminance > 0.65) {
-        console.log('Lighting: Harsh lighting');
-        return {
-          needsImprovement: true,
-          message: 'Reduce screen brightness or move away from window'
-        };
-      }
-
-      console.log('Lighting: Good lighting');
-      return { needsImprovement: false, message: '' };
-      
-    } catch (error) {
-      console.error('Error in lighting analysis:', error);
-      console.error('Failed coordinates:', { faceX, faceY, faceWidth, faceHeight });
-      return { needsImprovement: false, message: '' };
-    }
-  };
-
-  const calculateLuminance = (imageData: ImageData): number => {
-    const data = imageData.data;
-    let totalLuminance = 0;
-    let pixelCount = 0;
-
-    // Sample every 4th pixel to reduce computation
-    for (let i = 0; i < data.length; i += 16) { // 4 pixels * 4 channels = 16
-      const r = data[i];
-      const g = data[i + 1];
-      const b = data[i + 2];
-      
-      // Calculate luminance using standard RGB to luminance conversion
-      const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-      
-      totalLuminance += luminance;
-      pixelCount++;
-    }
-
-    return pixelCount > 0 ? totalLuminance / pixelCount : 0;
   };
 
   const normalizeFaceBox = (rawBox: any): { x: number; y: number; width: number; height: number } | null => {
@@ -1027,12 +861,6 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
     const asymmetry = Math.abs(leftDistance - rightDistance);
     const avgDistance = (leftDistance + rightDistance) / 2;
     const asymmetryRatio = avgDistance > 0 ? asymmetry / avgDistance : 0;
-
-    console.log('=== ANGLE DEBUG ===');
-    console.log('Left distance:', leftDistance.toFixed(2));
-    console.log('Right distance:', rightDistance.toFixed(2));
-    console.log('Asymmetry ratio:', asymmetryRatio.toFixed(3));
-    console.log('Threshold: 0.15');
 
     // If asymmetry is significant (more than 15% difference), guide user to turn
     if (asymmetryRatio > 0.15) {
@@ -1130,22 +958,9 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
     const originalWidth = video.videoWidth;
     const originalHeight = video.videoHeight;
     
-    // Log video element dimensions and styling
-    console.log('=== CAMERA CAPTURE STEP DEBUG ===');
-    console.log('1. Video natural dimensions:', video.videoWidth, 'x', video.videoHeight);
-    console.log('2. Video display dimensions (client):', video.clientWidth, 'x', video.clientHeight);
-    console.log('3. Video offset dimensions:', video.offsetWidth, 'x', video.offsetHeight);
-    console.log('4. Video aspect ratio:', (originalWidth / originalHeight).toFixed(3));
-    console.log('5. Video CSS class:', video.className);
-    console.log('6. Video style transform:', video.style.transform);
-    console.log('7. Video scale:', currentCamera === 'front' ? 'scaleX(-1)' : 'none');
-    console.log('8. Video object-fit: object-contain');
-    
     // Set canvas to original video dimensions for full resolution capture
     canvas.width = originalWidth;
     canvas.height = originalHeight;
-    
-    console.log('9. Canvas dimensions set to original video size:', canvas.width, 'x', canvas.height);
     
     // Clear canvas with white background
     ctx.fillStyle = '#FFFFFF';
@@ -1161,24 +976,15 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
         -originalWidth, 0, originalWidth, originalHeight  // Destination rectangle (mirrored)
       );
       ctx.restore();
-      console.log('10. Applied horizontal flip for front camera');
     } else {
       ctx.drawImage(
         video,
         0, 0, originalWidth, originalHeight,  // Source rectangle (full video)
         0, 0, originalWidth, originalHeight  // Destination rectangle (full resolution)
       );
-      console.log('10. No flip applied for back camera');
     }
     
     const imageData = canvas.toDataURL('image/jpeg', 1.0);
-    
-    // Log the captured image data
-    console.log('11. Captured image data URL length:', imageData.length);
-    console.log('12. Estimated image size in KB:', Math.round(imageData.length * 0.75 / 1024));
-    console.log('13. Image quality: 1.0 (maximum)');
-    console.log('14. Captured full resolution image:', originalWidth, 'x', originalHeight);
-    console.log('=== END CAMERA CAPTURE STEP DEBUG ===');
     
     setCapturedImage(imageData);
     setCameraState('preview');
@@ -1193,13 +999,6 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
 
   const confirmPhoto = () => {
     if (capturedImage) {
-      console.log('=== CONFIRM PHOTO DEBUG ===');
-      console.log('1. Image data URL length:', capturedImage.length);
-      console.log('2. Image data URL preview (first 100 chars):', capturedImage.substring(0, 100));
-      console.log('3. Image data URL preview (last 100 chars):', capturedImage.substring(capturedImage.length - 100));
-      console.log('4. Calling onNext with captured image...');
-      console.log('=== END CONFIRM PHOTO DEBUG ===');
-      
       onNext(capturedImage);
     }
   };
@@ -1488,18 +1287,6 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
               >
                 <Upload size={24} className="text-white" />
               </button>
-            </div>
-            
-            {/* Tips */}
-            <div className="text-center text-xs text-white mt-4">
-              <p className="flex items-center justify-center gap-1 mb-1">
-                <Move className="w-3 h-3" />
-                <span>Posiziona il tuo viso al centro</span>
-              </p>
-              <p className="flex items-center justify-center gap-1">
-                <CheckCircle className="w-3 h-3" />
-                <span>Buona illuminazione per i migliori risultati</span>
-              </p>
             </div>
           </>
         )}

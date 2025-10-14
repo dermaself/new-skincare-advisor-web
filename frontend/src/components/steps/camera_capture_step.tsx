@@ -1209,6 +1209,7 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
         if (imageData) {
           setCapturedImage(imageData);
           setCameraState('preview');
+          setShowDesktopGate(false);
           stopCamera();
         }
       };
@@ -1270,12 +1271,20 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
               >
                 Continue on desktop
               </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleFileUpload}
+                className="hidden"
+                aria-label="Seleziona file immagine"
+              />
               <label
                 className="w-full sm:max-w-xs relative rounded-md bg-white/20 hover:bg-white/30 text-white px-4 py-3 text-center transition cursor-pointer"
                 aria-label="Upload from device"
                 role="button"
                 tabIndex={0}
-                onClick={() => fileInputRef.current?.click()}
+                onClick={openFileDialog}
               >
                 Upload from device
               </label>

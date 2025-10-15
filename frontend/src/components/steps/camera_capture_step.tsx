@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Camera, SwitchCameraIcon, CheckCircle, Upload, Move } from 'lucide-react';
+import { Camera, SwitchCameraIcon, CheckCircle, Upload, CheckCircle2, Redo, Redo2 } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 import { QRCodeSVG } from 'qrcode.react';
 import DesktopPhotoReceiver from './DesktopPhotoReceiver';
@@ -1035,7 +1035,7 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
     >
       {/* Desktop Gate (desktop only) */}
       {showDesktopGate && !isMobile && (
-        <div className="flex-1 relative bg-black/70 backdrop-blur-md overflow-hidden flex items-center justify-center p-6">
+        <div className="flex-1 relative bg-black/70 backdrop-blur-md overflow-y-auto p-6">
           <div className="flex size-full flex-col items-center p-4 max-w-full">
             <div className="my-auto flex flex-col items-center justify-center gap-6">
               <div className="relative mb-10 flex items-center justify-center overflow-hidden rounded-2xl bg-white text-white p-4">
@@ -1110,7 +1110,7 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
           </div>
         )}
         
-        {error && (
+        {!capturedImage && error && (
           <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-75 z-10">
             <div className="text-white text-center p-4">
               <p className="mb-4">{error}</p>
@@ -1190,24 +1190,6 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
                 </AnimatePresence>
               </div>
             </div>
-            
-            {/* Camera indicator */}
-            <div className="absolute top-4 right-4 bg-black/50 backdrop-blur-sm rounded-full px-3 py-1">
-              <span className="text-white text-sm font-medium">
-                {currentCamera === 'front' ? 'Fotocamera Anteriore' : 'Fotocamera Posteriore'}
-              </span>
-            </div>
-            
-            {/* Face Detection Debug Info */}
-            {faceApiAvailable && (
-              <div className="absolute top-4 left-4 bg-black/50 backdrop-blur-sm rounded-lg px-3 py-2 z-20">
-                <div className="text-white text-xs">
-                  <div>Faces: {detectedFaces.length}</div>
-                  <div>Model: {modelsLoaded ? '✓' : '✗'}</div>
-                  <div>API: {faceApiAvailable ? '✓' : '✗'}</div>
-                </div>
-              </div>
-            )}
           </div>
         )}
         
@@ -1222,18 +1204,6 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
                 maxHeight: '100%',
                 width: 'auto',
                 height: 'auto'
-              }}
-              onLoad={(e) => {
-                const img = e.target as HTMLImageElement;
-                console.log('=== PREVIEW DEBUG (camera_capture_step) ===');
-                console.log('1. Image natural dimensions:', img.naturalWidth, 'x', img.naturalHeight);
-                console.log('2. Image display dimensions:', img.offsetWidth, 'x', img.offsetHeight);
-                console.log('3. Image client dimensions:', img.clientWidth, 'x', img.clientHeight);
-                console.log('4. Image aspect ratio:', (img.naturalWidth / img.naturalHeight).toFixed(3));
-                console.log('5. Image display aspect ratio:', (img.offsetWidth / img.offsetHeight).toFixed(3));
-                console.log('6. Image CSS class:', img.className);
-                console.log('7. Container dimensions:', img.parentElement?.offsetWidth, 'x', img.parentElement?.offsetHeight);
-                console.log('=== END PREVIEW DEBUG ===');
               }}
             />
           </div>
@@ -1279,7 +1249,14 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
               >
                 <Camera size={28} className="text-white" />
               </button>
-              
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleFileUpload}
+                className="hidden"
+                aria-label="Seleziona file immagine"
+              />
               {/* Upload Button - Mobile optimized */}
               <button
                 onClick={openFileDialog}
@@ -1297,21 +1274,22 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
           <div className="flex items-center justify-center gap-3 sm:gap-4">
             <button
               onClick={retakePhoto}
-              className="px-6 py-3 sm:px-8 sm:py-4 bg-gray-200 hover:bg-gray-300 active:bg-gray-400 text-gray-700 rounded-lg transition-colors touch-manipulation font-semibold"
-              title="Scatta di nuovo"
-              aria-label="Scatta di nuovo"
+              className="px-6 py-3 sm:px-8 sm:py-4 bg-gray-200 hover:bg-gray-300 active:bg-gray-400 text-gray-700 rounded-lg transition-colors flex items-center gap-2 touch-manipulation font-semibold"
+              title="Retake"
+              aria-label="Retake"
             >
-              Scatta di nuovo
+              <Redo2 size={20} />
+              Retake
             </button>
             
             <button
               onClick={confirmPhoto}
               className="px-6 py-3 sm:px-8 sm:py-4 bg-purple-600 hover:bg-purple-700 active:bg-purple-800 text-white rounded-lg transition-colors flex items-center gap-2 touch-manipulation font-semibold"
-              title="Usa Foto"
+              title="Send"
               aria-label="Usa questa foto per l'analisi"
             >
-              <CheckCircle size={20} />
-              Usa Foto
+              <CheckCircle2 size={20} />
+              Send
             </button>
           </div>
         )}

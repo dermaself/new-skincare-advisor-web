@@ -78,24 +78,25 @@ const ACNE_COLORS = {
   "Nodules": "#ff914d",
   "Freckles": "green",
   "Cysts": "#ff7875",
+  "Spot": "#ff6b9d",
 };
 
 const REDNESS_COLOR = '#FF4757';
 const REDNESS_OPACITY = 0.8;
 
-// NEW: Wrinkles color mapping
+// NEW: Wrinkles color mapping with transparency (66 = ~40% opacity)
 const WRINKLES_COLORS = {
-  'forehead': '#9900ff',
-  'crows_feet': '#ff6600', 
-  'nasolabial_fold': '#00ccff',
-  'frown': '#ff0066',
-  'tear_through': '#66ff00',
-  'mental_crease': '#ffcc00',
-  'bunny_line': '#ff9900',
-  'droppy_eyelid': '#cc00ff',
-  'marionette_line': '#00ffcc',
-  'neck_lines': '#ffff00',
-  'purse_string': '#ff00cc'
+  'forehead': '#9900ff66',
+  'crows_feet': '#ff660066', 
+  'nasolabial_fold': '#00ccff66',
+  'frown': '#ff006666',
+  'tear_through': '#66ff0066',
+  'mental_crease': '#ffcc0066',
+  'bunny_line': '#ff990066',
+  'droppy_eyelid': '#cc00ff66',
+  'marionette_line': '#00ffcc66',
+  'neck_lines': '#ffff0066',
+  'purse_string': '#ff00cc66'
 };
 
 const getWrinkleColor = (className: string) => {
@@ -138,7 +139,7 @@ export default function SkinAnalysisImage({
 
   // Create multiple images for carousel (analysis versions only)
   const carouselImages = [
-    { url: imageUrl, label: 'Analisi Acne', view: 'acne' as const },
+    { url: imageUrl, label: 'Analisi Imperfezioni', view: 'acne' as const },
     { url: imageUrl, label: 'Analisi Rossore', view: 'redness' as const },
     { url: imageUrl, label: 'Analisi Rughe', view: 'wrinkles' as const }
   ];
@@ -247,15 +248,12 @@ export default function SkinAnalysisImage({
   const drawWrinklesDetections = useCallback((ctx: CanvasRenderingContext2D) => {
     if (!analysisData.wrinkles?.predictions) return;
 
-    analysisData.wrinkles.predictions.forEach((prediction, index) => {
+    analysisData.wrinkles.predictions.forEach((prediction) => {
       const color = getWrinkleColor(prediction.class);
-      ctx.strokeStyle = color;
-      ctx.lineWidth = 2;
-      ctx.lineCap = 'round';
-      ctx.lineJoin = 'round';
-
-      if (prediction.points && prediction.points.length > 0) {
-        // Draw detailed wrinkle lines using points
+      ctx.fillStyle = color; // Use fillStyle instead of strokeStyle
+      
+      if (prediction.points && prediction.points.length >= 2) {
+        // Draw filled polygon areas using points
         let adjustedPoints = prediction.points;
         if (analysisData.wrinkles?.scaling_factors && 
             (analysisData.wrinkles.scaling_factors.x !== 1 || analysisData.wrinkles.scaling_factors.y !== 1)) {
@@ -274,19 +272,16 @@ export default function SkinAnalysisImage({
           ctx.lineTo(point.x * scaleFactors.x, point.y * scaleFactors.y);
         }
         
-        ctx.stroke();
+        ctx.closePath(); // Close the polygon
+        ctx.fill();      // Fill the area instead of stroking
       } else {
-        // Fallback: render bounding box
+        // Fallback: render filled bounding box
         const x = (prediction.x - prediction.width / 2) * scaleFactors.x;
         const y = (prediction.y - prediction.height / 2) * scaleFactors.y;
         const width = prediction.width * scaleFactors.x;
         const height = prediction.height * scaleFactors.y;
-
-        ctx.setLineDash([5, 5]);
-        ctx.globalAlpha = 0.8;
-        ctx.strokeRect(x, y, width, height);
-        ctx.setLineDash([]);
-        ctx.globalAlpha = 1;
+        
+        ctx.fillRect(x, y, width, height);
       }
     });
   }, [analysisData.wrinkles, scaleFactors]);

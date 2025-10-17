@@ -7,6 +7,7 @@ function computeAcneMetrics(predictions = []) {
     "Nodules",
     "Papules",
     "Pustules",
+    "Spot",
   ];
 
   const filtered = predictions.filter((p) => !unwanted.has(p.class));

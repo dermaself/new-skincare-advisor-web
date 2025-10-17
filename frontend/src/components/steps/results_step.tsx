@@ -377,7 +377,7 @@ export default function ResultsStep({
                           <span className="text-sm font-semibold text-purple-600">{analysisData.skin_type || 'Normale'}</span>
                         </div>
                         <div className="flex justify-between items-center p-3 bg-purple-50 rounded-xl">
-                          <span className="text-sm font-medium text-gray-700">Analisi Acne</span>
+                          <span className="text-sm font-medium text-gray-700">Analisi Imperfezioni</span>
                           <span className="text-sm font-semibold text-purple-600">{analysisData.acne?.severity || 'Nessuna rilevata'}</span>
                         </div>
                         <div className="flex justify-between items-center p-3 bg-purple-50 rounded-xl">

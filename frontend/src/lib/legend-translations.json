@@ -11,6 +11,7 @@
     "Nodules": { "en": "Nodules", "it": "Noduli" },
     "Freckles": { "en": "Freckles", "it": "Lentiggini" },
     "Cysts": { "en": "Cysts", "it": "Cisti" },
+    "Spot": { "en": "Spot", "it": "Macchia" },
     "Redness": { "en": "Redness", "it": "Rossore" }
   },
   "redness": {
